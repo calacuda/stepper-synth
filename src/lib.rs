@@ -11,12 +11,9 @@ use midir::MidiInput;
 use midir::{Ignore, PortInfoError};
 use pygame_coms::{PythonCmd, State, SynthParam};
 use pyo3::prelude::*;
-// use rodio::OutputStream;
-use rodio::Source;
 use std::collections::HashMap;
 use std::time::Duration;
 use std::{
-    // process::exit,
     sync::{Arc, Mutex},
     thread::spawn,
 };
@@ -60,24 +57,6 @@ impl Iterator for Player {
         let sample = self.synth.lock().expect("couldn't lock synth").get_sample();
         // println!("locked");
         Some(sample)
-    }
-}
-
-impl Source for Player {
-    fn channels(&self) -> u16 {
-        1
-    }
-
-    fn sample_rate(&self) -> u32 {
-        SAMPLE_RATE
-    }
-
-    fn current_frame_len(&self) -> Option<usize> {
-        None
-    }
-
-    fn total_duration(&self) -> Option<Duration> {
-        None
     }
 }
 
