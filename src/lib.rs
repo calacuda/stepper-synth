@@ -11,19 +11,20 @@ use midir::MidiInput;
 use midir::{Ignore, PortInfoError};
 use pygame_coms::{PythonCmd, State, SynthParam};
 use pyo3::prelude::*;
-use rodio::OutputStream;
+// use rodio::OutputStream;
 use rodio::Source;
 use std::collections::HashMap;
 use std::time::Duration;
 use std::{
-    process::exit,
+    // process::exit,
     sync::{Arc, Mutex},
     thread::spawn,
 };
 use synth_engines::Synth;
+use tinyaudio::prelude::*;
 // use synth_rt::synth::Synth;
 
-pub const SAMPLE_RATE: u32 = 44_100;
+pub const SAMPLE_RATE: u32 = 48_000;
 
 pub mod effects;
 mod ipc;
@@ -315,15 +316,41 @@ fn start_audio() -> PyResult<TrackerIPC> {
             log::debug!("logger initiated");
         }
 
-        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+        let params = OutputDeviceParameters {
+            channels_count: 1,
+            sample_rate: SAMPLE_RATE as usize,
+            // channel_sample_count: 2048,
+            channel_sample_count: 1024,
+        };
 
-        // start output
-        if let Err(e) = stream_handle.play_raw(output) {
-            error!("[ERROR] => {e}");
-            exit(1);
-        } else {
-            info!("midi initialized");
-        }
+        let _device = run_output_device(params, move |data| {
+            for samples in data.chunks_mut(params.channels_count) {
+                // clock = (clock + 1.0) % params.sample_rate as f32;
+                // let value = (clock * 440.0 * 2.0 * std::f32::consts::PI
+                //     / params.sample_rate as f32)
+                //     .sin();
+                let value = output
+                    .synth
+                    .lock()
+                    .expect("couldn't lock synth")
+                    .get_sample();
+
+                for sample in samples {
+                    *sample = value;
+                }
+            }
+        })
+        .unwrap();
+
+        // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+        //
+        // // start output
+        // if let Err(e) = stream_handle.play_raw(output) {
+        //     error!("[ERROR] => {e}");
+        //     exit(1);
+        // } else {
+        //     info!("audio started");
+        // }
 
         if let Err(e) = run_midi(synth, my_ipc) {
             error!("{e}");
