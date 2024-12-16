@@ -9,40 +9,83 @@ use midi_control::KeyEvent;
 use midi_control::MidiMessage;
 use midir::MidiInput;
 use midir::{Ignore, PortInfoError};
-use pygame_coms::{PythonCmd, State, SynthParam};
+use pygame_coms::{GuiParam, Knob, PythonCmd, State, SynthParam};
 use pyo3::prelude::*;
 use std::collections::HashMap;
-use std::time::Duration;
 use std::{
     sync::{Arc, Mutex},
     thread::spawn,
 };
 use synth_engines::Synth;
 use tinyaudio::prelude::*;
-// use synth_rt::synth::Synth;
 
 pub const SAMPLE_RATE: u32 = 48_000;
 
 pub mod effects;
-mod ipc;
-// mod organ;
-mod pygame_coms;
+pub mod ipc;
+pub mod pygame_coms;
 pub mod synth_engines;
-// pub mod synth_common;
 
 pub trait SampleGen {
     fn get_sample(&mut self) -> f32;
 }
 
+#[allow(unused_variables)]
 pub trait KnobCtrl {
-    fn knob_1(&mut self, value: f32) -> Option<SynthParam>;
-    fn knob_2(&mut self, value: f32) -> Option<SynthParam>;
-    fn knob_3(&mut self, value: f32) -> Option<SynthParam>;
-    fn knob_4(&mut self, value: f32) -> Option<SynthParam>;
-    fn knob_5(&mut self, value: f32) -> Option<SynthParam>;
-    fn knob_6(&mut self, value: f32) -> Option<SynthParam>;
-    fn knob_7(&mut self, value: f32) -> Option<SynthParam>;
-    fn knob_8(&mut self, value: f32) -> Option<SynthParam>;
+    // TODO: have these return a bool, representing if the system should send a state update
+    // message to the python front end.
+
+    // parameters edited by the MIDI controllers built in knobs
+    fn knob_1(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn knob_2(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn knob_3(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn knob_4(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn knob_5(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn knob_6(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn knob_7(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn knob_8(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+
+    // the parameters edited by the GUI
+    fn gui_param_1(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn gui_param_2(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn gui_param_3(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn gui_param_4(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn gui_param_5(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn gui_param_6(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn gui_param_7(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
+    fn gui_param_8(&mut self, value: f32) -> Option<SynthParam> {
+        None
+    }
 }
 
 pub struct Player {
@@ -53,9 +96,7 @@ impl Iterator for Player {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // println!("yet to lock");
         let sample = self.synth.lock().expect("couldn't lock synth").get_sample();
-        // println!("locked");
         Some(sample)
     }
 }
@@ -97,29 +138,22 @@ fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
             let synth = synth.clone();
             let tx = tx.clone();
 
-            // _conn_in needs to be a named parameter, because it needs to be kept alive until the end of the scope
             registered_ports.insert(
                 port_name,
                 midi_in.connect(
                     in_port,
                     "midir-read-input",
                     move |_stamp, message, _| {
-                        // println!("{}: {:?} (len = {})", stamp, message, message.len());
                         let message = MidiMessage::from(message);
-                        // do midi stuff
-
-                        // println!("midi messagze => {message:?} on port {port_name:?}");
                         let send = |msg: State| send_mesg(&tx, msg);
 
+                        // do midi stuff
                         match message {
                             MidiMessage::Invalid => {
-                                // info!("midi_cmd_buf => {message:?}");
-                                error!("midi_cmd -> {message:?}");
-                                // info!("midi cmd => {:?}", MidiMessage::from(message));
-                                error!("midi command invalid");
+                                error!("system recieved an invalid MIDI message.");
                             }
                             MidiMessage::NoteOn(_, KeyEvent { key, value }) => {
-                                println!("playing note: {key}");
+                                debug!("playing note: {key}");
                                 synth.lock().unwrap().engine.play(key, value)
                             }
                             MidiMessage::NoteOff(_, KeyEvent { key, value: _ }) => {
@@ -141,50 +175,15 @@ fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
                                 let value = value as f32 / 127.0;
 
                                 match control {
-                                    70 => {
-                                        // synth.lock().unwrap().set_atk(value);
-                                        // send(SynthParam::Atk(value));
-                                        synth.lock().unwrap().engine.knob_1(value)
-                                    }
-                                    71 => {
-                                        // synth.lock().unwrap().set_decay(value);
-                                        // send(SynthParam::Dcy(value));
-                                        synth.lock().unwrap().engine.knob_2(value)
-                                    }
-                                    72 => {
-                                        // synth.lock().unwrap().set_sus(value);
-                                        // send(SynthParam::Sus(value));
-                                        synth.lock().unwrap().engine.knob_3(value)
-                                    }
-                                    73 => {
-                                        // synth.lock().unwrap().set_release(value);
-                                        // send(SynthParam::Rel(value));
-                                        synth.lock().unwrap().engine.knob_4(value)
-                                    }
-
-                                    74 => {
-                                        // synth.lock().unwrap().set_cutoff(value);
-                                        // send(SynthParam::FilterCutoff(value));
-                                        synth.lock().unwrap().engine.knob_5(value)
-                                    }
-                                    75 => {
-                                        // synth.lock().unwrap().set_re.sonace(value);
-                                        // send(SynthParam::FilterRes(value));
-                                        synth.lock().unwrap().engine.knob_6(value)
-                                    }
-                                    76 => {
-                                        // synth.lock().unwrap().set_chorus_depth(value);
-                                        // send(SynthParam::DelayVol(value));
-                                        synth.lock().unwrap().engine.knob_7(value)
-                                    }
-                                    77 => {
-                                        // synth.lock().unwrap().set_chorus_speed(value);
-                                        // send(SynthParam::DelayTime(value));
-                                        synth.lock().unwrap().engine.knob_8(value)
-                                    }
+                                    70 => synth.lock().unwrap().engine.knob_1(value),
+                                    71 => synth.lock().unwrap().engine.knob_2(value),
+                                    72 => synth.lock().unwrap().engine.knob_3(value),
+                                    73 => synth.lock().unwrap().engine.knob_4(value),
+                                    74 => synth.lock().unwrap().engine.knob_5(value),
+                                    75 => synth.lock().unwrap().engine.knob_6(value),
+                                    76 => synth.lock().unwrap().engine.knob_7(value),
+                                    77 => synth.lock().unwrap().engine.knob_8(value),
                                     1 => {
-                                        // synth.lock().unwrap().set_leslie_speed(value);
-                                        // send(SynthParam::SpeakerSpinSpeed(value));
                                         synth.lock().unwrap().engine.volume_swell(value);
                                         None
                                     }
@@ -202,34 +201,80 @@ fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
 
         let rx = my_ipc.rx.clone();
 
-        // loop {
         if let Ok(command) = rx.try_recv() {
-            match command {
-                PythonCmd::SetSynthParam(param) => match param {
-                    // TODO: rework the commands that the front end will send
+            // TODO: rework the commands that the front end will send
 
-                    // SynthParam::Atk(value) => synth.lock().unwrap().set_atk(value),
-                    // SynthParam::Dcy(value) => synth.lock().unwrap().set_decay(value),
-                    // SynthParam::Sus(value) => synth.lock().unwrap().set_sus(value),
-                    // SynthParam::Rel(value) => synth.lock().unwrap().set_release(value),
-                    // SynthParam::FilterCutoff(value) => synth.lock().unwrap().set_cutoff(value),
-                    // SynthParam::FilterRes(value) => synth.lock().unwrap().set_resonace(value),
-                    // SynthParam::DelayVol(value) => synth.lock().unwrap().set_chorus_depth(value),
-                    // SynthParam::DelayTime(value) => synth.lock().unwrap().set_chorus_speed(value),
-                    // SynthParam::SpeakerSpinSpeed(value) => {
-                    //     synth.lock().unwrap().set_leslie_speed(value)
-                    // }
-                    // SynthParam::PitchBend(_) => {
-                    //     error!("gui can not set pitch bend")
-                    // }
-                    _ => {}
-                },
+            // this match statement may be ugly, but it is long for the sake of efficiency.
+            match command {
+                PythonCmd::SetGuiParam {
+                    param: GuiParam::A,
+                    set_to,
+                } => synth.lock().unwrap().engine.gui_param_1(set_to),
+                PythonCmd::SetGuiParam {
+                    param: GuiParam::B,
+                    set_to,
+                } => synth.lock().unwrap().engine.gui_param_2(set_to),
+                PythonCmd::SetGuiParam {
+                    param: GuiParam::C,
+                    set_to,
+                } => synth.lock().unwrap().engine.gui_param_3(set_to),
+                PythonCmd::SetGuiParam {
+                    param: GuiParam::D,
+                    set_to,
+                } => synth.lock().unwrap().engine.gui_param_4(set_to),
+                PythonCmd::SetGuiParam {
+                    param: GuiParam::E,
+                    set_to,
+                } => synth.lock().unwrap().engine.gui_param_5(set_to),
+                PythonCmd::SetGuiParam {
+                    param: GuiParam::F,
+                    set_to,
+                } => synth.lock().unwrap().engine.gui_param_6(set_to),
+                PythonCmd::SetGuiParam {
+                    param: GuiParam::G,
+                    set_to,
+                } => synth.lock().unwrap().engine.gui_param_7(set_to),
+                PythonCmd::SetGuiParam {
+                    param: GuiParam::H,
+                    set_to,
+                } => synth.lock().unwrap().engine.gui_param_8(set_to),
+                PythonCmd::SetKnob {
+                    knob: Knob::One,
+                    set_to,
+                } => synth.lock().unwrap().engine.knob_1(set_to),
+                PythonCmd::SetKnob {
+                    knob: Knob::Two,
+                    set_to,
+                } => synth.lock().unwrap().engine.knob_2(set_to),
+                PythonCmd::SetKnob {
+                    knob: Knob::Three,
+                    set_to,
+                } => synth.lock().unwrap().engine.knob_3(set_to),
+                PythonCmd::SetKnob {
+                    knob: Knob::Four,
+                    set_to,
+                } => synth.lock().unwrap().engine.knob_4(set_to),
+                PythonCmd::SetKnob {
+                    knob: Knob::Five,
+                    set_to,
+                } => synth.lock().unwrap().engine.knob_5(set_to),
+                PythonCmd::SetKnob {
+                    knob: Knob::Six,
+                    set_to,
+                } => synth.lock().unwrap().engine.knob_6(set_to),
+                PythonCmd::SetKnob {
+                    knob: Knob::Seven,
+                    set_to,
+                } => synth.lock().unwrap().engine.knob_7(set_to),
+                PythonCmd::SetKnob {
+                    knob: Knob::Eight,
+                    set_to,
+                } => synth.lock().unwrap().engine.knob_8(set_to),
                 PythonCmd::Exit() => {
                     return Ok(());
                 }
-            }
+            };
         }
-        // }
     }
 }
 
@@ -302,12 +347,8 @@ fn start_audio() -> PyResult<TrackerIPC> {
             channel_sample_count: 1024,
         };
 
-        let _device = run_output_device(params, move |data| {
+        let device = run_output_device(params, move |data| {
             for samples in data.chunks_mut(params.channels_count) {
-                // clock = (clock + 1.0) % params.sample_rate as f32;
-                // let value = (clock * 440.0 * 2.0 * std::f32::consts::PI
-                //     / params.sample_rate as f32)
-                //     .sin();
                 let value = output
                     .synth
                     .lock()
@@ -318,18 +359,11 @@ fn start_audio() -> PyResult<TrackerIPC> {
                     *sample = value;
                 }
             }
-        })
-        .unwrap();
+        });
 
-        // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-        //
-        // // start output
-        // if let Err(e) = stream_handle.play_raw(output) {
-        //     error!("[ERROR] => {e}");
-        //     exit(1);
-        // } else {
-        //     info!("audio started");
-        // }
+        if let Err(e) = device {
+            error!("strating audio playback caused error: {e}");
+        }
 
         if let Err(e) = run_midi(synth, my_ipc) {
             error!("{e}");

@@ -1,10 +1,9 @@
+use super::{env::ADSR, moog_filter::LowPass};
 use crate::{
     synth_engines::organ::organ::{WaveTable, WAVE_TABLE_SIZE},
     SAMPLE_RATE,
 };
 use std::sync::Arc;
-
-use super::{env::ADSR, moog_filter::LowPass};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Overtone {
@@ -34,12 +33,26 @@ impl WavetableOscillator {
         self.index_increment = frequency * WAVE_TABLE_SIZE as f32 / self.sample_rate;
     }
 
-    pub fn get_sample(&mut self, wave_tables: &Arc<[(WaveTable, f32)]>) -> f32 {
+    pub fn get_samples(&mut self, wave_tables: &Arc<[(WaveTable, f32)]>) -> f32 {
         let mut sample = 0.0;
 
         for (table, weight) in wave_tables.iter() {
             sample += self.lerp(table) * weight;
         }
+
+        self.index += self.index_increment;
+        self.index %= WAVE_TABLE_SIZE as f32;
+
+        sample
+    }
+
+    pub fn get_sample(&mut self, table: &WaveTable) -> f32 {
+        // let mut sample = 0.0;
+        //
+        // for (table, weight) in wave_tables.iter() {
+        //     sample += self.lerp(table) * weight;
+        // }
+        let sample = self.lerp(table);
 
         self.index += self.index_increment;
         self.index %= WAVE_TABLE_SIZE as f32;
@@ -109,7 +122,19 @@ impl Oscillator {
         // self.playing = None;
     }
 
-    pub fn get_sample(&mut self, wave_table: &Arc<[(WaveTable, f32)]>) -> f32 {
+    pub fn get_samples(&mut self, wave_table: &Arc<[(WaveTable, f32)]>) -> f32 {
+        let env = self.env_filter.get_samnple();
+        let sample = self.wt_osc.get_samples(wave_table) * env;
+
+        if env <= 0.0 {
+            self.playing = None;
+        }
+        // println!("osc sample => {sample}");
+
+        self.low_pass.get_sample(sample, env)
+    }
+
+    pub fn get_sample(&mut self, wave_table: &WaveTable) -> f32 {
         let env = self.env_filter.get_samnple();
         let sample = self.wt_osc.get_sample(wave_table) * env;
 
@@ -122,7 +147,7 @@ impl Oscillator {
     }
 
     pub fn vibrato(&mut self, amt: f32) {
-        let amt = amt * 0.25;
+        let amt = amt * 0.4;
 
         let next_note = if amt > 0.0 {
             self.frequency * self.note_space

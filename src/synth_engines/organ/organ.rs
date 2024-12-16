@@ -110,7 +110,11 @@ impl WaveTables {
     fn build_sine_table(overtones: &[Overtone]) -> WaveTable {
         let mut wave_table = [0.0; WAVE_TABLE_SIZE];
 
-        let n_overtones = overtones.len();
+        let n_overtones = overtones
+            .iter()
+            .filter(|tone| tone.volume > 0.0)
+            .collect::<Vec<_>>()
+            .len();
 
         let bias = 1.0 / n_overtones as f32;
 
@@ -128,28 +132,28 @@ impl WaveTables {
         wave_table.into()
     }
 
-    fn index(&self, index: &Arc<[(OscType, f32)]>) -> Arc<[(WaveTable, f32)]> {
-        index
-            .iter()
-            .map(|(osc_type, vol)| {
-                (
-                    match osc_type {
-                        OscType::Sin => self.sin.clone(),
-                        OscType::Tri => self.tri.clone(),
-                        OscType::Sqr => self.sqr.clone(),
-                        OscType::Saw => self.saw.clone(),
-                    },
-                    vol / index.len() as f32,
-                )
-            })
-            .collect()
-    }
+    // fn index(&self, index: &Arc<[(OscType, f32)]>) -> Arc<[(WaveTable, f32)]> {
+    //     index
+    //         .iter()
+    //         .map(|(osc_type, vol)| {
+    //             (
+    //                 match osc_type {
+    //                     OscType::Sin => self.sin.clone(),
+    //                     OscType::Tri => self.tri.clone(),
+    //                     OscType::Sqr => self.sqr.clone(),
+    //                     OscType::Saw => self.saw.clone(),
+    //                 },
+    //                 vol / index.len() as f32,
+    //             )
+    //         })
+    //         .collect()
+    // }
 }
 
 pub struct Organ {
-    pub osc_s: [([Oscillator; VOICES], i16); 3],
-    pub wave_tables: WaveTables,
-    pub osc_type: [(OscType, f32); 3],
+    pub osc_s: [Oscillator; VOICES],
+    pub wave_table: WaveTable,
+    pub osc_type: OscType,
     pub overtones: [Overtone; 8],
     pub lfo: LFO,
     pub volume: f32,
@@ -176,27 +180,27 @@ impl Organ {
             Overtone {
                 overtone: 3.0,
                 // overtone: 4.0,
-                volume: 1.0,
+                volume: 0.5,
             },
             Overtone {
                 overtone: 4.0,
                 // overtone: 8.0,
-                volume: 1.0,
+                volume: 0.0,
             },
             Overtone {
                 overtone: 5.0,
                 // overtone: 16.0,
-                volume: 1.0,
+                volume: 0.0,
             },
             Overtone {
                 overtone: 6.0,
                 // overtone: 32.0,
-                volume: 1.0,
+                volume: 0.0,
             },
             Overtone {
                 overtone: 8.0,
                 // overtone: 64.0,
-                volume: 1.0,
+                volume: 0.0,
             },
             // Overtone {
             //     overtone: 9.0,
@@ -209,21 +213,24 @@ impl Organ {
             //     volume: 1.0,
             // },
         ];
-        let wave_tables = WaveTables::new(&overtones);
+        let wave_table = WaveTables::new(&overtones).sin;
         let mut lfo = LFO::new();
         lfo.set_frequency(400.0 / 60.0);
 
         Self {
-            osc_s: [([Oscillator::new(); VOICES], 0); 3],
-            wave_tables,
-            osc_type: [
-                // (OscType::Sin, 1.0),
-                (OscType::Saw, 1.0),
-                (OscType::Saw, 1.0),
-                (OscType::Saw, 1.0),
-                // (OscType::Tri, 0.75),
-                // (OscType::Sqr, 1.0),
-            ],
+            osc_s: [Oscillator::new(); VOICES],
+            wave_table,
+            osc_type: OscType::Sin,
+            // [
+            // (OscType::Sin, 1.0),
+            // (OscType::Sin, 1.0),
+            // (OscType::Sin, 1.0),
+            // (OscType::Saw, 1.0),
+            // (OscType::Saw, 1.0),
+            // (OscType::Saw, 1.0),
+            // (OscType::Tri, 0.75),
+            // (OscType::Sqr, 1.0),
+            // ],
             overtones,
             // osc_type: Arc::new([(OscType::Tri, 1.0)]),
             lfo,
@@ -234,7 +241,7 @@ impl Organ {
     }
 
     pub fn set_overtones(&mut self) {
-        self.wave_tables = WaveTables::new(&self.overtones);
+        self.wave_table = WaveTables::build_sine_table(&self.overtones);
     }
 
     pub fn get_sample(&mut self) -> f32 {
@@ -242,29 +249,27 @@ impl Organ {
         let lfo_sample = self.lfo.get_sample();
         // println!("lfo sample {lfo_sample}");
 
-        for (osc_s, _offset) in self.osc_s.iter_mut() {
+        for osc in self.osc_s.iter_mut() {
             // println!("{osc:?}");
-            for osc in osc_s {
-                if osc.playing.is_some() {
-                    // osc.for_each(|(osc, _offset)| {
-                    osc.vibrato(lfo_sample);
-                    // println!("playing");
-                    sample +=
-                        osc.get_sample(&self.wave_tables.index(&self.osc_type.clone().into()));
-                    // println!(
-                    //     "env => {}, {}",
-                    //     osc.env_filter.get_samnple(),
-                    //     osc.env_filter.phase
-                    // );
-                    // });
-                }
+            // for osc in osc_s {
+            if osc.playing.is_some() {
+                // osc.for_each(|(osc, _offset)| {
+                osc.vibrato(lfo_sample);
+                // println!("playing");
+                sample += osc.get_sample(&self.wave_table);
+                // println!(
+                //     "env => {}, {}",
+                //     osc.env_filter.get_samnple(),
+                //     osc.env_filter.phase
+                // );
+                // });
             }
+            // }
         }
 
-        let sample = sample * (self.volume + lfo_sample * 0.0125);
+        sample *= self.volume;
+        sample += sample * lfo_sample * 0.25;
         sample.tanh()
-        // println!("synth sample => {sample}");
-        // sample * self.volume
     }
 
     pub fn play(&mut self, midi_note: MidiNote, _velocity: u8) {
@@ -274,31 +279,34 @@ impl Organ {
         //     return;
         // };
 
-        for (osc_s, _offset) in self.osc_s.iter_mut() {
-            for osc in osc_s {
-                if osc.playing == Some(midi_note) {
-                    return;
-                }
+        // for (osc_s, _offset) in self.osc_s.iter_mut() {
+        //     for osc in osc_s {
+        for osc in self.osc_s.iter_mut() {
+            if osc.playing == Some(midi_note) {
+                return;
             }
         }
+        // }
 
-        for (osc_s, offset) in self.osc_s.iter_mut() {
-            for osc in osc_s {
-                if osc.playing.is_none() {
-                    let note = if *offset > 0 {
-                        midi_note + (*offset as u8)
-                    } else {
-                        // println!("offset {} -> {}", offset, (offset.abs() as u8));
-                        midi_note - (offset.abs() as u8)
-                    };
-                    osc.press(note);
-                    osc.playing = Some(midi_note);
-                    // println!("playing note on osc {i}");
+        // for (osc_s, offset) in self.osc_s.iter_mut() {
+        //     for osc in osc_s {
+        for osc in self.osc_s.iter_mut() {
+            if osc.playing.is_none() {
+                // let note = midi_note;
+                // if *offset > 0 {
+                //     midi_note + (*offset as u8)
+                // } else {
+                //     // println!("offset {} -> {}", offset, (offset.abs() as u8));
+                //     midi_note - (offset.abs() as u8)
+                // };
+                osc.press(midi_note);
+                osc.playing = Some(midi_note);
+                // println!("playing note on osc {i}");
 
-                    break;
-                }
+                break;
             }
         }
+        // }
     }
 
     pub fn stop(&mut self, midi_note: MidiNote) {
@@ -308,42 +316,45 @@ impl Organ {
         //     return;
         // };
 
-        for (osc_s, _offset) in self.osc_s.iter_mut() {
-            for osc in osc_s {
-                // let note = if *offset > 0 {
-                //     midi_note + (*offset as u8)
-                // } else {
-                //     // println!("offset {} -> {}", offset, (offset.abs() as u8));
-                //     midi_note - (offset.abs() as u8)
-                // };
+        // for (osc_s, _offset) in self.osc_s.iter_mut() {
+        //     for osc in osc_s {
+        for osc in self.osc_s.iter_mut() {
+            // let note = if *offset > 0 {
+            //     midi_note + (*offset as u8)
+            // } else {
+            //     // println!("offset {} -> {}", offset, (offset.abs() as u8));
+            //     midi_note - (offset.abs() as u8)
+            // };
 
-                if osc.playing == Some(midi_note) {
-                    // println!("release");
-                    osc.release();
-                    break;
-                }
+            if osc.playing == Some(midi_note) {
+                // println!("release");
+                osc.release();
+                break;
             }
         }
+        // }
     }
 
     pub fn bend_all(&mut self, bend: f32) {
-        for (osc_s, _offset) in self.osc_s.iter_mut() {
-            for osc in osc_s {
-                if osc.playing.is_some() {
-                    osc.bend(bend);
-                }
+        // for (osc_s, _offset) in self.osc_s.iter_mut() {
+        // for osc in osc_s {
+        for osc in self.osc_s.iter_mut() {
+            if osc.playing.is_some() {
+                osc.bend(bend);
             }
         }
+        // }
     }
 
     pub fn unbend(&mut self) {
-        for (osc_s, _offset) in self.osc_s.iter_mut() {
-            for osc in osc_s {
-                if osc.playing.is_some() {
-                    osc.unbend();
-                }
+        // for (osc_s, _offset) in self.osc_s.iter_mut() {
+        //     for osc in osc_s {
+        for osc in self.osc_s.iter_mut() {
+            if osc.playing.is_some() {
+                osc.unbend();
             }
         }
+        // }
     }
 
     pub fn set_volume(&mut self, vol: f32) {
@@ -351,53 +362,59 @@ impl Organ {
     }
 
     pub fn set_atk(&mut self, atk: f32) {
-        for (osc_s, _offset) in self.osc_s.iter_mut() {
-            for osc in osc_s {
-                osc.env_filter.set_atk(atk);
-            }
+        // for (osc_s, _offset) in self.osc_s.iter_mut() {
+        //     for osc in osc_s {
+        for osc in self.osc_s.iter_mut() {
+            osc.env_filter.set_atk(atk);
         }
+        // }
     }
 
     pub fn set_decay(&mut self, decay: f32) {
-        for (osc_s, _offset) in self.osc_s.iter_mut() {
-            for osc in osc_s {
-                osc.env_filter.set_decay(decay);
-            }
+        // for (osc_s, _offset) in self.osc_s.iter_mut() {
+        //     for osc in osc_s {
+        for osc in self.osc_s.iter_mut() {
+            osc.env_filter.set_decay(decay);
         }
+        // }
     }
 
     pub fn set_sus(&mut self, sus: f32) {
-        for (osc_s, _offset) in self.osc_s.iter_mut() {
-            for osc in osc_s {
-                osc.env_filter.set_sus(sus);
-            }
+        // for (osc_s, _offset) in self.osc_s.iter_mut() {
+        //     for osc in osc_s {
+        for osc in self.osc_s.iter_mut() {
+            osc.env_filter.set_sus(sus);
         }
+        // }
     }
 
     pub fn set_release(&mut self, release: f32) {
-        for (osc_s, _offset) in self.osc_s.iter_mut() {
-            for osc in osc_s {
-                osc.env_filter.set_release(release);
-            }
+        // for (osc_s, _offset) in self.osc_s.iter_mut() {
+        //     for osc in osc_s {
+        for osc in self.osc_s.iter_mut() {
+            osc.env_filter.set_release(release);
         }
+        // }
     }
 
     pub fn set_cutoff(&mut self, cutoff: f32) {
         let cutoff = cutoff * 10_000.0;
 
-        for (osc_s, _offset) in self.osc_s.iter_mut() {
-            for osc in osc_s {
-                osc.low_pass.set_cutoff(cutoff);
-            }
+        // for (osc_s, _offset) in self.osc_s.iter_mut() {
+        //     for osc in osc_s {
+        for osc in self.osc_s.iter_mut() {
+            osc.low_pass.set_cutoff(cutoff);
         }
+        // }
     }
 
     pub fn set_resonace(&mut self, resonace: f32) {
-        for (osc_s, _offset) in self.osc_s.iter_mut() {
-            for osc in osc_s {
-                osc.low_pass.set_resonace(resonace);
-            }
+        // for (osc_s, _offset) in self.osc_s.iter_mut() {
+        //     for osc in osc_s {
+        for osc in self.osc_s.iter_mut() {
+            osc.low_pass.set_resonace(resonace);
         }
+        // }
     }
 
     // pub fn set_chorus_speed(&mut self, speed: f32) {
@@ -411,6 +428,12 @@ impl Organ {
     pub fn set_leslie_speed(&mut self, speed: f32) {
         self.lfo.set_frequency((400.0 * speed) / 60.0);
         self.lfo.set_volume(speed);
+    }
+
+    fn set_overtone(&mut self, overtone: usize, presence: f32) {
+        self.overtones[overtone].volume = presence as f64;
+
+        self.set_overtones();
     }
 
     // pub fn set_atk(&mut self, atk: f32) {}
@@ -436,6 +459,7 @@ impl SynthEngine for Organ {
     fn volume_swell(&mut self, amount: f32) {
         // self.vol
         // TODO: Write this
+        self.set_leslie_speed(amount)
     }
 }
 
@@ -447,44 +471,82 @@ impl SampleGen for Organ {
 
 impl KnobCtrl for Organ {
     fn knob_1(&mut self, value: f32) -> Option<SynthParam> {
-        self.set_atk(value);
-        // update_callback(SynthParam::Atk(value));
-        Some(SynthParam::Atk(value))
+        // self.set_atk(value);
+        // // update_callback(SynthParam::Atk(value));
+        // Some(SynthParam::Atk(value))
+        self.set_overtone(0, value);
+
+        None
     }
 
     fn knob_2(&mut self, value: f32) -> Option<SynthParam> {
-        self.set_decay(value);
-        // update_callback(SynthParam::Dcy(value));
-        Some(SynthParam::Dcy(value))
+        // self.set_decay(value);
+        // // update_callback(SynthParam::Dcy(value));
+        // Some(SynthParam::Dcy(value))
+        self.set_overtone(1, value);
+
+        None
     }
 
     fn knob_3(&mut self, value: f32) -> Option<SynthParam> {
-        self.set_sus(value);
-        // update_callback(SynthParam::Sus(value));
-        Some(SynthParam::Sus(value))
+        // self.set_sus(value);
+        // // update_callback(SynthParam::Sus(value));
+        // Some(SynthParam::Sus(value))
+        self.set_overtone(2, value);
+
+        None
     }
 
     fn knob_4(&mut self, value: f32) -> Option<SynthParam> {
-        self.set_release(value);
-        // update_callback(SynthParam::Rel(value));
-        Some(SynthParam::Rel(value))
+        // self.set_release(value);
+        // // update_callback(SynthParam::Rel(value));
+        // Some(SynthParam::Rel(value))
+        self.set_overtone(3, value);
+
+        None
     }
 
     fn knob_5(&mut self, value: f32) -> Option<SynthParam> {
-        self.set_leslie_speed(value);
-        // update_callback(SynthParam::SpeakerSpinSpeed(value));
-        Some(SynthParam::SpeakerSpinSpeed(value))
+        // self.set_leslie_speed(value);
+        // // update_callback(SynthParam::SpeakerSpinSpeed(value));
+        // Some(SynthParam::SpeakerSpinSpeed(value))
+        self.set_overtone(4, value);
+
+        None
     }
 
     fn knob_6(&mut self, value: f32) -> Option<SynthParam> {
+        self.set_overtone(5, value);
         None
     }
 
     fn knob_7(&mut self, value: f32) -> Option<SynthParam> {
+        self.set_overtone(6, value);
         None
     }
 
     fn knob_8(&mut self, value: f32) -> Option<SynthParam> {
+        self.set_overtone(7, value);
         None
+    }
+
+    fn gui_param_1(&mut self, value: f32) -> Option<SynthParam> {
+        self.set_atk(value);
+        Some(SynthParam::Atk(value))
+    }
+
+    fn gui_param_2(&mut self, value: f32) -> Option<SynthParam> {
+        self.set_decay(value);
+        Some(SynthParam::Dcy(value))
+    }
+
+    fn gui_param_3(&mut self, value: f32) -> Option<SynthParam> {
+        self.set_sus(value);
+        Some(SynthParam::Sus(value))
+    }
+
+    fn gui_param_4(&mut self, value: f32) -> Option<SynthParam> {
+        self.set_release(value);
+        Some(SynthParam::Rel(value))
     }
 }
