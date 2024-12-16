@@ -8,7 +8,7 @@ pub struct LFO {
     wave_table: [f32; LFO_WAVE_TABLE_SIZE],
     index: f32,
     index_increment: f32,
-    volume: f32,
+    pub volume: f32,
 }
 
 impl LFO {

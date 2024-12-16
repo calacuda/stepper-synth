@@ -1,7 +1,8 @@
 use crate::{
-    pygame_coms::SynthParam,
+    pygame_coms::{GuiParam, Knob},
     synth_engines::{
         synth_common::{
+            env::{ATTACK, DECAY, RELEASE, SUSTAIN},
             lfo::LFO,
             osc::{Oscillator, Overtone},
         },
@@ -10,7 +11,7 @@ use crate::{
     KnobCtrl, SampleGen,
 };
 use midi_control::MidiNote;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 pub type WaveTable = Arc<[f32]>;
 // pub type WaveTables = [(WaveTable, f32); 2];
@@ -131,25 +132,9 @@ impl WaveTables {
 
         wave_table.into()
     }
-
-    // fn index(&self, index: &Arc<[(OscType, f32)]>) -> Arc<[(WaveTable, f32)]> {
-    //     index
-    //         .iter()
-    //         .map(|(osc_type, vol)| {
-    //             (
-    //                 match osc_type {
-    //                     OscType::Sin => self.sin.clone(),
-    //                     OscType::Tri => self.tri.clone(),
-    //                     OscType::Sqr => self.sqr.clone(),
-    //                     OscType::Saw => self.saw.clone(),
-    //                 },
-    //                 vol / index.len() as f32,
-    //             )
-    //         })
-    //         .collect()
-    // }
 }
 
+#[derive(Debug, Clone)]
 pub struct Organ {
     pub osc_s: [Oscillator; VOICES],
     pub wave_table: WaveTable,
@@ -202,16 +187,6 @@ impl Organ {
                 // overtone: 64.0,
                 volume: 0.0,
             },
-            // Overtone {
-            //     overtone: 9.0,
-            //     // overtone: 128.0,
-            //     volume: 1.0,
-            // },
-            // Overtone {
-            //     overtone: 10.0,
-            //     // overtone: 256.0,
-            //     volume: 1.0,
-            // },
         ];
         let wave_table = WaveTables::new(&overtones).sin;
         let mut lfo = LFO::new();
@@ -221,22 +196,9 @@ impl Organ {
             osc_s: [Oscillator::new(); VOICES],
             wave_table,
             osc_type: OscType::Sin,
-            // [
-            // (OscType::Sin, 1.0),
-            // (OscType::Sin, 1.0),
-            // (OscType::Sin, 1.0),
-            // (OscType::Saw, 1.0),
-            // (OscType::Saw, 1.0),
-            // (OscType::Saw, 1.0),
-            // (OscType::Tri, 0.75),
-            // (OscType::Sqr, 1.0),
-            // ],
             overtones,
-            // osc_type: Arc::new([(OscType::Tri, 1.0)]),
             lfo,
             volume: 1.0,
-            // chorus: Chorus::new(),
-            // reverb: Reverb::new(),
         }
     }
 
@@ -456,10 +418,37 @@ impl SynthEngine for Organ {
         self.bend_all(amount)
     }
 
-    fn volume_swell(&mut self, amount: f32) {
-        // self.vol
-        // TODO: Write this
-        self.set_leslie_speed(amount)
+    fn volume_swell(&mut self, amount: f32) -> bool {
+        self.set_leslie_speed(amount);
+
+        true
+    }
+
+    fn get_params(&mut self) -> HashMap<Knob, f32> {
+        let mut map = HashMap::with_capacity(8);
+
+        map.insert(Knob::One, self.overtones[0].volume as f32);
+        map.insert(Knob::Two, self.overtones[1].volume as f32);
+        map.insert(Knob::Three, self.overtones[2].volume as f32);
+        map.insert(Knob::Four, self.overtones[3].volume as f32);
+        map.insert(Knob::Five, self.overtones[4].volume as f32);
+        map.insert(Knob::Six, self.overtones[5].volume as f32);
+        map.insert(Knob::Seven, self.overtones[6].volume as f32);
+        map.insert(Knob::Eight, self.overtones[7].volume as f32);
+
+        map
+    }
+
+    fn get_gui_params(&mut self) -> HashMap<GuiParam, f32> {
+        let mut map = HashMap::with_capacity(8);
+
+        map.insert(GuiParam::A, self.osc_s[0].env_filter.base_params[ATTACK]);
+        map.insert(GuiParam::B, self.osc_s[0].env_filter.base_params[DECAY]);
+        map.insert(GuiParam::C, self.osc_s[0].env_filter.base_params[SUSTAIN]);
+        map.insert(GuiParam::D, self.osc_s[0].env_filter.base_params[RELEASE]);
+        map.insert(GuiParam::E, self.lfo.volume);
+
+        map
     }
 }
 
@@ -470,83 +459,89 @@ impl SampleGen for Organ {
 }
 
 impl KnobCtrl for Organ {
-    fn knob_1(&mut self, value: f32) -> Option<SynthParam> {
+    fn knob_1(&mut self, value: f32) -> bool {
         // self.set_atk(value);
         // // update_callback(SynthParam::Atk(value));
         // Some(SynthParam::Atk(value))
         self.set_overtone(0, value);
 
-        None
+        true
     }
 
-    fn knob_2(&mut self, value: f32) -> Option<SynthParam> {
+    fn knob_2(&mut self, value: f32) -> bool {
         // self.set_decay(value);
         // // update_callback(SynthParam::Dcy(value));
         // Some(SynthParam::Dcy(value))
         self.set_overtone(1, value);
 
-        None
+        true
     }
 
-    fn knob_3(&mut self, value: f32) -> Option<SynthParam> {
+    fn knob_3(&mut self, value: f32) -> bool {
         // self.set_sus(value);
         // // update_callback(SynthParam::Sus(value));
         // Some(SynthParam::Sus(value))
         self.set_overtone(2, value);
 
-        None
+        true
     }
 
-    fn knob_4(&mut self, value: f32) -> Option<SynthParam> {
+    fn knob_4(&mut self, value: f32) -> bool {
         // self.set_release(value);
         // // update_callback(SynthParam::Rel(value));
         // Some(SynthParam::Rel(value))
         self.set_overtone(3, value);
 
-        None
+        true
     }
 
-    fn knob_5(&mut self, value: f32) -> Option<SynthParam> {
+    fn knob_5(&mut self, value: f32) -> bool {
         // self.set_leslie_speed(value);
         // // update_callback(SynthParam::SpeakerSpinSpeed(value));
         // Some(SynthParam::SpeakerSpinSpeed(value))
         self.set_overtone(4, value);
 
-        None
+        true
     }
 
-    fn knob_6(&mut self, value: f32) -> Option<SynthParam> {
+    fn knob_6(&mut self, value: f32) -> bool {
         self.set_overtone(5, value);
-        None
+        true
     }
 
-    fn knob_7(&mut self, value: f32) -> Option<SynthParam> {
+    fn knob_7(&mut self, value: f32) -> bool {
         self.set_overtone(6, value);
-        None
+        true
     }
 
-    fn knob_8(&mut self, value: f32) -> Option<SynthParam> {
+    fn knob_8(&mut self, value: f32) -> bool {
         self.set_overtone(7, value);
-        None
+        true
     }
 
-    fn gui_param_1(&mut self, value: f32) -> Option<SynthParam> {
+    fn gui_param_1(&mut self, value: f32) -> bool {
         self.set_atk(value);
-        Some(SynthParam::Atk(value))
+        true
     }
 
-    fn gui_param_2(&mut self, value: f32) -> Option<SynthParam> {
+    fn gui_param_2(&mut self, value: f32) -> bool {
         self.set_decay(value);
-        Some(SynthParam::Dcy(value))
+        true
     }
 
-    fn gui_param_3(&mut self, value: f32) -> Option<SynthParam> {
+    fn gui_param_3(&mut self, value: f32) -> bool {
         self.set_sus(value);
-        Some(SynthParam::Sus(value))
+        true
     }
 
-    fn gui_param_4(&mut self, value: f32) -> Option<SynthParam> {
+    fn gui_param_4(&mut self, value: f32) -> bool {
         self.set_release(value);
-        Some(SynthParam::Rel(value))
+        true
+    }
+
+    fn gui_param_5(&mut self, value: f32) -> bool {
+        self.set_leslie_speed(value);
+
+        true
     }
 }

@@ -1,10 +1,12 @@
 #!/usr/bin/python
 import pygame
 from pygame.rect import Rect
-from stepper_synth_backend import start_audio as start_synth, PythonCmd, SynthParam
+from stepper_synth_backend import start_audio as start_synth, PythonCmd, State, SynthEngineType
 from pathlib import Path
 from logging import DEBUG, INFO
-from stepper_synth.SynthState import SynthState
+# from stepper_synth.synth_state import SynthState
+from stepper_synth.config import *
+from stepper_synth.organ_screen import draw_organ
 from stepper_synth.controls import buttons, Buttons
 from stepper_synth.logger import get_logger
 # import stepper_synth
@@ -17,11 +19,6 @@ from stepper_synth.logger import get_logger
 THIS_DIR = Path(__file__)
 THIS_DIR = THIS_DIR.parent.absolute()
 # print("this dir: ", THIS_DIR)
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
-SCREEN_SIZE = (SCREEN_WIDTH, SCREEN_HEIGHT)
-HIGHLIGHT_BORDERS = 20  # 30
-
 
 pygame.init()
 # pygame.joystick.init()
@@ -35,13 +32,13 @@ clock = pygame.time.Clock()
 done = False
 log = get_logger("MIDI-Tracker", DEBUG)
 controller = Buttons()
-state = SynthState()
 
-ipc = start_synth()
+ipc, state = start_synth()
 
 
 def clear_screen():
-    screen.fill((30, 30, 46))
+    # screen.fill((30, 30, 46))
+    screen.fill(BACKGROUND_COLOR)
 
 
 def draw_text(text):
@@ -146,32 +143,34 @@ def handle_pygame_events():
     return False
 
 
-def draw():
+def draw(synth_state: State):
     """draws the synth ui to the screen"""
-    pass
+    # print(dir(synth_state))
+
+    match synth_state.engine:
+        case SynthEngineType.B3Organ:
+            draw_organ(pygame, screen, synth_state)
+
+    # TODO: draw volume & battery
 
 
 def proccess_cmd():
     global state
 
-    cmds = ipc.recv_all()
+    new_state = ipc.recv()
 
-    for cmd in cmds:
-        match cmd:
-            case SynthParam.Atk(_0):
-                state.atk = _0
-            case SynthParam.Dcy(_0):
-                state.decay = _0
-            case SynthParam.Sus(_0):
-                state.sus = _0
+    if new_state:
+        draw(new_state)
+        state = new_state
+    else:
+        draw(state)
 
-    draw()
+    pygame.display.update()
 
 
 def loop_clean_up():
     global controller
 
-    pygame.display.update()
     controller.step()
     clock.tick()
 

@@ -9,7 +9,7 @@ use midi_control::KeyEvent;
 use midi_control::MidiMessage;
 use midir::MidiInput;
 use midir::{Ignore, PortInfoError};
-use pygame_coms::{GuiParam, Knob, PythonCmd, State, SynthParam};
+use pygame_coms::{GuiParam, Knob, PythonCmd, State, SynthEngineType, SynthParam};
 use pyo3::prelude::*;
 use std::collections::HashMap;
 use std::{
@@ -36,55 +36,55 @@ pub trait KnobCtrl {
     // message to the python front end.
 
     // parameters edited by the MIDI controllers built in knobs
-    fn knob_1(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn knob_1(&mut self, value: f32) -> bool {
+        false
     }
-    fn knob_2(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn knob_2(&mut self, value: f32) -> bool {
+        false
     }
-    fn knob_3(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn knob_3(&mut self, value: f32) -> bool {
+        false
     }
-    fn knob_4(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn knob_4(&mut self, value: f32) -> bool {
+        false
     }
-    fn knob_5(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn knob_5(&mut self, value: f32) -> bool {
+        false
     }
-    fn knob_6(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn knob_6(&mut self, value: f32) -> bool {
+        false
     }
-    fn knob_7(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn knob_7(&mut self, value: f32) -> bool {
+        false
     }
-    fn knob_8(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn knob_8(&mut self, value: f32) -> bool {
+        false
     }
 
     // the parameters edited by the GUI
-    fn gui_param_1(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn gui_param_1(&mut self, value: f32) -> bool {
+        false
     }
-    fn gui_param_2(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn gui_param_2(&mut self, value: f32) -> bool {
+        false
     }
-    fn gui_param_3(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn gui_param_3(&mut self, value: f32) -> bool {
+        false
     }
-    fn gui_param_4(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn gui_param_4(&mut self, value: f32) -> bool {
+        false
     }
-    fn gui_param_5(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn gui_param_5(&mut self, value: f32) -> bool {
+        false
     }
-    fn gui_param_6(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn gui_param_6(&mut self, value: f32) -> bool {
+        false
     }
-    fn gui_param_7(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn gui_param_7(&mut self, value: f32) -> bool {
+        false
     }
-    fn gui_param_8(&mut self, value: f32) -> Option<SynthParam> {
-        None
+    fn gui_param_8(&mut self, value: f32) -> bool {
+        false
     }
 }
 
@@ -102,7 +102,7 @@ impl Iterator for Player {
 }
 
 fn send_mesg(tx: &Sender<State>, msg: State) {
-    if let Err(e) = tx.send(msg) {
+    if let Err(e) = tx.send(msg.clone()) {
         error!("failed to send \"{msg:?}\" to python frontend because: {e}.");
     }
 }
@@ -110,6 +110,8 @@ fn send_mesg(tx: &Sender<State>, msg: State) {
 fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
     let tx = my_ipc.tx;
     let mut registered_ports = HashMap::new();
+
+    send_mesg(&tx, synth.lock().unwrap().get_state());
 
     loop {
         let mut midi_in = MidiInput::new("midir reading input")?;
@@ -145,7 +147,7 @@ fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
                     "midir-read-input",
                     move |_stamp, message, _| {
                         let message = MidiMessage::from(message);
-                        let send = |msg: State| send_mesg(&tx, msg);
+                        let send = || send_mesg(&tx, synth.lock().unwrap().get_state());
 
                         // do midi stuff
                         match message {
@@ -165,16 +167,17 @@ fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
 
                                 if bend > 0.026 || bend < -0.026 {
                                     synth.lock().unwrap().engine.bend(bend);
-                                    send(SynthParam::PitchBend(bend));
+                                    send();
                                 } else {
                                     synth.lock().unwrap().engine.unbend();
-                                    send(SynthParam::PitchBend(0.0));
+                                    // send(SynthParam::PitchBend(0.0));
+                                    send();
                                 }
                             }
                             MidiMessage::ControlChange(_, ControlEvent { control, value }) => {
                                 let value = value as f32 / 127.0;
 
-                                match control {
+                                if match control {
                                     70 => synth.lock().unwrap().engine.knob_1(value),
                                     71 => synth.lock().unwrap().engine.knob_2(value),
                                     72 => synth.lock().unwrap().engine.knob_3(value),
@@ -183,13 +186,11 @@ fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
                                     75 => synth.lock().unwrap().engine.knob_6(value),
                                     76 => synth.lock().unwrap().engine.knob_7(value),
                                     77 => synth.lock().unwrap().engine.knob_8(value),
-                                    1 => {
-                                        synth.lock().unwrap().engine.volume_swell(value);
-                                        None
-                                    }
-                                    _ => None,
+                                    1 => synth.lock().unwrap().engine.volume_swell(value),
+                                    _ => false,
+                                } {
+                                    send()
                                 }
-                                .map(send);
                             }
                             _ => {}
                         }
@@ -273,6 +274,10 @@ fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
                 PythonCmd::Exit() => {
                     return Ok(());
                 }
+                PythonCmd::ChangeSynthEngine(_engine) => {
+                    error!("change engine not implemented yet");
+                    false
+                }
             };
         }
     }
@@ -319,60 +324,57 @@ fn logger_init() -> Result<()> {
 
 /// Formats the sum of two numbers as string.
 #[pyfunction]
-fn start_audio() -> PyResult<TrackerIPC> {
+fn start_audio() -> PyResult<(TrackerIPC, State)> {
     let (my_ipc, py_ipc) = gen_ipc();
 
     // build synth in arc mutex
     let synth = Arc::new(Mutex::new(Synth::new()));
 
-    // synth.lock().unwrap().engine.set_volume(1.0);
+    {
+        let s = synth.clone();
 
-    let output = Player {
-        synth: synth.clone(),
-    };
+        spawn(move || {
+            let res = logger_init();
 
-    spawn(move || {
-        let res = logger_init();
+            if let Err(reason) = res {
+                eprintln!("failed to initiate logger because {reason}");
+            } else {
+                log::debug!("logger initiated");
+            }
 
-        if let Err(reason) = res {
-            eprintln!("failed to initiate logger because {reason}");
-        } else {
-            log::debug!("logger initiated");
-        }
+            let params = OutputDeviceParameters {
+                channels_count: 1,
+                sample_rate: SAMPLE_RATE as usize,
+                // channel_sample_count: 2048,
+                channel_sample_count: 1024,
+            };
+            let device = {
+                let s = s.clone();
 
-        let params = OutputDeviceParameters {
-            channels_count: 1,
-            sample_rate: SAMPLE_RATE as usize,
-            // channel_sample_count: 2048,
-            channel_sample_count: 1024,
-        };
+                run_output_device(params, move |data| {
+                    for samples in data.chunks_mut(params.channels_count) {
+                        let value = s.lock().expect("couldn't lock synth").get_sample();
 
-        let device = run_output_device(params, move |data| {
-            for samples in data.chunks_mut(params.channels_count) {
-                let value = output
-                    .synth
-                    .lock()
-                    .expect("couldn't lock synth")
-                    .get_sample();
+                        for sample in samples {
+                            *sample = value;
+                        }
+                    }
+                })
+            };
 
-                for sample in samples {
-                    *sample = value;
-                }
+            if let Err(e) = device {
+                error!("strating audio playback caused error: {e}");
+            }
+
+            if let Err(e) = run_midi(s, my_ipc) {
+                error!("{e}");
             }
         });
-
-        if let Err(e) = device {
-            error!("strating audio playback caused error: {e}");
-        }
-
-        if let Err(e) = run_midi(synth, my_ipc) {
-            error!("{e}");
-        }
-    });
+    }
 
     println!("run_midi called");
 
-    Ok(py_ipc)
+    Ok((py_ipc, synth.clone().lock().unwrap().get_state()))
 }
 
 /// A Python module implemented in Rust.
@@ -383,5 +385,9 @@ fn stepper_synth_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SynthParam>()?;
     m.add_class::<PythonCmd>()?;
     m.add_class::<TrackerIPC>()?;
+    m.add_class::<Knob>()?;
+    m.add_class::<GuiParam>()?;
+    m.add_class::<SynthEngineType>()?;
+    m.add_class::<State>()?;
     Ok(())
 }

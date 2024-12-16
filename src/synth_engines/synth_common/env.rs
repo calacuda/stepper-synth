@@ -1,16 +1,16 @@
 use crate::SAMPLE_RATE;
 
-static UNPRESSED: usize = 0;
-static ATTACK: usize = 1;
-static DECAY: usize = 2;
-static SUSTAIN: usize = 3;
-static RELEASE: usize = 4;
+pub static UNPRESSED: usize = 0;
+pub static ATTACK: usize = 1;
+pub static DECAY: usize = 2;
+pub static SUSTAIN: usize = 3;
+pub static RELEASE: usize = 4;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ADSR {
     pub sample_rate: u32,
     pub phase: usize,
-    base_params: [f32; 5],
+    pub base_params: [f32; 5],
     tweek_env_by: [f32; 5],
     env: f32,
 }
