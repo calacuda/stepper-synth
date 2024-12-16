@@ -49,6 +49,11 @@ def draw_speaker(pygame, screen, synth_state: State):
     LAST_TICK_TIME = ticks
 
 
+def draw_draw_bars(pygame, screen, synth_state: State):
+    pass
+
+
 def draw_organ(pygame, screen, synth_state: State):
     draw_bg(pygame, screen)
     draw_speaker(pygame, screen, synth_state)
+    draw_draw_bars(pygame, screen, synth_state)
