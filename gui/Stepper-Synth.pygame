@@ -149,7 +149,7 @@ def draw(synth_state: State):
 
     match synth_state.engine:
         case SynthEngineType.B3Organ:
-            draw_organ(pygame, screen, synth_state)
+            draw_organ(pygame, screen, fonts, synth_state)
 
     # TODO: draw volume & battery
 

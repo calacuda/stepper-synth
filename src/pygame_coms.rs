@@ -36,7 +36,7 @@ pub enum GuiParam {
     H,
 }
 
-#[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int)]
+#[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)]
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum Knob {
     One,
