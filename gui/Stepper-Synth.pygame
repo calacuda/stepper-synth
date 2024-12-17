@@ -151,6 +151,8 @@ def draw(synth_state: State):
         case SynthEngineType.B3Organ:
             draw_organ(pygame, screen, fonts, synth_state)
             organ_controls(pygame, controller, ipc, synth_state)
+        case SynthEngineType.SubSynth:
+            clear_screen()
 
     # TODO: draw volume & battery
 
@@ -181,6 +183,8 @@ def step():
 
 
 if __name__ == "__main__":
+    ipc.send(PythonCmd.ChangeSynthEngine(SynthEngineType.SubSynth))
+
     while not handle_pygame_events():
         proccess_cmd()
         step()

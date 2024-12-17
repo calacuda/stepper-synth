@@ -244,7 +244,7 @@ impl Organ {
         // for (osc_s, _offset) in self.osc_s.iter_mut() {
         //     for osc in osc_s {
         for osc in self.osc_s.iter_mut() {
-            if osc.playing == Some(midi_note) {
+            if osc.playing == Some(midi_note) && osc.env_filter.phase != RELEASE {
                 return;
             }
         }

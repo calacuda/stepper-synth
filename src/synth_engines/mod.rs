@@ -10,7 +10,7 @@ use std::{collections::HashMap, fmt::Debug};
 use synth_common::lfo::LFO;
 
 pub mod organ;
-// pub mod synth;
+pub mod synth;
 pub mod synth_common;
 
 pub trait SynthEngine: Debug + SampleGen + KnobCtrl + Send {
@@ -50,25 +50,22 @@ impl Synth {
             engine: Box::new(Organ::new()),
         }
     }
-}
 
-// impl SynthEngine for Synth {
-//     fn name(&self) -> String {
-//         String::new()
-//     }
-//
-//     fn play(&mut self, note: MidiNote) {
-//         self.engine.play(note)
-//     }
-//
-//     fn stop(&mut self, note: MidiNote) {
-//         self.engine.stop(note)
-//     }
-//
-//     fn bend(&mut self, amount: f32) {
-//         self.engine.bend(amount)
-//     }
-// }
+    pub fn set_engine(&mut self, engine: SynthEngineType) -> bool {
+        if engine == self.engine_type {
+            return false;
+        }
+
+        self.engine = match engine {
+            SynthEngineType::B3Organ => Box::new(Organ::new()),
+            SynthEngineType::SubSynth => Box::new(synth::synth::Synth::new()),
+            SynthEngineType::SamplerSynth => todo!("write SamplerSynth"),
+        };
+
+        self.engine_type = engine;
+        true
+    }
+}
 
 impl SampleGen for Synth {
     fn get_sample(&mut self) -> f32 {

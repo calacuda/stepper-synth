@@ -103,8 +103,8 @@ impl HuovilainenMoog {
 #[derive(Clone, Copy, Debug)]
 pub struct LowPass {
     filter: HuovilainenMoog,
-    cutoff: f32,
-    resonance: f32,
+    pub cutoff: f32,
+    pub resonance: f32,
 }
 
 impl LowPass {
