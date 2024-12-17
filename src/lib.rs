@@ -200,13 +200,14 @@ fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
             );
         }
 
+        let send = || send_mesg(&tx, synth.lock().unwrap().get_state());
         let rx = my_ipc.rx.clone();
 
         if let Ok(command) = rx.try_recv() {
             // TODO: rework the commands that the front end will send
 
             // this match statement may be ugly, but it is long for the sake of efficiency.
-            match command {
+            if match command {
                 PythonCmd::SetGuiParam {
                     param: GuiParam::A,
                     set_to,
@@ -278,7 +279,9 @@ fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
                     error!("change engine not implemented yet");
                     false
                 }
-            };
+            } {
+                send()
+            }
         }
     }
 }

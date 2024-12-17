@@ -52,7 +52,11 @@ class Buttons:
         self.last_pressed_now = []
 
     def press(self, button):
-        self.pressed_now.append(button)
+        if button not in self.pressed_now:
+            self.pressed_now.append(button)
+        else:
+            self.release(button)
+        # print(f"pressed {button}, {self.pressed_now}")
 
     def release(self, button):
         self.pressed_now = [

@@ -1,4 +1,5 @@
-from stepper_synth_backend import State, GuiParam, Knob
+from .controls import Buttons, buttons
+from stepper_synth_backend import State, GuiParam, Knob, PythonCmd
 from .config import *
 import math
 
@@ -9,6 +10,13 @@ LAST_THETA = 0.0
 SPEAKER_RAD = SCREEN_WIDTH / 5
 GRAPH_RIGHT = SCREEN_WIDTH - \
     (SCREEN_WIDTH - SPEAKER_CENTER[0]) - SPEAKER_RAD - BOARDER
+CONTROLS = (
+    [Knob.One, Knob.Two, Knob.Three, Knob.Four,
+     Knob.Five, Knob.Six, Knob.Seven, Knob.Eight],
+    [GuiParam.A, GuiParam.B, GuiParam.C, GuiParam.D]
+)
+INDEX = [0, 0, 0]
+TIMER = 0
 
 
 def draw_bg(pygame, screen):
@@ -52,9 +60,9 @@ def draw_speaker(pygame, screen, synth_state: State):
     LAST_TICK_TIME = ticks
 
 
-def draw_draw_bar_level(screen, fonts, bar_val: float, center_x: float):
+def draw_draw_bar_level(screen, fonts, bar_val: float, center_x: float, selected: bool):
     bar_level = str(round(bar_val * 8))
-    text_color = TEXT_COLOR_1
+    text_color = RED if selected else TEXT_COLOR_1
     font = fonts[1]
     display = font.render(
         bar_level, True, text_color)
@@ -73,14 +81,14 @@ def draw_draw_bar_level(screen, fonts, bar_val: float, center_x: float):
 def draw_draw_bar_line(pygame, screen, fonts, bar_val: float, center_x: float, level_lable_bottom: float):
     bottom = SCREEN_HEIGHT / 2 - BOARDER
     top = level_lable_bottom + BOARDER
-    level_marker = ((bottom - top) * bar_val) + top
+    level_marker = bottom - ((bottom - top) * bar_val)
     width = 4
 
     # draw full line
-    pygame.draw.line(screen, GREEN,
+    pygame.draw.line(screen, SURFACE_1,
                      (center_x, top), (center_x, level_marker), width=width)
     # draw level line
-    pygame.draw.line(screen, SURFACE_1,
+    pygame.draw.line(screen, GREEN,
                      (center_x, level_marker), (center_x, bottom), width=width)
 
     # draw indicator circle
@@ -91,8 +99,9 @@ def draw_draw_bar_line(pygame, screen, fonts, bar_val: float, center_x: float, l
                        (center_x, level_marker), POINT_DIAMETER - width)
 
 
-def draw_draw_bar(pygame, screen, fonts, bar_val: float, center_x: float):
-    level_lable_bottom = draw_draw_bar_level(screen, fonts, bar_val, center_x)
+def draw_draw_bar(pygame, screen, fonts, bar_val: float, center_x: float, selected: bool):
+    level_lable_bottom = draw_draw_bar_level(
+        screen, fonts, bar_val, center_x, selected)
     draw_draw_bar_line(pygame, screen, fonts, bar_val,
                        center_x, level_lable_bottom)
 
@@ -116,7 +125,8 @@ def draw_draw_bars(pygame, screen, fonts, synth_state: State):
 
     for (i, bar_val) in enumerate(draw_bar_values):
         center_x = offset + (spacing * i)
-        draw_draw_bar(pygame, screen, fonts, bar_val, center_x)
+        selected = INDEX[2] == 0 and INDEX[INDEX[2]] == i
+        draw_draw_bar(pygame, screen, fonts, bar_val, center_x, selected)
 
 
 def draw_adsr_graph(pygame, screen, synth_state: State):
@@ -142,11 +152,75 @@ def draw_adsr_graph(pygame, screen, synth_state: State):
     for (p1, p2) in [(origin, a), (a, d), (d, s), (s, r)]:
         pygame.draw.line(screen, GREEN, p1, p2, width=4)
 
-    for center in [a, d, s]:
+    for i, center in enumerate([a, d, s, r]):
         # print((x, y))
-        pygame.draw.circle(screen, POINT_COLOR, center, POINT_DIAMETER)
+        border_color = RED if INDEX[2] == 1 and INDEX[INDEX[2]
+                                                      ] == i else POINT_COLOR
+
+        pygame.draw.circle(screen, border_color, center, POINT_DIAMETER)
         pygame.draw.circle(screen, BACKGROUND_COLOR, center,
                            POINT_DIAMETER - 4)
+
+
+def move_cursor(controller):
+    global INDEX
+
+    if len(controller.pressed_now) > 1:
+        return
+
+    if controller.just_pressed(buttons.get("right")):
+        max_len = len(CONTROLS[INDEX[2]])
+
+        INDEX[INDEX[2]] += 1
+        INDEX[INDEX[2]] %= max_len
+    elif controller.just_pressed(buttons.get("left")):
+        max_len = len(CONTROLS[INDEX[2]])
+
+        INDEX[INDEX[2]] -= 1
+        INDEX[INDEX[2]] %= max_len
+    elif controller.just_pressed(buttons.get("up")) or controller.just_pressed(buttons.get("down")):
+        INDEX[2] += 1
+        INDEX[2] %= len(CONTROLS)
+
+
+def timer_is_done(pygame) -> bool:
+    return (pygame.time.get_ticks() - TIMER) / 1000 >= 0.1
+
+
+def adjust_value(pygame, controller: Buttons, ipc, synth_state: State):
+    global TIMER
+
+    if not controller.is_pressed(buttons.get("a")):
+        return
+
+    # print(INDEX)
+    param = CONTROLS[INDEX[2]][INDEX[INDEX[2]]]
+    new_val = None
+
+    if INDEX[2] == 1 and controller.is_pressed(buttons.get("right")) and timer_is_done(pygame):
+        # TIMER = 20
+        new_val = PythonCmd.SetGuiParam(
+            param, (synth_state.gui_params.get(param) + 0.01) % 1.0)
+    elif INDEX[2] == 1 and controller.is_pressed(buttons.get("left")) and timer_is_done(pygame):
+        # TIMER = 20
+        new_val = PythonCmd.SetGuiParam(
+            param, (synth_state.gui_params.get(param) - 0.01) % 1.0)
+    elif INDEX[2] == 0 and controller.is_pressed(buttons.get("up")) and timer_is_done(pygame):
+        new_val = PythonCmd.SetKnob(
+            param, (synth_state.knob_params.get(param) + 0.05) % 1.0)
+    elif INDEX[2] == 0 and controller.is_pressed(buttons.get("down")) and timer_is_done(pygame):
+        new_val = PythonCmd.SetKnob(
+            param, (synth_state.knob_params.get(param) - 0.05) % 1.0)
+
+    if new_val is not None:
+        # print(new_val)
+        ipc.send(new_val)
+        TIMER = pygame.time.get_ticks()
+
+
+def organ_controls(pygame, controller: Buttons, ipc, synth_state: State):
+    move_cursor(controller)
+    adjust_value(pygame, controller, ipc, synth_state)
 
 
 def draw_organ(pygame, screen, fonts, synth_state: State):

@@ -6,7 +6,7 @@ from pathlib import Path
 from logging import DEBUG, INFO
 # from stepper_synth.synth_state import SynthState
 from stepper_synth.config import *
-from stepper_synth.organ_screen import draw_organ
+from stepper_synth.organ_screen import draw_organ, organ_controls
 from stepper_synth.controls import buttons, Buttons
 from stepper_synth.logger import get_logger
 # import stepper_synth
@@ -150,6 +150,7 @@ def draw(synth_state: State):
     match synth_state.engine:
         case SynthEngineType.B3Organ:
             draw_organ(pygame, screen, fonts, synth_state)
+            organ_controls(pygame, controller, ipc, synth_state)
 
     # TODO: draw volume & battery
 
