@@ -7,6 +7,7 @@ from logging import DEBUG, INFO
 # from stepper_synth.synth_state import SynthState
 from stepper_synth.config import *
 from stepper_synth.organ_screen import draw_organ, organ_controls
+from stepper_synth.sub_synth_screen import draw_sub_synth, sub_synth_controls
 from stepper_synth.controls import buttons, Buttons
 from stepper_synth.logger import get_logger
 # import stepper_synth
@@ -183,7 +184,7 @@ def step():
 
 
 if __name__ == "__main__":
-    ipc.send(PythonCmd.ChangeSynthEngine(SynthEngineType.SubSynth))
+    # ipc.send(PythonCmd.ChangeSynthEngine(SynthEngineType.SubSynth))
 
     while not handle_pygame_events():
         proccess_cmd()

@@ -482,7 +482,8 @@ impl SynthEngine for Synth {
         map
     }
 
-    fn volume_swell(&mut self, _amount: f32) -> bool {
+    fn volume_swell(&mut self, amount: f32) -> bool {
+        self.volume = amount;
         false
     }
 }

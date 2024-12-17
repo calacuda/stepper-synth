@@ -1,6 +1,7 @@
 from .controls import Buttons, buttons
 from stepper_synth_backend import State, GuiParam, Knob, PythonCmd
 from .config import *
+from .utils import *
 import math
 
 vert_middle = SCREEN_HEIGHT / 2
@@ -13,7 +14,7 @@ GRAPH_RIGHT = SCREEN_WIDTH - \
 CONTROLS = (
     [Knob.One, Knob.Two, Knob.Three, Knob.Four,
      Knob.Five, Knob.Six, Knob.Seven, Knob.Eight],
-    [GuiParam.A, GuiParam.B, GuiParam.C, GuiParam.D]
+    [GuiParam.A, GuiParam.B, GuiParam.C]
 )
 INDEX = [0, 0, 0]
 TIMER = 0
@@ -78,7 +79,7 @@ def draw_draw_bar_level(screen, fonts, bar_val: float, center_x: float, selected
     return text_rect.bottom
 
 
-def draw_draw_bar_line(pygame, screen, fonts, bar_val: float, center_x: float, level_lable_bottom: float):
+def draw_draw_bar_line(pygame, screen, bar_val: float, center_x: float, level_lable_bottom: float, selected: bool):
     bottom = SCREEN_HEIGHT / 2 - BOARDER
     top = level_lable_bottom + BOARDER
     level_marker = bottom - ((bottom - top) * bar_val)
@@ -92,8 +93,10 @@ def draw_draw_bar_line(pygame, screen, fonts, bar_val: float, center_x: float, l
                      (center_x, level_marker), (center_x, bottom), width=width)
 
     # draw indicator circle
+    border_color = RED if selected else POINT_COLOR
+
     pygame.draw.circle(
-        screen, POINT_COLOR, (center_x, level_marker), POINT_DIAMETER)
+        screen, border_color, (center_x, level_marker), POINT_DIAMETER)
 
     pygame.draw.circle(screen, BACKGROUND_COLOR,
                        (center_x, level_marker), POINT_DIAMETER - width)
@@ -102,8 +105,8 @@ def draw_draw_bar_line(pygame, screen, fonts, bar_val: float, center_x: float, l
 def draw_draw_bar(pygame, screen, fonts, bar_val: float, center_x: float, selected: bool):
     level_lable_bottom = draw_draw_bar_level(
         screen, fonts, bar_val, center_x, selected)
-    draw_draw_bar_line(pygame, screen, fonts, bar_val,
-                       center_x, level_lable_bottom)
+    draw_draw_bar_line(pygame, screen, bar_val,
+                       center_x, level_lable_bottom, selected)
 
 
 def draw_draw_bars(pygame, screen, fonts, synth_state: State):
@@ -145,14 +148,14 @@ def draw_adsr_graph(pygame, screen, synth_state: State):
 
     origin = (left + offset, bottom)
     a = (spacing * atk + origin[0], top)
-    d = (spacing * dcy + a[0], abs(top - bottom) * sus + top)
+    d = (spacing * dcy + a[0], bottom - abs(top - bottom) * sus)
     s = (right - (spacing * rel), d[1])
     r = (right, bottom)
 
     for (p1, p2) in [(origin, a), (a, d), (d, s), (s, r)]:
         pygame.draw.line(screen, GREEN, p1, p2, width=4)
 
-    for i, center in enumerate([a, d, s, r]):
+    for i, center in enumerate([a, d, s]):
         # print((x, y))
         border_color = RED if INDEX[2] == 1 and INDEX[INDEX[2]
                                                       ] == i else POINT_COLOR
@@ -178,9 +181,14 @@ def move_cursor(controller):
 
         INDEX[INDEX[2]] -= 1
         INDEX[INDEX[2]] %= max_len
-    elif controller.just_pressed(buttons.get("up")) or controller.just_pressed(buttons.get("down")):
-        INDEX[2] += 1
-        INDEX[2] %= len(CONTROLS)
+    elif controller.just_pressed(buttons.get("up")):
+        # INDEX[2] += 1
+        # INDEX[2] %= len(CONTROLS)
+        INDEX[2] = int(set_max(INDEX[2] - 1, float(len(CONTROLS))))
+    elif controller.just_pressed(buttons.get("down")):
+        # INDEX[2] += 1
+        # INDEX[2] %= len(CONTROLS)
+        INDEX[2] = int(set_max(INDEX[2] + 1, float(len(CONTROLS))))
 
 
 def timer_is_done(pygame) -> bool:
@@ -190,27 +198,58 @@ def timer_is_done(pygame) -> bool:
 def adjust_value(pygame, controller: Buttons, ipc, synth_state: State):
     global TIMER
 
-    if not controller.is_pressed(buttons.get("a")):
+    if not select_mod_pressed(controller):
         return
 
     # print(INDEX)
     param = CONTROLS[INDEX[2]][INDEX[INDEX[2]]]
     new_val = None
+    up_pressed = controller.is_pressed(buttons.get("up"))
+    down_pressed = controller.is_pressed(buttons.get("down"))
+    left_pressed = controller.is_pressed(buttons.get("left"))
+    right_pressed = controller.is_pressed(buttons.get("right"))
+    adr = [GuiParam.A, GuiParam.B, GuiParam.D]
+    ds = [GuiParam.B, GuiParam.C]
+    timer_done = timer_is_done(pygame)
+    gui_param = INDEX[2] == 1
+    knob_param = INDEX[2] == 0
 
-    if INDEX[2] == 1 and controller.is_pressed(buttons.get("right")) and timer_is_done(pygame):
-        # TIMER = 20
-        new_val = PythonCmd.SetGuiParam(
-            param, (synth_state.gui_params.get(param) + 0.01) % 1.0)
-    elif INDEX[2] == 1 and controller.is_pressed(buttons.get("left")) and timer_is_done(pygame):
-        # TIMER = 20
-        new_val = PythonCmd.SetGuiParam(
-            param, (synth_state.gui_params.get(param) - 0.01) % 1.0)
-    elif INDEX[2] == 0 and controller.is_pressed(buttons.get("up")) and timer_is_done(pygame):
-        new_val = PythonCmd.SetKnob(
-            param, (synth_state.knob_params.get(param) + 0.05) % 1.0)
-    elif INDEX[2] == 0 and controller.is_pressed(buttons.get("down")) and timer_is_done(pygame):
-        new_val = PythonCmd.SetKnob(
-            param, (synth_state.knob_params.get(param) - 0.05) % 1.0)
+    if gui_param and right_pressed and timer_done and param in adr:
+        set_to = set_max(synth_state.gui_params.get(param) + 0.01, 1.0)
+
+        new_val = PythonCmd.SetGuiParam(param, set_to)
+    elif gui_param and left_pressed and timer_done and param in adr:
+        set_to = set_max(synth_state.gui_params.get(param) - 0.01, 1.0)
+
+        new_val = PythonCmd.SetGuiParam(param, set_to)
+    elif gui_param and left_pressed and timer_done and param == GuiParam.C:
+        param = GuiParam.D
+        set_to = set_max(synth_state.gui_params.get(param) + 0.01, 1.0)
+
+        new_val = PythonCmd.SetGuiParam(param, set_to)
+    elif gui_param and right_pressed and timer_done and param == GuiParam.C:
+        param = GuiParam.D
+        set_to = set_max(synth_state.gui_params.get(param) - 0.01, 1.0)
+
+        new_val = PythonCmd.SetGuiParam(param, set_to)
+    elif gui_param and up_pressed and timer_done and param in ds:
+        param = GuiParam.C
+        set_to = set_max(synth_state.gui_params.get(param) + 0.01, 1.0)
+
+        new_val = PythonCmd.SetGuiParam(param, set_to)
+    elif gui_param and down_pressed and timer_done and param in ds:
+        param = GuiParam.C
+        set_to = set_max(synth_state.gui_params.get(param) - 0.01, 1.0)
+
+        new_val = PythonCmd.SetGuiParam(param, set_to)
+    elif knob_param and up_pressed and timer_done:
+        set_to = set_max(synth_state.knob_params.get(param) + 0.05, 1.0)
+
+        new_val = PythonCmd.SetKnob(param, set_to)
+    elif knob_param and down_pressed and timer_done:
+        set_to = set_max(synth_state.knob_params.get(param) - 0.05, 1.0)
+
+        new_val = PythonCmd.SetKnob(param, set_to)
 
     if new_val is not None:
         # print(new_val)

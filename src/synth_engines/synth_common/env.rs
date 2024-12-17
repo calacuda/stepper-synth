@@ -1,4 +1,5 @@
 use crate::SAMPLE_RATE;
+use log::*;
 
 pub static UNPRESSED: usize = 0;
 pub static ATTACK: usize = 1;
@@ -54,21 +55,22 @@ impl ADSR {
 
     pub fn set_atk(&mut self, atk: f32) {
         // set attack
-        self.base_params[ATTACK] = atk;
+        self.base_params[ATTACK] = atk.abs();
 
-        self.tweek_env_by[ATTACK] = Self::calc_atk(atk);
+        self.tweek_env_by[ATTACK] = Self::calc_atk(self.base_params[ATTACK]);
     }
 
     pub fn set_decay(&mut self, decay: f32) {
         // set decay
-        self.base_params[DECAY] = decay;
+        self.base_params[DECAY] = decay.abs();
 
-        self.tweek_env_by[DECAY] = Self::calc_decay(decay, self.base_params[SUSTAIN]);
+        self.tweek_env_by[DECAY] =
+            Self::calc_decay(self.base_params[DECAY], self.base_params[SUSTAIN]);
     }
 
     pub fn set_sus(&mut self, sustain: f32) {
         // set sustain
-        self.base_params[SUSTAIN] = sustain;
+        self.base_params[SUSTAIN] = sustain.abs();
 
         self.tweek_env_by[DECAY] =
             Self::calc_decay(self.base_params[DECAY], self.base_params[SUSTAIN]);
@@ -77,44 +79,29 @@ impl ADSR {
     }
 
     pub fn set_release(&mut self, release: f32) {
-        let release = release * 0.25;
+        let release = release.abs();
 
         self.base_params[RELEASE] = release;
         self.tweek_env_by[RELEASE] = Self::calc_release(release, self.base_params[SUSTAIN]);
+
+        debug!("release: {release}, sustain: {}", self.base_params[SUSTAIN]);
+        debug!("release_tweak_by: {}", self.tweek_env_by[RELEASE]);
     }
 
     /// used to generate an env sample
     pub fn get_samnple(&mut self) -> f32 {
         self.env += self.tweek_env_by[self.phase];
-        // println!("tweak => {}", self.tweek_env_by[self.phase]);
-        // println!("phase => {}", self.phase);
 
         if self.env > 1.0 && self.phase == ATTACK {
-            // println!("now decay");
             self.phase = DECAY;
             self.env = 1.0;
-            // println!("tweak => {}", self.tweek_env_by[self.phase]);
-            // println!("phase => {}", self.phase);
-            // println!("env => {}", self.env);
         } else if self.env < self.base_params[SUSTAIN] && self.phase == DECAY {
-            // println!("now sustain");
             self.phase = SUSTAIN;
             self.env = self.base_params[SUSTAIN];
-            // println!("tweak => {}", self.tweek_env_by[self.phase]);
-            // println!("phase => {}", self.phase);
-            // println!("env => {}", self.env);
         } else if self.env <= 0.0 {
-            // println!("now released");
             self.phase = RELEASE;
             self.env = 0.0;
         }
-
-        // if self.phase == RELEASE {
-        //     println!("RELEASE");
-        //     println!("tweak => {}", self.tweek_env_by[self.phase]);
-        //     println!("phase => {}", self.phase);
-        //     println!("env => {}", self.env);
-        // }
 
         self.env
     }

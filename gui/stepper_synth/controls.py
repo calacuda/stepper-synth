@@ -53,10 +53,10 @@ class Buttons:
 
     def press(self, button):
         if button not in self.pressed_now:
+            # print(f"pressed {button}, {self.pressed_now}")
             self.pressed_now.append(button)
         else:
             self.release(button)
-        # print(f"pressed {button}, {self.pressed_now}")
 
     def release(self, button):
         self.pressed_now = [
