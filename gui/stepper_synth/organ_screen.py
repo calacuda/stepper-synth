@@ -35,7 +35,7 @@ def draw_speaker(pygame, screen, synth_state: State):
     global LAST_TICK_TIME
     global LAST_THETA
 
-    line_speed = (400.0 * synth_state.gui_params.get(GuiParam.E)) / 60.0
+    line_speed = synth_state.gui_params.get(GuiParam.E) * 0.5
 
     # claculate time since last update
     ticks = pygame.time.get_ticks()

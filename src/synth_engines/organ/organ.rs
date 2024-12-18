@@ -142,6 +142,7 @@ pub struct Organ {
     pub overtones: [Overtone; 8],
     pub lfo: LFO,
     pub volume: f32,
+    pub speaker_speed: f32,
     // pub chorus: Chorus,
     // pub reverb: Reverb,
 }
@@ -150,47 +151,51 @@ impl Organ {
     pub fn new() -> Self {
         let overtones = [
             Overtone {
-                overtone: 0.5_f64.powf(1.0 / 12.0),
-                volume: 1.0,
-            },
-            Overtone {
-                // overtone: 2.0_f64.powf(1.0 / 12.0),
-                overtone: 1.5_f64.powf(1.0 / 12.0),
-                volume: 1.0,
-            },
-            Overtone {
                 overtone: 1.0,
                 volume: 1.0,
             },
             Overtone {
-                overtone: 3.0,
-                // overtone: 4.0,
-                volume: 0.5,
+                // overtone: 2.0_f64.powf(1.0 / 12.0),
+                overtone: 2.0 * 2.0_f64.powf(7.0 / 12.0),
+                // volume: 1.0,
+                volume: 1.0,
             },
             Overtone {
+                overtone: 2.0,
+                volume: 1.0,
+            },
+            Overtone {
+                // overtone: 3.0,
                 overtone: 4.0,
-                // overtone: 8.0,
-                volume: 0.0,
+                // volume: 0.5,
+                volume: 1.0,
             },
             Overtone {
-                overtone: 5.0,
-                // overtone: 16.0,
-                volume: 0.0,
+                // overtone: 4.0,
+                overtone: 4.0 * 2.0_f64.powf(7.0 / 12.0),
+                volume: 1.0,
             },
             Overtone {
+                // overtone: 5.0,
                 overtone: 6.0,
-                // overtone: 32.0,
                 volume: 0.0,
             },
             Overtone {
-                overtone: 8.0,
-                // overtone: 64.0,
+                // overtone: 8.0,
+                overtone: 6.0 * 2.0_f64.powf(7.0 / 12.0),
+                volume: 0.0,
+            },
+            Overtone {
+                // overtone: 6.0,
+                // overtone: 6.0 * 2.0_f64.powf(7.0 / 12.0),
+                overtone: 12.0,
                 volume: 0.0,
             },
         ];
         let wave_table = WaveTables::new(&overtones).sin;
+        let speaker_speed = (440.0 * 0.4) / 60.0;
         let mut lfo = LFO::new();
-        lfo.set_frequency(400.0 / 60.0);
+        lfo.set_frequency(speaker_speed);
 
         Self {
             osc_s: [Oscillator::new(); VOICES],
@@ -199,6 +204,7 @@ impl Organ {
             overtones,
             lfo,
             volume: 1.0,
+            speaker_speed,
         }
     }
 
@@ -235,11 +241,11 @@ impl Organ {
     }
 
     pub fn play(&mut self, midi_note: MidiNote, _velocity: u8) {
-        // let midi_note = if midi_note >= 12 {
-        //     midi_note - 12
-        // } else {
-        //     return;
-        // };
+        let midi_note = if midi_note >= 12 {
+            midi_note - 12
+        } else {
+            return;
+        };
 
         // for (osc_s, _offset) in self.osc_s.iter_mut() {
         //     for osc in osc_s {
@@ -272,11 +278,11 @@ impl Organ {
     }
 
     pub fn stop(&mut self, midi_note: MidiNote) {
-        // let midi_note = if midi_note >= 12 {
-        //     midi_note - 12
-        // } else {
-        //     return;
-        // };
+        let midi_note = if midi_note >= 12 {
+            midi_note - 12
+        } else {
+            return;
+        };
 
         // for (osc_s, _offset) in self.osc_s.iter_mut() {
         //     for osc in osc_s {
@@ -388,7 +394,8 @@ impl Organ {
     // }
 
     pub fn set_leslie_speed(&mut self, speed: f32) {
-        self.lfo.set_frequency((400.0 * speed) / 60.0);
+        self.speaker_speed = (440.0 * speed) / 60.0;
+        self.lfo.set_frequency(self.speaker_speed);
         self.lfo.set_volume(speed);
     }
 
@@ -446,7 +453,7 @@ impl SynthEngine for Organ {
         map.insert(GuiParam::B, self.osc_s[0].env_filter.base_params[DECAY]);
         map.insert(GuiParam::C, self.osc_s[0].env_filter.base_params[SUSTAIN]);
         map.insert(GuiParam::D, self.osc_s[0].env_filter.base_params[RELEASE]);
-        map.insert(GuiParam::E, self.lfo.volume);
+        map.insert(GuiParam::E, self.speaker_speed);
 
         map
     }
