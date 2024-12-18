@@ -9,6 +9,7 @@ use crate::{
     },
     KnobCtrl, SampleGen,
 };
+use log::info;
 use midi_control::MidiNote;
 use std::{collections::HashMap, sync::Arc};
 
@@ -236,7 +237,7 @@ impl Synth {
             wave_tables,
             osc_type: [
                 // (OscType::Sin, 1.0),
-                (OscType::Saw, 1.0),
+                (OscType::Sin, 1.0),
                 (OscType::Saw, 1.0),
                 // (OscType::Saw, 1.0),
                 // (OscType::Tri, 0.75),
@@ -264,9 +265,11 @@ impl Synth {
             .zip([1.0 - self.mix, self.mix])
         {
             // println!("{:?}", osc_s.len());
+            // info!("mix :  {mix}");
             for osc in osc_s {
                 if osc.playing.is_some() {
                     // osc.for_each(|(osc, _offset)| {
+                    // info!("mix :  {mix}");
 
                     // println!("playing");
                     sample += osc.get_sample(&wave_table) * volume * mix;
@@ -305,17 +308,24 @@ impl Synth {
         for (osc_s, offset) in self.osc_s.iter_mut() {
             for osc in osc_s {
                 if osc.playing.is_none() {
-                    let note = if *offset > 0 {
-                        midi_note + (*offset as u8)
+                    // let note = if *offset > 0 {
+                    //     midi_note + (*offset as u8)
+                    // } else {
+                    //     // println!("offset {} -> {}", offset, (offset.abs() as u8));
+                    //     midi_note - (offset.abs() as u8)
+                    // };
+                    let note = if midi_note >= (*offset as u8) {
+                        midi_note - (*offset as u8)
                     } else {
                         // println!("offset {} -> {}", offset, (offset.abs() as u8));
-                        midi_note - (offset.abs() as u8)
+                        midi_note // - (offset.abs() as u8)
                     };
+
                     osc.press(note);
                     osc.playing = Some(midi_note);
                     // println!("playing note on osc {i}");
 
-                    return;
+                    break;
                 }
             }
         }
@@ -340,7 +350,7 @@ impl Synth {
                 if osc.playing == Some(midi_note) && osc.env_filter.phase != RELEASE {
                     // println!("release");
                     osc.release();
-                    return;
+                    break;
                 }
             }
         }
@@ -403,7 +413,7 @@ impl Synth {
     }
 
     pub fn set_cutoff(&mut self, cutoff: f32) {
-        let cutoff = cutoff * 10_000.0;
+        let cutoff = cutoff * 16_000.0;
 
         for (osc_s, _offset) in self.osc_s.iter_mut() {
             for osc in osc_s {
@@ -457,7 +467,7 @@ impl SynthEngine for Synth {
             Knob::Four,
             self.osc_s[0].0[0].env_filter.base_params[RELEASE],
         );
-        map.insert(Knob::Five, self.osc_s[0].0[0].low_pass.cutoff);
+        map.insert(Knob::Five, self.osc_s[0].0[0].low_pass.cutoff / 16_000.0);
         map.insert(Knob::Six, self.osc_s[0].0[0].low_pass.resonance);
         // map.insert(Knob::Seven, self.overtones[6].volume as f32);
         // map.insert(Knob::Eight, self.overtones[7].volume as f32);
@@ -474,10 +484,10 @@ impl SynthEngine for Synth {
         map.insert(GuiParam::B, self.osc_type[1].0 as usize as f32);
         // mix
         map.insert(GuiParam::C, self.mix);
-        // down tune
+        // osc_2 note offset
         map.insert(GuiParam::D, self.osc_s[1].1 as f32);
         // detune
-        // map.insert(GuiParam::E, );
+        map.insert(GuiParam::E, 0.0);
 
         map
     }
@@ -535,6 +545,7 @@ impl KnobCtrl for Synth {
     }
 
     fn gui_param_4(&mut self, value: f32) -> bool {
+        // info!("value = {value}");
         self.osc_s[1].1 = value as i16;
         true
     }

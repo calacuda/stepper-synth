@@ -153,7 +153,8 @@ def draw(synth_state: State):
             draw_organ(pygame, screen, fonts, synth_state)
             organ_controls(pygame, controller, ipc, synth_state)
         case SynthEngineType.SubSynth:
-            clear_screen()
+            draw_sub_synth(pygame, screen, fonts, synth_state)
+            sub_synth_controls(pygame, controller, ipc, synth_state)
 
     # TODO: draw volume & battery
 
@@ -164,6 +165,7 @@ def proccess_cmd():
     new_state = ipc.recv()
 
     if new_state:
+        # print("got new state")
         draw(new_state)
         state = new_state
     else:
