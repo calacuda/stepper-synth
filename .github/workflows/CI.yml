@@ -44,7 +44,7 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
-          before-script-linux: "sudo apt-get install 'libasound2-dev' 'pkg-config'"
+          before-script-linux: "apt-get install 'libasound2-dev' 'pkg-config'"
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
           sccache: 'true'
