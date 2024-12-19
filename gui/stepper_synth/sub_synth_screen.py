@@ -56,7 +56,7 @@ def draw_osc_2_dials(pygame, screen, synth: State, left, right):
     if detune is None:
         detune = 0.0
 
-    draw_dial(pygame, screen, note_offset / 3.0, x_1,
+    draw_dial(pygame, screen, note_offset / 12.0, x_1,
               osc_2_selected() and INDEX[INDEX[4]] == 1)
     draw_dial(pygame, screen, detune, x_2,
               osc_2_selected() and INDEX[INDEX[4]] == 2)
@@ -314,10 +314,14 @@ def adjust_value(pygame, controller: Buttons, ipc: TrackerIPC, synth_state: Stat
     elif osc_2_selected() and (left_pressed or right_pressed):
         param = CONTROLS[INDEX[4]][INDEX[INDEX[4]]]
 
-        if INDEX[INDEX[4]] in [0, 1]:
+        if INDEX[INDEX[4]] == 0:
             # print("setting 0 or 1")
             mod_amt = -1 if left_pressed else 1
             set_to = set_max(synth_state.gui_params.get(param) + mod_amt, 4.0)
+        if INDEX[INDEX[4]] == 1:
+            # print("setting 0 or 1")
+            mod_amt = -1 if left_pressed else 1
+            set_to = set_max(synth_state.gui_params.get(param) + mod_amt, 12.0)
         elif INDEX[INDEX[4]] == 2:
             mod_amt = -0.01 if left_pressed else 0.01
             set_to = set_max(synth_state.gui_params.get(param) + mod_amt, 1.0)
