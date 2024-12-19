@@ -24,7 +24,7 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [ ] Sampler Synth ui
 - [ ] Modelling Synth
 - [ ] Modelling Synth ui
-- [ ] synth switch menu
+- [x] synth switch menu
 - [ ] effect switch menu
 - [ ] volume & battery icons
 - [ ] reverb ui

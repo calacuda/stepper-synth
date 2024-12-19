@@ -3,7 +3,7 @@ use crate::{
     pygame_coms::{GuiParam, Knob, State, SynthEngineType},
     KnobCtrl, SampleGen,
 };
-use log::info;
+use log::*;
 use midi_control::MidiNote;
 use organ::organ::Organ;
 use std::{collections::HashMap, fmt::Debug};
@@ -59,7 +59,10 @@ impl Synth {
         self.engine = match engine {
             SynthEngineType::B3Organ => Box::new(Organ::new()),
             SynthEngineType::SubSynth => Box::new(synth::synth::Synth::new()),
-            SynthEngineType::SamplerSynth => todo!("write SamplerSynth"),
+            SynthEngineType::SamplerSynth => {
+                warn!("write SamplerSynth");
+                return false;
+            }
         };
 
         self.engine_type = engine;

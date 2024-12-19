@@ -1,5 +1,5 @@
-use pyo3::pyclass;
-use std::collections::HashMap;
+use pyo3::{pyclass, pymethods, PyResult};
+use std::{collections::HashMap, fmt::Display};
 
 #[pyclass(module = "stepper_synth_backend", eq, get_all)]
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -55,6 +55,23 @@ pub enum SynthEngineType {
     SubSynth,
     B3Organ,
     SamplerSynth,
+}
+
+impl Display for SynthEngineType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SubSynth => write!(f, "Subtract"),
+            Self::B3Organ => write!(f, "Organ"),
+            Self::SamplerSynth => write!(f, "Sampler"),
+        }
+    }
+}
+
+#[pymethods()]
+impl SynthEngineType {
+    fn __str__(&self) -> PyResult<String> {
+        Ok(format!("{}", self))
+    }
 }
 
 #[pyclass(module = "stepper_synth_backend", get_all)]
