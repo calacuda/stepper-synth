@@ -185,12 +185,12 @@ def draw(synth_state: State):
 def proccess_cmd():
     global state
 
-    new_state = ipc.recv()
+    new_state = ipc.recv_all()
 
-    if new_state:
+    if new_state and new_state[-1]:
         # print("got new state")
-        draw(new_state)
-        state = new_state
+        draw(new_state[-1])
+        state = new_state[-1]
     else:
         draw(state)
 

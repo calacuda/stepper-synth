@@ -1,268 +1,58 @@
 use crate::{
     pygame_coms::{GuiParam, Knob},
     synth_engines::{
-        synth_common::{
-            env::{ATTACK, DECAY, RELEASE, SUSTAIN},
-            osc::{Oscillator, Overtone},
-        },
+        synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN},
         SynthEngine,
     },
     KnobCtrl, SampleGen,
 };
 use midi_control::MidiNote;
-use pyo3::prelude::*;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
-pub type WaveTable = Arc<[f32]>;
-// pub type WaveTables = [(WaveTable, f32); 2];
+use super::{osc::SynthOscillator, OscType};
 
-pub const WAVE_TABLE_SIZE: usize = 256;
 pub const VOICES: usize = 10;
-
-#[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub enum OscType {
-    Sin,
-    Tri,
-    Sqr,
-    Saw,
-}
-
-impl From<usize> for OscType {
-    fn from(value: usize) -> Self {
-        match value {
-            _ if value == Self::Sin as usize => Self::Sin,
-            _ if value == Self::Tri as usize => Self::Tri,
-            _ if value == Self::Sqr as usize => Self::Sqr,
-            _ if value == Self::Saw as usize => Self::Saw,
-            _ => Self::Saw,
-        }
-    }
-}
-
-#[pymethods]
-impl OscType {
-    #[new]
-    fn new(f: f64) -> Self {
-        Self::from(f as usize)
-    }
-
-    fn __str__(&self) -> String {
-        match *self {
-            OscType::Sin => "Sin".into(),
-            OscType::Tri => "Tri".into(),
-            OscType::Sqr => "Sqr".into(),
-            OscType::Saw => "Saw".into(),
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, PartialOrd, Debug)]
-pub struct WaveTables {
-    pub sin: WaveTable,
-    pub tri: WaveTable,
-    pub sqr: WaveTable,
-    pub saw: WaveTable,
-}
-
-impl WaveTables {
-    pub fn new(overtones: &[Overtone]) -> Self {
-        Self {
-            sin: Self::build_sine_table(overtones),
-            tri: Self::build_triangle_table(overtones),
-            sqr: Self::build_square_table(overtones),
-            saw: Self::build_saw_table(overtones),
-        }
-    }
-
-    fn build_saw_table(overtones: &[Overtone]) -> WaveTable {
-        let mut wave_table = [0.0; WAVE_TABLE_SIZE];
-
-        let n_overtones = overtones.len();
-
-        let bias = 1.0 / n_overtones as f32;
-
-        for i in 0..WAVE_TABLE_SIZE {
-            for ot in overtones {
-                // wave_table[i] += (((i as f64 % ot.overtone) - 1.0) * ot.volume) as f32
-                wave_table[i] +=
-                    ((((i as f64 * ((4.0 * ot.overtone) / WAVE_TABLE_SIZE as f64)) % 2.0) - 1.0)
-                        * ot.volume) as f32;
-                // break;
-            }
-
-            wave_table[i] *= bias;
-            // println!("saw tooth => {}", wave_table[i]);
-        }
-
-        wave_table.into()
-    }
-
-    fn build_square_table(overtones: &[Overtone]) -> WaveTable {
-        let mut wave_table = [0.0; WAVE_TABLE_SIZE];
-
-        let n_overtones = overtones.len();
-
-        let bias = 1.0 / n_overtones as f32;
-
-        for i in 0..WAVE_TABLE_SIZE {
-            for ot in overtones {
-                if (i as f64 % ot.overtone as f64) < 1.0 {
-                    wave_table[i] += ot.volume as f32
-                }
-            }
-
-            wave_table[i] *= bias;
-        }
-
-        wave_table.into()
-    }
-
-    fn build_triangle_table(overtones: &[Overtone]) -> WaveTable {
-        let mut wave_table = [0.0; WAVE_TABLE_SIZE];
-
-        let n_overtones = overtones.len();
-
-        let bias = 1.0 / n_overtones as f32;
-
-        for i in 0..WAVE_TABLE_SIZE {
-            for ot in overtones {
-                wave_table[i] += (((i as f64 % ot.overtone as f64) - 1.0).abs() * ot.volume) as f32
-            }
-
-            wave_table[i] *= bias;
-        }
-
-        // println!("bigest build_triangle_table {:?}", wave_table.iter().max());
-
-        wave_table.into()
-    }
-
-    fn build_sine_table(overtones: &[Overtone]) -> WaveTable {
-        let mut wave_table = [0.0; WAVE_TABLE_SIZE];
-
-        let n_overtones = overtones.len();
-
-        let bias = 1.0 / n_overtones as f32;
-
-        for i in 0..WAVE_TABLE_SIZE {
-            for ot in overtones {
-                wave_table[i] += ((2.0 * core::f64::consts::PI * i as f64 * ot.overtone
-                    / WAVE_TABLE_SIZE as f64)
-                    .sin()
-                    * ot.volume) as f32
-            }
-
-            wave_table[i] *= bias;
-        }
-
-        wave_table.into()
-    }
-
-    fn index(&self, index: &Arc<[(OscType, f32)]>) -> Arc<[(WaveTable, f32)]> {
-        index
-            .iter()
-            .map(|(osc_type, vol)| {
-                (
-                    match osc_type {
-                        OscType::Sin => self.sin.clone(),
-                        OscType::Tri => self.tri.clone(),
-                        OscType::Sqr => self.sqr.clone(),
-                        OscType::Saw => self.saw.clone(),
-                    },
-                    vol / index.len() as f32,
-                )
-            })
-            .collect()
-    }
-}
 
 #[derive(Debug)]
 pub struct Synth {
-    pub osc_s: [([Oscillator; VOICES], i16); 2],
-    pub wave_tables: WaveTables,
+    pub osc_s: [(Vec<SynthOscillator>, i16); 2],
     pub osc_type: [(OscType, f32); 2],
-    pub overtones: [Overtone; 10],
+    // pub overtones: [Overtone; 10],
     pub volume: f32,
     pub mix: f32,
 }
 
 impl Synth {
     pub fn new() -> Self {
-        let overtones = [
-            Overtone {
-                overtone: 1.0,
-                volume: 1.0,
-            },
-            Overtone {
-                overtone: 2.0,
-                volume: 1.0,
-            },
-            Overtone {
-                overtone: 3.0,
-                volume: 1.0,
-            },
-            Overtone {
-                overtone: 4.0,
-                volume: 1.0,
-            },
-            Overtone {
-                overtone: 5.0,
-                volume: 1.0,
-            },
-            Overtone {
-                overtone: 6.0,
-                volume: 1.0,
-            },
-            Overtone {
-                overtone: 7.0,
-                volume: 1.0,
-            },
-            Overtone {
-                overtone: 8.0,
-                volume: 1.0,
-            },
-            Overtone {
-                overtone: 9.0,
-                volume: 1.0,
-            },
-            Overtone {
-                overtone: 10.0,
-                volume: 1.0,
-            },
-        ];
-        let wave_tables = WaveTables::new(&overtones);
+        let osc_1: Vec<SynthOscillator> = (0..VOICES).map(|_| SynthOscillator::new()).collect();
+        let osc_2: Vec<SynthOscillator> = (0..VOICES).map(|_| SynthOscillator::new()).collect();
 
         Self {
-            osc_s: [([Oscillator::new(); VOICES], 0); 2],
-            wave_tables,
+            osc_s: [(osc_1, 0), (osc_2, 0)],
+            // wave_tables,
             osc_type: [
                 // (OscType::Sin, 1.0),
-                (OscType::Sin, 1.0),
+                (OscType::Saw, 1.0),
                 (OscType::Saw, 1.0),
                 // (OscType::Saw, 1.0),
                 // (OscType::Tri, 0.75),
                 // (OscType::Sqr, 1.0),
             ],
-            overtones,
+            // overtones,
             // osc_type: Arc::new([(OscType::Tri, 1.0)]),
-            volume: 0.75,
+            volume: 1.0,
             mix: 0.5,
         }
-    }
-
-    pub fn set_overtones(&mut self) {
-        self.wave_tables = WaveTables::new(&self.overtones);
     }
 
     pub fn get_sample(&mut self) -> f32 {
         let mut sample = 0.0;
         // println!("lfo sample {lfo_sample}");
 
-        for (((osc_s, _offset), (wave_table, volume)), mix) in self
+        for ((osc_s, _offset), mix) in self
             .osc_s
             .iter_mut()
-            .zip(self.wave_tables.index(&self.osc_type.clone().into()).iter())
+            // .zip(self.wave_tables.index(&self.osc_type.clone().into()).iter())
             .zip([1.0 - self.mix, self.mix])
         {
             // println!("{:?}", osc_s.len());
@@ -273,7 +63,7 @@ impl Synth {
                     // info!("mix :  {mix}");
 
                     // println!("playing");
-                    sample += osc.get_sample(&wave_table) * volume * mix;
+                    sample += osc.get_sample() * mix;
                     // sample += osc.get_sample(&wave_table) * volume * self.mix;
                     // println!(
                     //     "env => {}, {}",
@@ -414,7 +204,7 @@ impl Synth {
     }
 
     pub fn set_cutoff(&mut self, cutoff: f32) {
-        let cutoff = cutoff * 16_000.0;
+        // let cutoff = cutoff * 16_000.0;
 
         for (osc_s, _offset) in self.osc_s.iter_mut() {
             for osc in osc_s {
@@ -468,7 +258,7 @@ impl SynthEngine for Synth {
             Knob::Four,
             self.osc_s[0].0[0].env_filter.base_params[RELEASE],
         );
-        map.insert(Knob::Five, self.osc_s[0].0[0].low_pass.cutoff / 16_000.0);
+        map.insert(Knob::Five, self.osc_s[0].0[0].low_pass.cutoff);
         map.insert(Knob::Six, self.osc_s[0].0[0].low_pass.resonance);
         // map.insert(Knob::Seven, self.overtones[6].volume as f32);
         // map.insert(Knob::Eight, self.overtones[7].volume as f32);
@@ -532,11 +322,20 @@ impl KnobCtrl for Synth {
 
     fn gui_param_1(&mut self, value: f32) -> bool {
         self.osc_type[0].0 = OscType::from(value as usize);
+        for osc in self.osc_s[0].0.iter_mut() {
+            osc.set_osc_type(self.osc_type[0].0)
+        }
+
         true
     }
 
     fn gui_param_2(&mut self, value: f32) -> bool {
         self.osc_type[1].0 = OscType::from(value as usize);
+
+        for osc in self.osc_s[1].0.iter_mut() {
+            osc.set_osc_type(self.osc_type[1].0)
+        }
+
         true
     }
 

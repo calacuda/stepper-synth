@@ -1,28 +1,32 @@
-use super::{env::ADSR, moog_filter::LowPass, WaveTable, WAVE_TABLE_SIZE};
-use crate::SAMPLE_RATE;
-use std::sync::Arc;
+use crate::{
+    synth_engines::synth_common::{env::ADSR, moog_filter::LowPass, WaveTable, WAVE_TABLE_SIZE},
+    SampleGen, SAMPLE_RATE,
+};
 
-#[derive(Clone, Copy, Debug)]
-pub struct Overtone {
-    /// the frequency of the overtone relative to the fundimental
-    pub overtone: f64,
-    /// how loud this over tone is relative to the total volume (ie, 1.0)
-    pub volume: f64,
-}
+use super::{
+    build_sine_table, saw_tooth::SawToothOsc, OscType, SynthBackend, SynthOscilatorBackend,
+};
 
-#[derive(Clone, Copy, Debug)]
+pub const N_OVERTONES: usize = 20;
+
+#[derive(Clone, Debug)]
 pub struct WavetableOscillator {
     sample_rate: f32,
     index: f32,
     index_increment: f32,
+    wave_table: WaveTable,
 }
 
 impl WavetableOscillator {
     pub fn new() -> Self {
+        let overtones: Vec<f64> = (1..=N_OVERTONES).map(|i| i as f64).collect();
+        let wave_table = build_sine_table(&overtones);
+
         Self {
             sample_rate: SAMPLE_RATE as f32,
             index: 0.0,
             index_increment: 0.0,
+            wave_table,
         }
     }
 
@@ -30,26 +34,12 @@ impl WavetableOscillator {
         self.index_increment = frequency * WAVE_TABLE_SIZE as f32 / self.sample_rate;
     }
 
-    pub fn get_samples(&mut self, wave_tables: &Arc<[(WaveTable, f32)]>) -> f32 {
+    fn get_sample(&mut self) -> f32 {
         let mut sample = 0.0;
 
-        for (table, weight) in wave_tables.iter() {
-            sample += self.lerp(table) * weight;
-        }
-
-        self.index += self.index_increment;
-        self.index %= WAVE_TABLE_SIZE as f32;
-
-        sample
-    }
-
-    pub fn get_sample(&mut self, table: &WaveTable) -> f32 {
-        // let mut sample = 0.0;
-        //
-        // for (table, weight) in wave_tables.iter() {
-        //     sample += self.lerp(table) * weight;
+        // for table in wave_tables.iter() {
+        sample += self.lerp(&self.wave_table);
         // }
-        let sample = self.lerp(table);
 
         self.index += self.index_increment;
         self.index %= WAVE_TABLE_SIZE as f32;
@@ -69,29 +59,47 @@ impl WavetableOscillator {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct Oscillator {
-    wt_osc: WavetableOscillator,
+impl SampleGen for WavetableOscillator {
+    fn get_sample(&mut self) -> f32 {
+        self.get_sample()
+    }
+}
+
+impl SynthOscilatorBackend for WavetableOscillator {
+    fn set_frequency(&mut self, frequency: f32) {
+        self.set_frequency(frequency)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SynthOscillator {
+    osc: SynthBackend,
     pub env_filter: ADSR,
     /// what midi note is being played by this osc
     pub playing: Option<u8>,
     frequency: f32,
     base_frequency: f32,
-    note_space: f32,
+    // note_space: f32,
     pub low_pass: LowPass,
+    // pub wave_table: WaveTable,
 }
 
-impl Oscillator {
+impl SynthOscillator {
     pub fn new() -> Self {
         Self {
-            wt_osc: WavetableOscillator::new(),
+            // osc: SynthBackend::Sin(WavetableOscillator::new()),
+            osc: SynthBackend::Saw(SawToothOsc::new()),
             env_filter: ADSR::new(),
             playing: None,
             frequency: 0.0,
             base_frequency: 0.0,
-            note_space: 2.0_f32.powf(1.0 / 12.0),
+            // note_space: 2.0_f32.powf(1.0 / 12.0),
             low_pass: LowPass::new(),
         }
+    }
+
+    pub fn set_osc_type(&mut self, osc_type: OscType) {
+        self.osc = osc_type.into();
     }
 
     pub fn is_pressed(&self) -> bool {
@@ -103,7 +111,8 @@ impl Oscillator {
         self.frequency = Self::get_freq(midi_note);
         self.base_frequency = self.frequency;
 
-        self.wt_osc.set_frequency(self.frequency);
+        self.osc.set_frequency(self.frequency);
+        self.low_pass.set_note(self.frequency);
         self.playing = Some(midi_note);
     }
 
@@ -119,9 +128,9 @@ impl Oscillator {
         // self.playing = None;
     }
 
-    pub fn get_samples(&mut self, wave_table: &Arc<[(WaveTable, f32)]>) -> f32 {
+    pub fn get_sample(&mut self) -> f32 {
         let env = self.env_filter.get_samnple();
-        let sample = self.wt_osc.get_samples(wave_table) * env;
+        let sample = self.osc.get_sample() * env;
 
         if env <= 0.0 {
             self.playing = None;
@@ -129,42 +138,20 @@ impl Oscillator {
         // println!("osc sample => {sample}");
 
         self.low_pass.get_sample(sample, env)
-    }
-
-    pub fn get_sample(&mut self, wave_table: &WaveTable) -> f32 {
-        let env = self.env_filter.get_samnple();
-        let sample = self.wt_osc.get_sample(wave_table) * env;
-
-        if env <= 0.0 {
-            self.playing = None;
-        }
-        // println!("osc sample => {sample}");
-
-        self.low_pass.get_sample(sample, env)
-    }
-
-    pub fn vibrato(&mut self, amt: f32) {
-        let amt = amt * 0.4;
-
-        let next_note = if amt > 0.0 {
-            self.frequency * self.note_space
-        } else if amt == 0.0 {
-            self.wt_osc.set_frequency(self.frequency);
-            return;
-        } else {
-            self.frequency / self.note_space
-        };
-
-        let freq_delta = (self.frequency - next_note).abs();
-        let adjust_amt = freq_delta * amt * 0.5;
-        self.wt_osc.set_frequency(self.frequency + adjust_amt)
     }
 
     pub fn bend(&mut self, bend: f32) {
         // println!("bending");
-        let new_freq = self.base_frequency * 2.0_f32.powf((bend * 3.0) / 12.0);
+        let nudge = 2.0_f32.powf((bend * 3.0).abs() / 12.0);
+        let new_freq = if bend < 0.0 {
+            self.base_frequency / nudge
+        } else if bend > 0.0 {
+            self.base_frequency * nudge
+        } else {
+            self.base_frequency
+        };
         // + self.frequency;
-        self.wt_osc.set_frequency(new_freq);
+        self.osc.set_frequency(new_freq);
         // println!("frequency => {}", self.frequency);
         // println!("new_freq => {}", new_freq);
         self.frequency = new_freq;
@@ -172,7 +159,7 @@ impl Oscillator {
 
     pub fn unbend(&mut self) {
         // println!("unbend => {}", self.base_frequency);
-        self.wt_osc.set_frequency(self.base_frequency);
+        self.osc.set_frequency(self.base_frequency);
         self.frequency = self.base_frequency;
     }
 }

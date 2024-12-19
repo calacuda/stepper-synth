@@ -1,5 +1,5 @@
-use super::{env::ADSR, moog_filter::LowPass, WaveTable, WAVE_TABLE_SIZE};
-use crate::SAMPLE_RATE;
+// use super::{env::ADSR, moog_filter::LowPass};
+use crate::synth_engines::synth_common::{env::ADSR, osc::WavetableOscillator, WaveTable};
 use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug)]
@@ -11,65 +11,6 @@ pub struct Overtone {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct WavetableOscillator {
-    sample_rate: f32,
-    index: f32,
-    index_increment: f32,
-}
-
-impl WavetableOscillator {
-    pub fn new() -> Self {
-        Self {
-            sample_rate: SAMPLE_RATE as f32,
-            index: 0.0,
-            index_increment: 0.0,
-        }
-    }
-
-    pub fn set_frequency(&mut self, frequency: f32) {
-        self.index_increment = frequency * WAVE_TABLE_SIZE as f32 / self.sample_rate;
-    }
-
-    pub fn get_samples(&mut self, wave_tables: &Arc<[(WaveTable, f32)]>) -> f32 {
-        let mut sample = 0.0;
-
-        for (table, weight) in wave_tables.iter() {
-            sample += self.lerp(table) * weight;
-        }
-
-        self.index += self.index_increment;
-        self.index %= WAVE_TABLE_SIZE as f32;
-
-        sample
-    }
-
-    pub fn get_sample(&mut self, table: &WaveTable) -> f32 {
-        // let mut sample = 0.0;
-        //
-        // for (table, weight) in wave_tables.iter() {
-        //     sample += self.lerp(table) * weight;
-        // }
-        let sample = self.lerp(table);
-
-        self.index += self.index_increment;
-        self.index %= WAVE_TABLE_SIZE as f32;
-
-        sample
-    }
-
-    fn lerp(&self, wave_table: &[f32]) -> f32 {
-        let truncated_index = self.index as usize;
-        let next_index = (truncated_index + 1) % WAVE_TABLE_SIZE;
-
-        let next_index_weight = self.index - truncated_index as f32;
-        let truncated_index_weight = 1.0 - next_index_weight;
-
-        truncated_index_weight * wave_table[truncated_index]
-            + next_index_weight * wave_table[next_index]
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
 pub struct Oscillator {
     wt_osc: WavetableOscillator,
     pub env_filter: ADSR,
@@ -78,7 +19,7 @@ pub struct Oscillator {
     frequency: f32,
     base_frequency: f32,
     note_space: f32,
-    pub low_pass: LowPass,
+    // pub low_pass: LowPass,
 }
 
 impl Oscillator {
@@ -90,7 +31,7 @@ impl Oscillator {
             frequency: 0.0,
             base_frequency: 0.0,
             note_space: 2.0_f32.powf(1.0 / 12.0),
-            low_pass: LowPass::new(),
+            // low_pass: LowPass::new(),
         }
     }
 
@@ -128,7 +69,7 @@ impl Oscillator {
         }
         // println!("osc sample => {sample}");
 
-        self.low_pass.get_sample(sample, env)
+        sample * env
     }
 
     pub fn get_sample(&mut self, wave_table: &WaveTable) -> f32 {
@@ -138,9 +79,9 @@ impl Oscillator {
         if env <= 0.0 {
             self.playing = None;
         }
-        // println!("osc sample => {sample}");
 
-        self.low_pass.get_sample(sample, env)
+        // self.low_pass.get_sample(sample, env)
+        sample * env
     }
 
     pub fn vibrato(&mut self, amt: f32) {
@@ -175,4 +116,12 @@ impl Oscillator {
         self.wt_osc.set_frequency(self.base_frequency);
         self.frequency = self.base_frequency;
     }
+
+    // pub fn set_wave_table(&mut )
 }
+
+// impl SampleGen for Oscillator {
+//     fn get_sample(&mut self) -> f32 {
+//         self.get_sample()
+//     }
+// }

@@ -105,17 +105,21 @@ pub struct LowPass {
     filter: HuovilainenMoog,
     pub cutoff: f32,
     pub resonance: f32,
+    pub note: f32,
+    // pub range: (f32, f32),
 }
 
 impl LowPass {
     pub fn new() -> Self {
-        let mut filter = HuovilainenMoog::new();
-        filter.compute_coeffs(5_000.0, 0.75);
+        let filter = HuovilainenMoog::new();
+        // filter.compute_coeffs(5_000.0, 0.75);
 
         Self {
             filter,
-            cutoff: 5_000.0,
-            resonance: 0.75,
+            cutoff: 0.5,
+            resonance: 0.5,
+            note: 0.0,
+            // range: (0.0, 0.0),
         }
     }
 
@@ -128,8 +132,22 @@ impl LowPass {
     }
 
     pub fn get_sample(&mut self, sample: f32, env: f32) -> f32 {
-        self.filter
-            .process(sample, self.cutoff * env, self.resonance * env)
+        let nudge = 2.0_f32.powf(19.0 * env * self.cutoff / 12.0);
+        // let delta = (self.note * 2.0) - (self.note / 2.0);
+        // let nudge = delta * env * self.cutoff;
+        let cutoff = if env > 0.5 {
+            self.note * nudge
+        } else if nudge < 0.5 {
+            self.note / nudge
+        } else {
+            self.note
+        };
+
+        self.filter.process(sample, cutoff, self.resonance * env)
+    }
+
+    pub fn set_note(&mut self, note: f32) {
+        self.note = note;
     }
 }
 

@@ -32,7 +32,7 @@ impl TrackerIPC {
         let mut v = Vec::with_capacity(self.rx.len());
 
         while let Some(cmd) = self.recv() {
-            info!("{cmd:?}");
+            // info!("{cmd:?}");
             v.push(cmd);
         }
 

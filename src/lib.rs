@@ -16,7 +16,7 @@ use std::{
     sync::{Arc, Mutex},
     thread::spawn,
 };
-use synth_engines::synth::synth::OscType;
+use synth_engines::synth::OscType;
 use synth_engines::Synth;
 use tinyaudio::prelude::*;
 
