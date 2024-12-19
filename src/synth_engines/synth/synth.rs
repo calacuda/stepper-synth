@@ -10,6 +10,7 @@ use crate::{
     KnobCtrl, SampleGen,
 };
 use midi_control::MidiNote;
+use pyo3::prelude::*;
 use std::{collections::HashMap, sync::Arc};
 
 pub type WaveTable = Arc<[f32]>;
@@ -18,6 +19,7 @@ pub type WaveTable = Arc<[f32]>;
 pub const WAVE_TABLE_SIZE: usize = 256;
 pub const VOICES: usize = 10;
 
+#[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum OscType {
     Sin,
@@ -34,6 +36,23 @@ impl From<usize> for OscType {
             _ if value == Self::Sqr as usize => Self::Sqr,
             _ if value == Self::Saw as usize => Self::Saw,
             _ => Self::Saw,
+        }
+    }
+}
+
+#[pymethods]
+impl OscType {
+    #[new]
+    fn new(f: f64) -> Self {
+        Self::from(f as usize)
+    }
+
+    fn __str__(&self) -> String {
+        match *self {
+            OscType::Sin => "Sin".into(),
+            OscType::Tri => "Tri".into(),
+            OscType::Sqr => "Sqr".into(),
+            OscType::Saw => "Saw".into(),
         }
     }
 }

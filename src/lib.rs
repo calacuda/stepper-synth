@@ -16,6 +16,7 @@ use std::{
     sync::{Arc, Mutex},
     thread::spawn,
 };
+use synth_engines::synth::synth::OscType;
 use synth_engines::Synth;
 use tinyaudio::prelude::*;
 
@@ -387,5 +388,6 @@ fn stepper_synth_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<GuiParam>()?;
     m.add_class::<SynthEngineType>()?;
     m.add_class::<State>()?;
+    m.add_class::<OscType>()?;
     Ok(())
 }

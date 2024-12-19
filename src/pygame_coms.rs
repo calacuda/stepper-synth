@@ -1,4 +1,4 @@
-use pyo3::{pyclass, pymethods, PyResult};
+use pyo3::prelude::*;
 use std::{collections::HashMap, fmt::Display};
 
 #[pyclass(module = "stepper_synth_backend", eq, get_all)]

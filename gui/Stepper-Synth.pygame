@@ -30,7 +30,8 @@ joy = None
 screen = pygame.display.set_mode(SCREEN_SIZE)
 pygame.font.init()
 fonts = [pygame.font.Font(f'{THIS_DIR}/Anonymous-Pro.ttf', 45),
-         pygame.font.Font(f'{THIS_DIR}/Anonymous-Pro.ttf', 30)]
+         pygame.font.Font(f'{THIS_DIR}/Anonymous-Pro.ttf', 30),
+         pygame.font.Font(f'{THIS_DIR}/Anonymous-Pro.ttf', 75)]
 clock = pygame.time.Clock()
 done = False
 log = get_logger("MIDI-Tracker", DEBUG)

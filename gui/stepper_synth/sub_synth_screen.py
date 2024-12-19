@@ -1,7 +1,7 @@
 import math
 from stepper_synth.utils import set_max
 from .config import *
-from stepper_synth_backend import State, GuiParam, Knob, PythonCmd, TrackerIPC
+from stepper_synth_backend import State, GuiParam, Knob, PythonCmd, TrackerIPC, OscType
 from .controls import Buttons, buttons
 
 
@@ -69,11 +69,23 @@ def draw_osc_1_dial(pygame, screen, synth: State, left, right):
         GuiParam.C), center, osc_1_selected() and INDEX[INDEX[4]] == 1)
 
 
-def draw_osc(osc_num: int, pygame, screen, fonts, synth_state: State):
-    # top = 0
-    # bottom = SCREEN_HEIGHT / 2
+def draw_osc(osc_num: int, pygame, screen, fonts, synth_state: State, osc_type):
+    top = 0
+    bottom = SCREEN_HEIGHT / 2
     left = (SCREEN_WIDTH / 2) * osc_num
     right = (SCREEN_WIDTH / 2) * (osc_num + 1)
+    center_x = (left + right) / 2
+    center_y = (top + bottom) / 2
+
+    # print(osc_type)
+    color = RED if osc_num == INDEX[4] and INDEX[INDEX[4]
+                                                 ] == 0 else TEXT_COLOR_1
+    text = fonts[2].render(f'{osc_type}', True, color)
+    text_rect = text.get_rect()
+    text_rect.center = (center_x, center_y)
+    # text_rect.right = SCREEN_WIDTH
+    screen.blit(text, text_rect)
+
     draw_dials = [draw_osc_1_dial, draw_osc_2_dials]
 
     draw_dials[osc_num](pygame, screen, synth_state, left, right)
@@ -303,6 +315,7 @@ def adjust_value(pygame, controller: Buttons, ipc: TrackerIPC, synth_state: Stat
         param = CONTROLS[INDEX[4]][INDEX[INDEX[4]]]
 
         if INDEX[INDEX[4]] in [0, 1]:
+            # print("setting 0 or 1")
             mod_amt = -1 if left_pressed else 1
             set_to = set_max(synth_state.gui_params.get(param) + mod_amt, 4.0)
         elif INDEX[INDEX[4]] == 2:
@@ -317,12 +330,14 @@ def adjust_value(pygame, controller: Buttons, ipc: TrackerIPC, synth_state: Stat
 
         if INDEX[INDEX[4]] == 0:
             mod_amt = -1 if left_pressed else 1
+            set_to = set_max(synth_state.gui_params.get(param) + mod_amt, 4.0)
         elif INDEX[INDEX[4]] == 1:
             mod_amt = -0.01 if left_pressed else 0.01
+            set_to = set_max(synth_state.gui_params.get(param) + mod_amt, 1.0)
         else:
             mod_amt = 0
+            set_to = set_max(synth_state.gui_params.get(param) + mod_amt, 1.0)
 
-        set_to = set_max(synth_state.gui_params.get(param) + mod_amt, 1.0)
         new_val = PythonCmd.SetGuiParam(param, set_to)
 
     if new_val is not None:
@@ -338,8 +353,11 @@ def sub_synth_controls(pygame, controller: Buttons, ipc, synth_state: State):
 
 
 def draw_sub_synth(pygame, screen, fonts, synth_state: State):
-    draw_osc(0, pygame, screen, fonts, synth_state)
-    draw_osc(1, pygame, screen, fonts, synth_state)
+    osc_1_type = OscType(synth_state.gui_params.get(GuiParam.A))
+    osc_2_type = OscType(synth_state.gui_params.get(GuiParam.B))
+
+    draw_osc(0, pygame, screen, fonts, synth_state, osc_1_type)
+    draw_osc(1, pygame, screen, fonts, synth_state, osc_2_type)
 
     middle_x = SCREEN_WIDTH / 2
     middle_y = SCREEN_HEIGHT / 2
