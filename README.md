@@ -32,4 +32,5 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [ ] delay ui
 - [ ] LFO ui
 - [ ] low_pass keytracking
+- [ ] Drum synth
 

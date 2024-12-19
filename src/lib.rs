@@ -31,6 +31,8 @@ pub trait SampleGen {
     fn get_sample(&mut self) -> f32;
 }
 
+// TODO: make python ogject use try_lock() in a loop so it doesn't disturb audio gen.
+
 #[allow(unused_variables)]
 pub trait KnobCtrl {
     // TODO: have these return a bool, representing if the system should send a state update

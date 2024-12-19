@@ -190,15 +190,6 @@ pub struct Synth {
 impl Synth {
     pub fn new() -> Self {
         let overtones = [
-            // Overtone {
-            //     overtone: 0.5_f64.powf(1.0 / 12.0),
-            //     volume: 1.0,
-            // },
-            // Overtone {
-            //     // overtone: 2.0_f64.powf(1.0 / 12.0),
-            //     overtone: 1.5_f64.powf(1.0 / 12.0),
-            //     volume: 1.0,
-            // },
             Overtone {
                 overtone: 1.0,
                 volume: 1.0,
@@ -209,49 +200,36 @@ impl Synth {
             },
             Overtone {
                 overtone: 3.0,
-                // overtone: 4.0,
                 volume: 1.0,
             },
             Overtone {
                 overtone: 4.0,
-                // overtone: 8.0,
                 volume: 1.0,
             },
             Overtone {
                 overtone: 5.0,
-                // overtone: 16.0,
                 volume: 1.0,
             },
             Overtone {
                 overtone: 6.0,
-                // overtone: 32.0,
                 volume: 1.0,
             },
             Overtone {
                 overtone: 7.0,
-                // overtone: 32.0,
                 volume: 1.0,
             },
             Overtone {
                 overtone: 8.0,
-                // overtone: 64.0,
                 volume: 1.0,
             },
             Overtone {
                 overtone: 9.0,
-                // overtone: 128.0,
                 volume: 1.0,
             },
             Overtone {
                 overtone: 10.0,
-                // overtone: 256.0,
                 volume: 1.0,
             },
-            // Overtone {
-            //     overtone: 11.0,
-            //     // overtone: 256.0,
-            //     volume: 1.0,
-            // },
         ];
         let wave_tables = WaveTables::new(&overtones);
 
