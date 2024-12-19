@@ -5,6 +5,7 @@ from stepper_synth_backend import start_audio as start_synth, PythonCmd, State, 
 from pathlib import Path
 from logging import DEBUG, INFO
 # from stepper_synth.synth_state import SynthState
+from stepper_synth.engine_menu import draw_engine_menu, reset_engine_menu
 from stepper_synth.config import *
 from stepper_synth.organ_screen import draw_organ, organ_controls
 from stepper_synth.sub_synth_screen import draw_sub_synth, sub_synth_controls
@@ -20,6 +21,7 @@ from stepper_synth.logger import get_logger
 THIS_DIR = Path(__file__)
 THIS_DIR = THIS_DIR.parent.absolute()
 # print("this dir: ", THIS_DIR)
+ENGINE_MENU = False
 
 pygame.init()
 # pygame.joystick.init()
@@ -127,6 +129,7 @@ def check_controller_input(event):
 def handle_pygame_events():
     global joy
     global controller_found
+    global ENGINE_MENU
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -143,6 +146,18 @@ def handle_pygame_events():
         # stop_synth()
         return True
 
+    x_pressed = controller.just_released(buttons.get("x"))
+
+    ENGINE_MENU = (not x_pressed and ENGINE_MENU) and (
+        x_pressed and not ENGINE_MENU)
+
+    # if x_pressed:
+    #     ENGINE_MENU = not ENGINE_MENU
+    # elif x_pressed and ENGINE_MENU:
+    #     ENGINE_MENU = False
+
+    print(f"x-pressed = {x_pressed}, ENGINE_MENU = {ENGINE_MENU}")
+
     return False
 
 
@@ -150,15 +165,22 @@ def draw(synth_state: State):
     """draws the synth ui to the screen"""
     # print(dir(synth_state))
 
+    loc_controller = controller if not ENGINE_MENU else Buttons()
+
     match synth_state.engine:
         case SynthEngineType.B3Organ:
             draw_organ(pygame, screen, fonts, synth_state)
-            organ_controls(pygame, controller, ipc, synth_state)
+            organ_controls(pygame, loc_controller, ipc, synth_state)
         case SynthEngineType.SubSynth:
             draw_sub_synth(pygame, screen, fonts, synth_state)
-            sub_synth_controls(pygame, controller, ipc, synth_state)
+            sub_synth_controls(pygame, loc_controller, ipc, synth_state)
 
     # TODO: draw volume & battery
+    # TODO: draw engine menu
+    if ENGINE_MENU:
+        draw_engine_menu(pygame, screen, fonts, controller, ipc, synth_state)
+    else:
+        reset_engine_menu()
 
 
 def proccess_cmd():
@@ -194,7 +216,7 @@ def stop_synth():
 
 
 if __name__ == "__main__":
-    # ipc.send(PythonCmd.ChangeSynthEngine(SynthEngineType.SubSynth))
+    ipc.send(PythonCmd.ChangeSynthEngine(SynthEngineType.SubSynth))
 
     while not handle_pygame_events():
         proccess_cmd()

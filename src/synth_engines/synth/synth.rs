@@ -9,7 +9,6 @@ use crate::{
     },
     KnobCtrl, SampleGen,
 };
-use log::info;
 use midi_control::MidiNote;
 use std::{collections::HashMap, sync::Arc};
 
@@ -210,6 +209,11 @@ impl Synth {
                 volume: 1.0,
             },
             Overtone {
+                overtone: 7.0,
+                // overtone: 32.0,
+                volume: 1.0,
+            },
+            Overtone {
                 overtone: 8.0,
                 // overtone: 64.0,
                 volume: 1.0,
@@ -224,11 +228,11 @@ impl Synth {
                 // overtone: 256.0,
                 volume: 1.0,
             },
-            Overtone {
-                overtone: 11.0,
-                // overtone: 256.0,
-                volume: 1.0,
-            },
+            // Overtone {
+            //     overtone: 11.0,
+            //     // overtone: 256.0,
+            //     volume: 1.0,
+            // },
         ];
         let wave_tables = WaveTables::new(&overtones);
 
