@@ -1,5 +1,5 @@
 from .controls import Buttons, buttons
-from stepper_synth_backend import State, GuiParam, Knob, PythonCmd
+from stepper_synth_backend import GuiParam, Knob, StepperSynthState, StepperSynth
 from .config import *
 from .utils import *
 import math
@@ -31,11 +31,11 @@ def draw_bg(pygame, screen):
                        SPEAKER_CENTER, SPEAKER_RAD - 4)
 
 
-def draw_speaker(pygame, screen, synth_state: State):
+def draw_speaker(pygame, screen, state: StepperSynthState):
     global LAST_TICK_TIME
     global LAST_THETA
 
-    line_speed = synth_state.gui_params.get(GuiParam.E) * 0.5
+    line_speed = state.gui_params.get(GuiParam.E) * 0.5
 
     # claculate time since last update
     ticks = pygame.time.get_ticks()
@@ -109,16 +109,16 @@ def draw_draw_bar(pygame, screen, fonts, bar_val: float, center_x: float, select
                        center_x, level_lable_bottom, selected)
 
 
-def draw_draw_bars(pygame, screen, fonts, synth_state: State):
+def draw_draw_bars(pygame, screen, fonts, state: StepperSynthState):
     draw_bar_values = [
-        synth_state.knob_params.get(Knob.One),
-        synth_state.knob_params.get(Knob.Two),
-        synth_state.knob_params.get(Knob.Three),
-        synth_state.knob_params.get(Knob.Four),
-        synth_state.knob_params.get(Knob.Five),
-        synth_state.knob_params.get(Knob.Six),
-        synth_state.knob_params.get(Knob.Seven),
-        synth_state.knob_params.get(Knob.Eight),
+        state.knob_params.get(Knob.One),
+        state.knob_params.get(Knob.Two),
+        state.knob_params.get(Knob.Three),
+        state.knob_params.get(Knob.Four),
+        state.knob_params.get(Knob.Five),
+        state.knob_params.get(Knob.Six),
+        state.knob_params.get(Knob.Seven),
+        state.knob_params.get(Knob.Eight),
     ]
 
     # spacing = (SCREEN_WIDTH -
@@ -132,16 +132,16 @@ def draw_draw_bars(pygame, screen, fonts, synth_state: State):
         draw_draw_bar(pygame, screen, fonts, bar_val, center_x, selected)
 
 
-def draw_adsr_graph(pygame, screen, synth_state: State):
+def draw_adsr_graph(pygame, screen, state: StepperSynthState):
     top = SCREEN_HEIGHT / 2 + BOARDER
     bottom = SCREEN_HEIGHT - BOARDER
     left = BOARDER
     right = GRAPH_RIGHT - (((GRAPH_RIGHT - BOARDER) / 8) / 2)
 
-    atk = synth_state.gui_params.get(GuiParam.A)
-    dcy = synth_state.gui_params.get(GuiParam.B)
-    sus = synth_state.gui_params.get(GuiParam.C)
-    rel = synth_state.gui_params.get(GuiParam.D)
+    atk = state.gui_params.get(GuiParam.A)
+    dcy = state.gui_params.get(GuiParam.B)
+    sus = state.gui_params.get(GuiParam.C)
+    rel = state.gui_params.get(GuiParam.D)
 
     spacing = (right - left) / 4 + left
     offset = spacing / 2
@@ -195,11 +195,11 @@ def timer_is_done(pygame) -> bool:
     return (pygame.time.get_ticks() - TIMER) / 1000 >= 0.1
 
 
-def adjust_value(pygame, controller: Buttons, ipc, synth_state: State):
+def adjust_value(pygame, controller: Buttons, synth: StepperSynth, synth_state: StepperSynthState):
     global TIMER
 
     if not select_mod_pressed(controller):
-        return
+        return synth
 
     # print(INDEX)
     param = CONTROLS[INDEX[2]][INDEX[INDEX[2]]]
@@ -213,57 +213,70 @@ def adjust_value(pygame, controller: Buttons, ipc, synth_state: State):
     timer_done = timer_is_done(pygame)
     gui_param = INDEX[2] == 1
     knob_param = INDEX[2] == 0
+    new_val = True
 
     if gui_param and right_pressed and timer_done and param in adr:
         set_to = set_max(synth_state.gui_params.get(param) + 0.01, 1.0)
 
-        new_val = PythonCmd.SetGuiParam(param, set_to)
+        # new_val = PythonCmd.SetGuiParam(param, set_to)
+        synth.set_gui_param(param, set_to)
     elif gui_param and left_pressed and timer_done and param in adr:
         set_to = set_max(synth_state.gui_params.get(param) - 0.01, 1.0)
 
-        new_val = PythonCmd.SetGuiParam(param, set_to)
+        # new_val = PythonCmd.SetGuiParam(param, set_to)
+        synth.set_gui_param(param, set_to)
     elif gui_param and left_pressed and timer_done and param == GuiParam.C:
         param = GuiParam.D
         set_to = set_max(synth_state.gui_params.get(param) + 0.01, 1.0)
 
-        new_val = PythonCmd.SetGuiParam(param, set_to)
+        # new_val = PythonCmd.SetGuiParam(param, set_to)
+        synth.set_gui_param(param, set_to)
     elif gui_param and right_pressed and timer_done and param == GuiParam.C:
         param = GuiParam.D
         set_to = set_max(synth_state.gui_params.get(param) - 0.01, 1.0)
 
-        new_val = PythonCmd.SetGuiParam(param, set_to)
+        # new_val = PythonCmd.SetGuiParam(param, set_to)
+        synth.set_gui_param(param, set_to)
     elif gui_param and up_pressed and timer_done and param in ds:
         param = GuiParam.C
         set_to = set_max(synth_state.gui_params.get(param) + 0.01, 1.0)
 
-        new_val = PythonCmd.SetGuiParam(param, set_to)
+        # new_val = PythonCmd.SetGuiParam(param, set_to)
+        synth.set_gui_param(param, set_to)
     elif gui_param and down_pressed and timer_done and param in ds:
         param = GuiParam.C
         set_to = set_max(synth_state.gui_params.get(param) - 0.01, 1.0)
 
-        new_val = PythonCmd.SetGuiParam(param, set_to)
+        # new_val = PythonCmd.SetGuiParam(param, set_to)
+        synth.set_gui_param(param, set_to)
     elif knob_param and up_pressed and timer_done:
         set_to = set_max(synth_state.knob_params.get(param) + 0.05, 1.0)
 
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
     elif knob_param and down_pressed and timer_done:
         set_to = set_max(synth_state.knob_params.get(param) - 0.05, 1.0)
 
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
+    else:
+        new_val = False
 
-    if new_val is not None:
+    if new_val:
         # print(new_val)
-        ipc.send(new_val)
+        # ipc.send(new_val)
         TIMER = pygame.time.get_ticks()
 
+    return synth
 
-def organ_controls(pygame, controller: Buttons, ipc, synth_state: State):
+
+def organ_controls(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState):
     move_cursor(controller)
-    adjust_value(pygame, controller, ipc, synth_state)
+    return adjust_value(pygame, controller, synth, state)
 
 
-def draw_organ(pygame, screen, fonts, synth_state: State):
+def draw_organ(pygame, screen, fonts, state: StepperSynthState):
     draw_bg(pygame, screen)
-    draw_speaker(pygame, screen, synth_state)
-    draw_draw_bars(pygame, screen, fonts, synth_state)
-    draw_adsr_graph(pygame, screen, synth_state)
+    draw_speaker(pygame, screen, state)
+    draw_draw_bars(pygame, screen, fonts, state)
+    draw_adsr_graph(pygame, screen, state)

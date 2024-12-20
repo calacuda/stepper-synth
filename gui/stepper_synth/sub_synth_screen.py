@@ -1,7 +1,7 @@
 import math
 from stepper_synth.utils import set_max
 from .config import *
-from stepper_synth_backend import State, GuiParam, Knob, PythonCmd, TrackerIPC, OscType
+from stepper_synth_backend import GuiParam, Knob, OscType, StepperSynthState, StepperSynth
 from .controls import Buttons, buttons
 
 
@@ -45,12 +45,12 @@ def draw_dial(pygame, screen, value: float, center_x: float, selected: bool):
                      dial_coord, width=LINE_WIDTH)
 
 
-def draw_osc_2_dials(pygame, screen, synth: State, left, right):
+def draw_osc_2_dials(pygame, screen, state: StepperSynthState, left, right):
     x_offset = (right - left) / 3
     x_1 = left + x_offset
     x_2 = x_1 + x_offset
-    note_offset = synth.gui_params.get(GuiParam.D)
-    detune = synth.gui_params.get(GuiParam.E)
+    note_offset = state.gui_params.get(GuiParam.D)
+    detune = state.gui_params.get(GuiParam.E)
 
     # can be removed when detuning is implemented on the backend
     if detune is None:
@@ -62,14 +62,14 @@ def draw_osc_2_dials(pygame, screen, synth: State, left, right):
               osc_2_selected() and INDEX[INDEX[4]] == 2)
 
 
-def draw_osc_1_dial(pygame, screen, synth: State, left, right):
+def draw_osc_1_dial(pygame, screen, state: StepperSynthState, left, right):
     center = (left + right) / 2
 
-    draw_dial(pygame, screen, synth.gui_params.get(
+    draw_dial(pygame, screen, state.gui_params.get(
         GuiParam.C), center, osc_1_selected() and INDEX[INDEX[4]] == 1)
 
 
-def draw_osc(osc_num: int, pygame, screen, fonts, synth_state: State, osc_type):
+def draw_osc(osc_num: int, pygame, screen, fonts, state: StepperSynthState, osc_type):
     top = 0
     bottom = SCREEN_HEIGHT / 2
     left = (SCREEN_WIDTH / 2) * osc_num
@@ -88,7 +88,7 @@ def draw_osc(osc_num: int, pygame, screen, fonts, synth_state: State, osc_type):
 
     draw_dials = [draw_osc_1_dial, draw_osc_2_dials]
 
-    draw_dials[osc_num](pygame, screen, synth_state, left, right)
+    draw_dials[osc_num](pygame, screen, state, left, right)
 
 
 def osc_1_selected():
@@ -107,7 +107,7 @@ def low_pass_selected():
     return INDEX[4] == 3
 
 
-def draw_adsr_graph(pygame, screen, synth_state: State):
+def draw_adsr_graph(pygame, screen, synth_state: StepperSynthState):
     graph_right = SCREEN_WIDTH / 2
     top = SCREEN_HEIGHT / 2 + BOARDER
     bottom = SCREEN_HEIGHT - BOARDER
@@ -141,7 +141,7 @@ def draw_adsr_graph(pygame, screen, synth_state: State):
                            POINT_DIAMETER - LINE_WIDTH)
 
 
-def draw_low_pass_filter_graph(pygame, screen, synth_state: State):
+def draw_low_pass_filter_graph(pygame, screen, synth_state: StepperSynthState):
     graph_right = SCREEN_WIDTH / 2
     top = SCREEN_HEIGHT / 2 + BOARDER
     bottom = SCREEN_HEIGHT - BOARDER
@@ -240,13 +240,13 @@ def timer_is_done(pygame) -> bool:
     return (pygame.time.get_ticks() - TIMER) / 1000 >= 0.1
 
 
-def adjust_value(pygame, controller: Buttons, ipc: TrackerIPC, synth_state: State):
+def adjust_value(pygame, controller: Buttons, synth: StepperSynth, synth_state: StepperSynthState):
     global TIMER
 
     if not select_mod_pressed(controller) or not timer_is_done(pygame):
-        return
+        return synth
 
-    new_val = None
+    new_val = True
     up_pressed = controller.is_pressed(buttons.get("up"))
     down_pressed = controller.is_pressed(buttons.get("down"))
     left_pressed = controller.is_pressed(buttons.get("left"))
@@ -256,61 +256,73 @@ def adjust_value(pygame, controller: Buttons, ipc: TrackerIPC, synth_state: Stat
         param = Knob.Three
         set_to = set_max(synth_state.knob_params.get(param) + 0.01, 1.0)
 
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
     elif down_pressed and adsr_selected() and INDEX[INDEX[4]] in [1, 2]:
         param = Knob.Three
         set_to = set_max(synth_state.knob_params.get(param) - 0.01, 1.0)
 
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
     elif left_pressed and adsr_selected() and INDEX[INDEX[4]] == 1:
         param = Knob.Two
         set_to = set_max(synth_state.knob_params.get(param) - 0.01, 1.0)
 
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
     elif right_pressed and adsr_selected() and INDEX[INDEX[4]] == 1:
         param = Knob.Two
         set_to = set_max(synth_state.knob_params.get(param) + 0.01, 1.0)
 
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
     elif left_pressed and adsr_selected() and INDEX[INDEX[4]] == 2:
         param = Knob.Four
         set_to = set_max(synth_state.knob_params.get(param) + 0.01, 1.0)
 
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
     elif right_pressed and adsr_selected() and INDEX[INDEX[4]] == 2:
         param = Knob.Four
         set_to = set_max(synth_state.knob_params.get(param) - 0.01, 1.0)
 
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
     elif left_pressed and adsr_selected() and INDEX[INDEX[4]] == 0:
         param = Knob.One
         set_to = set_max(synth_state.knob_params.get(param) - 0.01, 1.0)
 
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
     elif right_pressed and adsr_selected() and INDEX[INDEX[4]] == 0:
         param = Knob.One
         set_to = set_max(synth_state.knob_params.get(param) + 0.01, 1.0)
 
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
     elif left_pressed and low_pass_selected():
         param = Knob.Five
         set_to = set_max(synth_state.knob_params.get(param) - 0.01, 1.0)
 
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
     elif right_pressed and low_pass_selected():
         param = Knob.Five
         set_to = set_max(synth_state.knob_params.get(param) + 0.01, 1.0)
 
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
     elif up_pressed and low_pass_selected():
         param = Knob.Six
         set_to = set_max(synth_state.knob_params.get(param) + 0.01, 1.0)
 
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
     elif down_pressed and low_pass_selected():
         param = Knob.Six
         set_to = set_max(synth_state.knob_params.get(param) - 0.01, 1.0)
-        new_val = PythonCmd.SetKnob(param, set_to)
+        # new_val = PythonCmd.SetKnob(param, set_to)
+        synth.set_knob_param(param, set_to)
     elif osc_2_selected() and (left_pressed or right_pressed):
         param = CONTROLS[INDEX[4]][INDEX[INDEX[4]]]
 
@@ -328,7 +340,8 @@ def adjust_value(pygame, controller: Buttons, ipc: TrackerIPC, synth_state: Stat
         else:
             set_to = 0
 
-        new_val = PythonCmd.SetGuiParam(param, set_to)
+        # new_val = PythonCmd.SetGuiParam(param, set_to)
+        synth.set_gui_param(param, set_to)
     elif osc_1_selected() and (left_pressed or right_pressed):
         param = CONTROLS[INDEX[4]][INDEX[INDEX[4]]]
 
@@ -342,30 +355,35 @@ def adjust_value(pygame, controller: Buttons, ipc: TrackerIPC, synth_state: Stat
             mod_amt = 0
             set_to = set_max(synth_state.gui_params.get(param) + mod_amt, 1.0)
 
-        new_val = PythonCmd.SetGuiParam(param, set_to)
+        # new_val = PythonCmd.SetGuiParam(param, set_to)
+        synth.set_gui_param(param, set_to)
+    else:
+        new_val = False
 
-    if new_val is not None:
+    if new_val:
         # print(new_val)
-        ipc.send(new_val)
+        # ipc.send(new_val)
         TIMER = pygame.time.get_ticks()
 
+    return synth
 
-def sub_synth_controls(pygame, controller: Buttons, ipc, synth_state: State):
+
+def sub_synth_controls(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState):
     move_cursor(controller)
-    adjust_value(pygame, controller, ipc, synth_state)
+    return adjust_value(pygame, controller, synth, state)
     # pass
 
 
-def draw_sub_synth(pygame, screen, fonts, synth_state: State):
-    osc_1_type = OscType(synth_state.gui_params.get(GuiParam.A))
-    osc_2_type = OscType(synth_state.gui_params.get(GuiParam.B))
+def draw_sub_synth(pygame, screen, fonts, state: StepperSynthState):
+    osc_1_type = OscType(state.gui_params.get(GuiParam.A))
+    osc_2_type = OscType(state.gui_params.get(GuiParam.B))
 
-    draw_osc(0, pygame, screen, fonts, synth_state, osc_1_type)
-    draw_osc(1, pygame, screen, fonts, synth_state, osc_2_type)
+    draw_osc(0, pygame, screen, fonts, state, osc_1_type)
+    draw_osc(1, pygame, screen, fonts, state, osc_2_type)
 
     middle_x = SCREEN_WIDTH / 2
     middle_y = SCREEN_HEIGHT / 2
 
     draw_divider(pygame, screen, middle_x, middle_y)
-    draw_adsr_graph(pygame, screen, synth_state)
-    draw_low_pass_filter_graph(pygame, screen, synth_state)
+    draw_adsr_graph(pygame, screen, state)
+    draw_low_pass_filter_graph(pygame, screen, state)

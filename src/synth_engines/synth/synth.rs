@@ -1,15 +1,13 @@
+use super::{osc::SynthOscillator, OscType};
 use crate::{
     pygame_coms::{GuiParam, Knob},
     synth_engines::{
         synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN},
         SynthEngine,
     },
-    KnobCtrl, SampleGen,
+    HashMap, KnobCtrl, SampleGen,
 };
 use midi_control::MidiNote;
-use std::collections::HashMap;
-
-use super::{osc::SynthOscillator, OscType};
 
 pub const VOICES: usize = 10;
 
@@ -246,8 +244,8 @@ impl SynthEngine for Synth {
         self.bend_all(amount)
     }
 
-    fn get_params(&mut self) -> HashMap<Knob, f32> {
-        let mut map = HashMap::with_capacity(8);
+    fn get_params(&self) -> HashMap<Knob, f32> {
+        let mut map = HashMap::default();
 
         map.insert(Knob::One, self.osc_s[0].0[0].env_filter.base_params[ATTACK]);
         map.insert(Knob::Two, self.osc_s[0].0[0].env_filter.base_params[DECAY]);
@@ -267,8 +265,8 @@ impl SynthEngine for Synth {
         map
     }
 
-    fn get_gui_params(&mut self) -> HashMap<GuiParam, f32> {
-        let mut map = HashMap::with_capacity(8);
+    fn get_gui_params(&self) -> HashMap<GuiParam, f32> {
+        let mut map = HashMap::default();
 
         // osc_1 type
         map.insert(GuiParam::A, self.osc_type[0].0 as usize as f32);

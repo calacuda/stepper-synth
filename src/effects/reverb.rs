@@ -2,6 +2,7 @@ use super::{Effect, EffectParam};
 use crate::SampleGen;
 use pyo3::prelude::*;
 use reverb;
+use std::fmt::Display;
 use strum::{EnumIter, IntoEnumIterator};
 
 #[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)]
@@ -16,12 +17,7 @@ pub enum ReverbParam {
 #[pymethods]
 impl ReverbParam {
     fn __str__(&self) -> PyResult<String> {
-        Ok(match *self {
-            Self::Gain => "Gain".into(),
-            Self::Decay => "Decay".into(),
-            Self::Damping => "Damping".into(),
-            Self::Cutoff => "Cutoff".into(),
-        })
+        Ok(format!("{self}"))
     }
 }
 
@@ -38,6 +34,17 @@ impl TryFrom<f32> for ReverbParam {
             _ if value == Self::Cutoff as usize => Self::Cutoff,
             _ => return Err(format!("{value} could not be turned into a reverb param")),
         })
+    }
+}
+
+impl Display for ReverbParam {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Self::Gain => write!(f, "Gain"),
+            Self::Decay => write!(f, "Decay"),
+            Self::Damping => write!(f, "Damping"),
+            Self::Cutoff => write!(f, "Cutoff"),
+        }
     }
 }
 
@@ -105,7 +112,7 @@ impl Effect for Reverb {
         self.in_sample = value;
     }
 
-    fn get_param_list(&mut self) -> Vec<Self::Param> {
+    fn get_param_list(&self) -> Vec<Self::Param> {
         Self::Param::iter().collect()
     }
 

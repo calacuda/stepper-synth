@@ -1,14 +1,14 @@
 from .controls import Buttons, buttons
-from stepper_synth_backend import State, GuiParam, Knob, PythonCmd, SynthEngineType, TrackerIPC
+from stepper_synth_backend import GuiParam, Knob, SynthEngineType, StepperSynth, StepperSynthState, Screen
 from .config import *
 from .utils import *
 
 engines = [SynthEngineType.B3Organ,
-           SynthEngineType.SubSynth, SynthEngineType.SamplerSynth]
+           SynthEngineType.SubSynth]
 INDEX = 0
 
 
-def draw_engine_menu(pygame, screen, fonts, synth_state: State):
+def draw_engine_menu(pygame, screen, fonts):
     # engine = synth_state.engine
     rad = LINE_WIDTH * 2
 
@@ -57,7 +57,7 @@ def draw_engine_menu(pygame, screen, fonts, synth_state: State):
         screen.blit(text, text_rect)
 
 
-def engine_menu_controles(ipc: TrackerIPC, controls: Buttons, synth_state: State):
+def engine_menu_controles(synth: StepperSynth, controls: Buttons):
     global INDEX
 
     if controls.just_released(buttons.get("up")):
@@ -68,8 +68,13 @@ def engine_menu_controles(ipc: TrackerIPC, controls: Buttons, synth_state: State
         INDEX %= len(engines)
     elif controls.just_released(buttons.get("a")):
         new_engine = engines[INDEX]
-        ipc.send(PythonCmd.ChangeSynthEngine(new_engine))
-        return True
+        # ipc.send(PythonCmd.ChangeSynthEngine(new_engine))
+        # print("new_engine", new_engine)
+        synth.set_screen(Screen.Synth(new_engine))
+        # print("engine after set", synth.get_state().engine)
+        return (synth, True)
+
+    return (synth, False)
 
 
 def reset_engine_menu():

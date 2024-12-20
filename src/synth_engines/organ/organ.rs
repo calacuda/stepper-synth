@@ -11,10 +11,9 @@ use crate::{
         },
         SynthEngine,
     },
-    KnobCtrl, SampleGen,
+    HashMap, KnobCtrl, SampleGen,
 };
 use midi_control::MidiNote;
-use std::collections::HashMap;
 
 pub const VOICES: usize = 10;
 
@@ -341,8 +340,8 @@ impl SynthEngine for Organ {
         true
     }
 
-    fn get_params(&mut self) -> HashMap<Knob, f32> {
-        let mut map = HashMap::with_capacity(8);
+    fn get_params(&self) -> HashMap<Knob, f32> {
+        let mut map = HashMap::default();
 
         map.insert(Knob::One, self.overtones[0].volume as f32);
         map.insert(Knob::Two, self.overtones[1].volume as f32);
@@ -356,8 +355,8 @@ impl SynthEngine for Organ {
         map
     }
 
-    fn get_gui_params(&mut self) -> HashMap<GuiParam, f32> {
-        let mut map = HashMap::with_capacity(8);
+    fn get_gui_params(&self) -> HashMap<GuiParam, f32> {
+        let mut map = HashMap::default();
 
         map.insert(GuiParam::A, self.osc_s[0].env_filter.base_params[ATTACK]);
         map.insert(GuiParam::B, self.osc_s[0].env_filter.base_params[DECAY]);

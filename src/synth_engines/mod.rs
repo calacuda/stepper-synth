@@ -1,12 +1,12 @@
 use crate::{
     effects::{Effect, EffectType, EffectsModule},
-    pygame_coms::{GuiParam, Knob, State, SynthEngineType},
-    KnobCtrl, SampleGen,
+    pygame_coms::{GuiParam, Knob, SynthEngineType},
+    HashMap, KnobCtrl, SampleGen,
 };
 use log::*;
 use midi_control::MidiNote;
 use organ::organ::Organ;
-use std::{collections::HashMap, fmt::Debug};
+use std::fmt::Debug;
 use synth_common::lfo::LFO;
 
 pub mod organ;
@@ -23,8 +23,8 @@ pub trait SynthEngine: Debug + SampleGen + KnobCtrl + Send {
         self.bend(0.0);
     }
     fn volume_swell(&mut self, amount: f32) -> bool;
-    fn get_params(&mut self) -> HashMap<Knob, f32>;
-    fn get_gui_params(&mut self) -> HashMap<GuiParam, f32>;
+    fn get_params(&self) -> HashMap<Knob, f32>;
+    fn get_gui_params(&self) -> HashMap<GuiParam, f32>;
 }
 
 #[derive(Debug, Clone)]
@@ -63,14 +63,14 @@ impl Synth {
         self.engine = match engine {
             SynthEngineType::B3Organ => Box::new(Organ::new()),
             SynthEngineType::SubSynth => Box::new(synth::synth::Synth::new()),
-            SynthEngineType::SamplerSynth => {
-                warn!("write SamplerSynth");
-                return false;
-            }
-            SynthEngineType::WaveTableSynth => {
-                warn!("write Wave Table synth");
-                return false;
-            }
+            // SynthEngineType::SamplerSynth => {
+            //     warn!("write SamplerSynth");
+            //     return false;
+            // }
+            // SynthEngineType::WaveTableSynth => {
+            //     warn!("write Wave Table synth");
+            //     return false;
+            // }
         };
 
         self.engine_type = engine;
@@ -111,31 +111,32 @@ impl SampleGen for Synth {
 
         match self.effect {
             EffectsModule::Reverb(ref mut effect) => Self::apply_effect(effect, sample),
-            EffectsModule::Chorus(ref mut _effect) => {
-                warn!("chorus is not implemented yet!");
-                return sample;
+            EffectsModule::Chorus(ref mut effect) => {
+                // warn!("chorus is not implemented yet!");
+                // return sample;
+                Self::apply_effect(effect, sample)
                 // Self::apply_effect(effect, sample),
             } // EffectsModule::(effect) => self.apply_effect(effect, sample),
         }
     }
 }
 
-impl Synth {
-    pub fn get_state(&mut self) -> State {
-        let engine = self.engine_type;
-        let knob_params = self.engine.get_params();
-        let gui_params = self.engine.get_gui_params();
-        let effect = match self.effect {
-            EffectsModule::Reverb(_) => EffectType::Reverb,
-            EffectsModule::Chorus(_) => EffectType::Chorus,
-        };
-
-        State {
-            engine,
-            effect,
-            effect_on: self.effect_power,
-            knob_params,
-            gui_params,
-        }
-    }
-}
+// impl Synth {
+//     pub fn get_state(&mut self) -> State {
+//         let engine = self.engine_type;
+//      let knob_params = self.engine.get_params();
+//         let gui_params = self.engine.get_gui_params();
+//         let effect = match self.effect {
+//             EffectsModule::Reverb(_) => EffectType::Reverb,
+//             EffectsModule::Chorus(_) => EffectType::Chorus,
+//         };
+//
+//         State {
+//             engine,
+//             effect,
+//             effect_on: self.effect_power,
+//             knob_params,
+//             gui_params,
+//         }
+//     }
+// }

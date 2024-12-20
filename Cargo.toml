@@ -10,8 +10,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = { version = "1.0.94", features = ["backtrace"] }
-crossbeam = { version = "0.8.4", features = ["nightly"] }
 fern = { version = "0.7.0", features = ["colored"] }
+fxhash = "0.2.1"
 log = { version = "0.4.22", features = ["max_level_info", "release_max_level_info"] }
 midi-control = "0.2.2"
 midir = "0.10.1"

@@ -1,31 +1,32 @@
 use anyhow::Result;
-use crossbeam::channel::Sender;
 use effects::reverb::ReverbParam;
 use effects::EffectType;
 use fern::colors::{Color, ColoredLevelConfig};
-use ipc::RustIPC;
-use ipc::{gen_ipc, TrackerIPC};
+use fxhash::FxHashMap;
+// use ipc::TrackerIPC;
 use log::*;
 use midi_control::ControlEvent;
 use midi_control::KeyEvent;
 use midi_control::MidiMessage;
 use midir::MidiInput;
 use midir::{Ignore, PortInfoError};
-use pygame_coms::{GuiParam, Knob, PythonCmd, State, SynthEngineType, SynthParam};
+use pygame_coms::Screen;
+use pygame_coms::StepperSynth;
+use pygame_coms::StepperSynthState;
+use pygame_coms::{GuiParam, Knob, SynthEngineType, SynthParam};
 use pyo3::prelude::*;
-use std::collections::HashMap;
-use std::{
-    sync::{Arc, Mutex},
-    thread::spawn,
-};
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+use std::sync::{Arc, Mutex};
 use synth_engines::synth::OscType;
 use synth_engines::Synth;
-use tinyaudio::prelude::*;
+
+pub type HashMap<Key, Val> = FxHashMap<Key, Val>;
 
 pub const SAMPLE_RATE: u32 = 48_000;
 
 pub mod effects;
-pub mod ipc;
+// pub mod ipc;
 pub mod pygame_coms;
 pub mod synth_engines;
 
@@ -106,19 +107,23 @@ impl Iterator for Player {
     }
 }
 
-fn send_mesg(tx: &Sender<State>, msg: State) {
-    if let Err(e) = tx.send(msg.clone()) {
-        error!("failed to send \"{msg:?}\" to python frontend because: {e}.");
-    }
-}
+// fn send_mesg(tx: &Sender<State>, msg: State) {
+//     if let Err(e) = tx.send(msg.clone()) {
+//         error!("failed to send \"{msg:?}\" to python frontend because: {e}.");
+//     }
+// }
 
-fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
-    let tx = my_ipc.tx;
-    let mut registered_ports = HashMap::new();
+fn run_midi(
+    synth: Arc<Mutex<Synth>>,
+    updated: Arc<Mutex<bool>>,
+    exit: Arc<AtomicBool>,
+) -> Result<()> {
+    // let tx = my_ipc.tx;
+    let mut registered_ports = HashMap::default();
 
-    send_mesg(&tx, synth.lock().unwrap().get_state());
+    // send_mesg(&tx, synth.lock().unwrap().get_state());
 
-    loop {
+    while !exit.load(Ordering::Relaxed) {
         let mut midi_in = MidiInput::new("midir reading input")?;
         midi_in.ignore(Ignore::None);
 
@@ -143,7 +148,8 @@ fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
             let mut midi_in = MidiInput::new("midir reading input")?;
             midi_in.ignore(Ignore::None);
             let synth = synth.clone();
-            let tx = tx.clone();
+            // let tx = tx.clone();
+            let updated = updated.clone();
 
             registered_ports.insert(
                 port_name,
@@ -152,7 +158,10 @@ fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
                     "midir-read-input",
                     move |_stamp, message, _| {
                         let message = MidiMessage::from(message);
-                        let send = || send_mesg(&tx, synth.lock().unwrap().get_state());
+                        let send = || {
+                            let mut u = updated.lock().unwrap();
+                            *u = true;
+                        };
 
                         // do midi stuff
                         match message {
@@ -204,88 +213,9 @@ fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
                 ),
             );
         }
-
-        let send = || send_mesg(&tx, synth.lock().unwrap().get_state());
-        let rx = my_ipc.rx.clone();
-
-        if let Ok(command) = rx.try_recv() {
-            // this match statement may be ugly, but it is long for the sake of efficiency.
-            if match command {
-                PythonCmd::SetGuiParam {
-                    param: GuiParam::A,
-                    set_to,
-                } => synth.lock().unwrap().engine.gui_param_1(set_to),
-                PythonCmd::SetGuiParam {
-                    param: GuiParam::B,
-                    set_to,
-                } => synth.lock().unwrap().engine.gui_param_2(set_to),
-                PythonCmd::SetGuiParam {
-                    param: GuiParam::C,
-                    set_to,
-                } => synth.lock().unwrap().engine.gui_param_3(set_to),
-                PythonCmd::SetGuiParam {
-                    param: GuiParam::D,
-                    set_to,
-                } => synth.lock().unwrap().engine.gui_param_4(set_to),
-                PythonCmd::SetGuiParam {
-                    param: GuiParam::E,
-                    set_to,
-                } => synth.lock().unwrap().engine.gui_param_5(set_to),
-                PythonCmd::SetGuiParam {
-                    param: GuiParam::F,
-                    set_to,
-                } => synth.lock().unwrap().engine.gui_param_6(set_to),
-                PythonCmd::SetGuiParam {
-                    param: GuiParam::G,
-                    set_to,
-                } => synth.lock().unwrap().engine.gui_param_7(set_to),
-                PythonCmd::SetGuiParam {
-                    param: GuiParam::H,
-                    set_to,
-                } => synth.lock().unwrap().engine.gui_param_8(set_to),
-                PythonCmd::SetKnob {
-                    knob: Knob::One,
-                    set_to,
-                } => synth.lock().unwrap().engine.knob_1(set_to),
-                PythonCmd::SetKnob {
-                    knob: Knob::Two,
-                    set_to,
-                } => synth.lock().unwrap().engine.knob_2(set_to),
-                PythonCmd::SetKnob {
-                    knob: Knob::Three,
-                    set_to,
-                } => synth.lock().unwrap().engine.knob_3(set_to),
-                PythonCmd::SetKnob {
-                    knob: Knob::Four,
-                    set_to,
-                } => synth.lock().unwrap().engine.knob_4(set_to),
-                PythonCmd::SetKnob {
-                    knob: Knob::Five,
-                    set_to,
-                } => synth.lock().unwrap().engine.knob_5(set_to),
-                PythonCmd::SetKnob {
-                    knob: Knob::Six,
-                    set_to,
-                } => synth.lock().unwrap().engine.knob_6(set_to),
-                PythonCmd::SetKnob {
-                    knob: Knob::Seven,
-                    set_to,
-                } => synth.lock().unwrap().engine.knob_7(set_to),
-                PythonCmd::SetKnob {
-                    knob: Knob::Eight,
-                    set_to,
-                } => synth.lock().unwrap().engine.knob_8(set_to),
-                PythonCmd::Exit() => {
-                    return Ok(());
-                }
-                PythonCmd::ChangeSynthEngine(engine) => synth.lock().unwrap().set_engine(engine),
-                PythonCmd::ChangeEffectType(effect) => synth.lock().unwrap().set_effect(effect),
-                PythonCmd::EffectPowerToggle() => synth.lock().unwrap().effect_toggle(),
-            } {
-                send()
-            }
-        }
     }
+
+    Ok(())
 }
 
 fn logger_init() -> Result<()> {
@@ -327,75 +257,80 @@ fn logger_init() -> Result<()> {
     Ok(())
 }
 
-/// Formats the sum of two numbers as string.
-#[pyfunction]
-fn start_audio() -> PyResult<(TrackerIPC, State)> {
-    let (my_ipc, py_ipc) = gen_ipc();
-
-    // build synth in arc mutex
-    let synth = Arc::new(Mutex::new(Synth::new()));
-
-    {
-        let s = synth.clone();
-
-        spawn(move || {
-            let res = logger_init();
-
-            if let Err(reason) = res {
-                eprintln!("failed to initiate logger because {reason}");
-            } else {
-                log::debug!("logger initiated");
-            }
-
-            let params = OutputDeviceParameters {
-                channels_count: 1,
-                sample_rate: SAMPLE_RATE as usize,
-                // channel_sample_count: 2048,
-                channel_sample_count: 1024,
-            };
-            let device = {
-                let s = s.clone();
-
-                run_output_device(params, move |data| {
-                    for samples in data.chunks_mut(params.channels_count) {
-                        let value = s.lock().expect("couldn't lock synth").get_sample();
-
-                        for sample in samples {
-                            *sample = value;
-                        }
-                    }
-                })
-            };
-
-            if let Err(e) = device {
-                error!("strating audio playback caused error: {e}");
-            }
-
-            if let Err(e) = run_midi(s, my_ipc) {
-                error!("{e}");
-            }
-        });
-    }
-
-    println!("run_midi called");
-
-    Ok((py_ipc, synth.clone().lock().unwrap().get_state()))
-}
+// /// Formats the sum of two numbers as string.
+// #[pyfunction]
+// fn start_audio() -> PyResult<(TrackerIPC, State)> {
+//     let (my_ipc, py_ipc) = gen_ipc();
+//
+//     // build synth in arc mutex
+//     let synth = Arc::new(Mutex::new(Synth::new()));
+//
+//     {
+//         let s = synth.clone();
+//
+//         spawn(move || {
+//             let res = logger_init();
+//
+//             if let Err(reason) = res {
+//                 eprintln!("failed to initiate logger because {reason}");
+//             } else {
+//                 log::debug!("logger initiated");
+//             }
+//
+//             let params = OutputDeviceParameters {
+//                 channels_count: 1,
+//                 sample_rate: SAMPLE_RATE as usize,
+//                 // channel_sample_count: 2048,
+//                 channel_sample_count: 1024,
+//             };
+//             let device = {
+//                 let s = s.clone();
+//
+//                 run_output_device(params, move |data| {
+//                     for samples in data.chunks_mut(params.channels_count) {
+//                         let value = s.lock().expect("couldn't lock synth").get_sample();
+//
+//                         for sample in samples {
+//                             *sample = value;
+//                         }
+//                     }
+//                 })
+//             };
+//
+//             if let Err(e) = device {
+//                 error!("strating audio playback caused error: {e}");
+//             }
+//
+//             if let Err(e) = run_midi(s, my_ipc) {
+//                 error!("{e}");
+//             }
+//         });
+//     }
+//
+//     println!("run_midi called");
+//
+//     Ok((py_ipc, synth.clone().lock().unwrap().get_state()))
+// }
 
 /// A Python module implemented in Rust.
 #[pymodule]
 fn stepper_synth_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(start_audio, m)?)?;
+    // m.add_function(wrap_pyfunction!(start_audio, m)?)?;
 
     m.add_class::<SynthParam>()?;
-    m.add_class::<PythonCmd>()?;
-    m.add_class::<TrackerIPC>()?;
+    // m.add_class::<PythonCmd>()?;
+    // m.add_class::<TrackerIPC>()?;
     m.add_class::<Knob>()?;
     m.add_class::<GuiParam>()?;
     m.add_class::<SynthEngineType>()?;
-    m.add_class::<State>()?;
+    // m.add_class::<State>()?;
     m.add_class::<OscType>()?;
     m.add_class::<ReverbParam>()?;
     m.add_class::<EffectType>()?;
+    m.add_class::<Screen>()?;
+    m.add_class::<StepperSynth>()?;
+    m.add_class::<StepperSynthState>()?;
+    // m.add_class::<>()?;
+
     Ok(())
 }

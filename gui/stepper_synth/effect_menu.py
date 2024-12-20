@@ -1,5 +1,5 @@
 from .controls import Buttons, buttons
-from stepper_synth_backend import State, GuiParam, Knob, PythonCmd, EffectType, TrackerIPC
+from stepper_synth_backend import GuiParam, Knob, EffectType, StepperSynth
 from .config import *
 from .utils import *
 
@@ -8,7 +8,7 @@ effects = [EffectType.Reverb, EffectType.Chorus]
 INDEX = 0
 
 
-def draw_effect_menu(pygame, screen, fonts, synth_state: State):
+def draw_effect_menu(pygame, screen, fonts):
     # engine = synth_state.engine
     rad = LINE_WIDTH * 2
 
@@ -57,7 +57,7 @@ def draw_effect_menu(pygame, screen, fonts, synth_state: State):
         screen.blit(text, text_rect)
 
 
-def effect_menu_controles(ipc: TrackerIPC, controls: Buttons, synth_state: State):
+def effect_menu_controles(synth: StepperSynth, controls: Buttons):
     global INDEX
 
     if controls.just_released(buttons.get("up")):
@@ -68,8 +68,11 @@ def effect_menu_controles(ipc: TrackerIPC, controls: Buttons, synth_state: State
         INDEX %= len(effects)
     elif controls.just_released(buttons.get("a")):
         new_effect = effects[INDEX]
-        ipc.send(PythonCmd.ChangeEffectType(new_effect))
-        return True
+        # ipc.send(PythonCmd.ChangeEffectType(new_effect))
+        synth.set_effect(new_effect)
+        return (synth, True)
+
+    return (synth, False)
 
 
 def reset_effect_menu():
