@@ -1,13 +1,12 @@
+use super::{
+    build_sine_table, saw_tooth::SawToothOsc, OscType, SynthBackend, SynthOscilatorBackend,
+};
 use crate::{
     synth_engines::synth_common::{env::ADSR, moog_filter::LowPass, WaveTable, WAVE_TABLE_SIZE},
     SampleGen, SAMPLE_RATE,
 };
 
-use super::{
-    build_sine_table, saw_tooth::SawToothOsc, OscType, SynthBackend, SynthOscilatorBackend,
-};
-
-pub const N_OVERTONES: usize = 20;
+pub const N_OVERTONES: usize = 10;
 
 #[derive(Clone, Debug)]
 pub struct WavetableOscillator {

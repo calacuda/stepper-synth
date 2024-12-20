@@ -98,7 +98,7 @@ impl Organ {
             Overtone {
                 // overtone: 6.0,
                 // overtone: 6.0 * 2.0_f64.powf(7.0 / 12.0),
-                overtone: 12.0,
+                overtone: 8.0,
                 volume: 0.0,
             },
         ];

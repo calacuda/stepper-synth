@@ -76,7 +76,8 @@ impl Synth {
         }
 
         sample *= self.volume;
-        sample.tanh()
+        // sample.tanh()
+        sample
         // println!("synth sample => {sample}");
         // sample * self.volume
     }

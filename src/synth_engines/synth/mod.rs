@@ -99,9 +99,9 @@ pub fn build_sine_table(overtones: &[f64]) -> WaveTable {
     //     .filter(|tone| tone.volume > 0.0)
     //     .collect::<Vec<_>>()
     //     .len();
-    // let n_overtones = overtones.len();
+    let n_overtones = overtones.len();
 
-    // let bias = 1.0 / n_overtones as f32;
+    let bias = 1.0 / (n_overtones as f32 * 0.5);
 
     for i in 0..WAVE_TABLE_SIZE {
         for ot in overtones {
@@ -109,7 +109,7 @@ pub fn build_sine_table(overtones: &[f64]) -> WaveTable {
                 (2.0 * core::f64::consts::PI * i as f64 * ot / WAVE_TABLE_SIZE as f64).sin() as f32
         }
 
-        // wave_table[i] *= bias;
+        wave_table[i] *= bias;
     }
 
     wave_table.into()

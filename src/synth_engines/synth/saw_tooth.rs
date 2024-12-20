@@ -48,7 +48,7 @@ impl SampleGen for SawToothOsc {
             sample += osc.get_sample();
         }
 
-        sample
+        sample / (N_OVERTONES as f32 * 0.5)
     }
 }
 

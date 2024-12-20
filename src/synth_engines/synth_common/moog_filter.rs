@@ -132,16 +132,19 @@ impl LowPass {
     }
 
     pub fn get_sample(&mut self, sample: f32, env: f32) -> f32 {
-        let nudge = 2.0_f32.powf(19.0 * env * self.cutoff / 12.0);
-        // let delta = (self.note * 2.0) - (self.note / 2.0);
-        // let nudge = delta * env * self.cutoff;
-        let cutoff = if env > 0.5 {
-            self.note * nudge
-        } else if nudge < 0.5 {
-            self.note / nudge
-        } else {
-            self.note
-        };
+        // let nudge = 2.0_f32.powf(19.0 * env * self.cutoff / 12.0);
+        // // let delta = (self.note * 2.0) - (self.note / 2.0);
+        // // let nudge = delta * env * self.cutoff;
+        // let cutoff = if env > 0.1 {
+        //     self.note * nudge
+        // } else if nudge < 0.1 {
+        //     self.note / nudge
+        // } else {
+        //     self.note
+        // };
+        let delta = (self.note * 10.0) - (self.note / 2.0);
+        let nudge = delta * env * self.cutoff;
+        let cutoff = (self.note / 2.0) + nudge;
 
         self.filter.process(sample, cutoff, self.resonance * env)
     }
