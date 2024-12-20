@@ -142,9 +142,9 @@ impl LowPass {
         // } else {
         //     self.note
         // };
-        let delta = (self.note * 10.0) - (self.note / 2.0);
+        let delta = self.note * 10.0;
         let nudge = delta * env * self.cutoff;
-        let cutoff = (self.note / 2.0) + nudge;
+        let cutoff = (self.note) + nudge;
 
         self.filter.process(sample, cutoff, self.resonance * env)
     }
