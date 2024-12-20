@@ -17,4 +17,5 @@ midi-control = "0.2.2"
 midir = "0.10.1"
 pyo3 = "0.22.0"
 reverb = "1.0.47"
+strum = { version = "0.26.3", features = ["derive"] }
 tinyaudio = "1.0.0"

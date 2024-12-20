@@ -5,6 +5,7 @@ from stepper_synth_backend import start_audio as start_synth, PythonCmd, State, 
 from pathlib import Path
 from logging import DEBUG, INFO
 # from stepper_synth.synth_state import SynthState
+from stepper_synth.effect_menu import draw_effect_menu, effect_menu_controles, reset_effect_menu
 from stepper_synth.engine_menu import draw_engine_menu, reset_engine_menu, engine_menu_controles
 from stepper_synth.config import *
 from stepper_synth.organ_screen import draw_organ, organ_controls
@@ -22,6 +23,7 @@ THIS_DIR = Path(__file__)
 THIS_DIR = THIS_DIR.parent.absolute()
 # print("this dir: ", THIS_DIR)
 ENGINE_MENU = False
+EFFECT_MENU = False
 
 pygame.init()
 # pygame.joystick.init()
@@ -131,6 +133,7 @@ def handle_pygame_events():
     global joy
     global controller_found
     global ENGINE_MENU
+    global EFFECT_MENU
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -148,9 +151,13 @@ def handle_pygame_events():
         return True
 
     x_pressed = controller.just_released(buttons.get("x"))
+    y_pressed = controller.just_released(buttons.get("y"))
 
-    if x_pressed:
+    if x_pressed and not EFFECT_MENU:
         ENGINE_MENU = not ENGINE_MENU
+
+    if y_pressed and not ENGINE_MENU:
+        EFFECT_MENU = not EFFECT_MENU
 
     # print(f"x-pressed = {x_pressed}, ENGINE_MENU = {ENGINE_MENU}")
 
@@ -161,6 +168,7 @@ def draw(synth_state: State):
     """draws the synth ui to the screen"""
     # print(dir(synth_state))
     global ENGINE_MENU
+    global EFFECT_MENU
 
     loc_controller = controller if not ENGINE_MENU else Buttons()
 
@@ -178,8 +186,13 @@ def draw(synth_state: State):
         draw_engine_menu(pygame, screen, fonts, synth_state)
         engine_changed = engine_menu_controles(ipc, controller, synth_state)
         ENGINE_MENU = engine_changed is None or not engine_changed
+    elif EFFECT_MENU:
+        draw_effect_menu(pygame, screen, fonts, synth_state)
+        effect_changed = effect_menu_controles(ipc, controller, synth_state)
+        EFFECT_MENU = effect_changed is None or not effect_changed
     else:
         reset_engine_menu()
+        reset_effect_menu()
 
 
 def proccess_cmd():

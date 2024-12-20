@@ -1,5 +1,7 @@
 use anyhow::Result;
 use crossbeam::channel::Sender;
+use effects::reverb::ReverbParam;
+use effects::EffectType;
 use fern::colors::{Color, ColoredLevelConfig};
 use ipc::RustIPC;
 use ipc::{gen_ipc, TrackerIPC};
@@ -277,6 +279,8 @@ fn run_midi(synth: Arc<Mutex<Synth>>, my_ipc: RustIPC) -> Result<()> {
                     return Ok(());
                 }
                 PythonCmd::ChangeSynthEngine(engine) => synth.lock().unwrap().set_engine(engine),
+                PythonCmd::ChangeEffectType(effect) => synth.lock().unwrap().set_effect(effect),
+                PythonCmd::EffectPowerToggle() => synth.lock().unwrap().effect_toggle(),
             } {
                 send()
             }
@@ -391,5 +395,7 @@ fn stepper_synth_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SynthEngineType>()?;
     m.add_class::<State>()?;
     m.add_class::<OscType>()?;
+    m.add_class::<ReverbParam>()?;
+    m.add_class::<EffectType>()?;
     Ok(())
 }

@@ -1,5 +1,6 @@
 use crate::SAMPLE_RATE;
 
+#[derive(Debug, Clone, Copy)]
 pub struct Chorus {
     pub size: usize,
     pub buff: [f32; SAMPLE_RATE as usize],

@@ -25,7 +25,7 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [ ] Modelling Synth
 - [ ] Modelling Synth ui
 - [x] synth switch menu
-- [ ] effect switch menu
+- [x] effect switch menu
 - [ ] volume & battery icons
 - [ ] reverb ui
 - [ ] better delay
@@ -33,4 +33,10 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [ ] LFO ui
 - [x] low_pass keytracking
 - [ ] Drum synth
+- [ ] Wave Table Synth
+- [ ] Wave Table Synth ui
+
+## Currently Working On
+
+effects & effects switch menu
 

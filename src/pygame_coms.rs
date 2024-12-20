@@ -1,3 +1,4 @@
+use crate::effects::EffectType;
 use pyo3::prelude::*;
 use std::{collections::HashMap, fmt::Display};
 
@@ -55,6 +56,7 @@ pub enum SynthEngineType {
     SubSynth,
     B3Organ,
     SamplerSynth,
+    WaveTableSynth,
 }
 
 impl Display for SynthEngineType {
@@ -63,14 +65,15 @@ impl Display for SynthEngineType {
             Self::SubSynth => write!(f, "Subtract"),
             Self::B3Organ => write!(f, "Organ"),
             Self::SamplerSynth => write!(f, "Sampler"),
+            Self::WaveTableSynth => write!(f, "WaveTbl"),
         }
     }
 }
 
-#[pymethods()]
+#[pymethods]
 impl SynthEngineType {
     fn __str__(&self) -> PyResult<String> {
-        Ok(format!("{}", self))
+        Ok(format!("{self}"))
     }
 }
 
@@ -81,6 +84,8 @@ pub enum PythonCmd {
     SetGuiParam { param: GuiParam, set_to: f32 },
     SetKnob { knob: Knob, set_to: f32 },
     ChangeSynthEngine(SynthEngineType),
+    EffectPowerToggle(),
+    ChangeEffectType(EffectType),
     Exit(),
 }
 
@@ -90,6 +95,8 @@ pub enum PythonCmd {
 #[derive(Debug, Clone)]
 pub struct State {
     pub engine: SynthEngineType,
+    pub effect: EffectType,
+    pub effect_on: bool,
     pub knob_params: HashMap<Knob, f32>,
     pub gui_params: HashMap<GuiParam, f32>,
 }

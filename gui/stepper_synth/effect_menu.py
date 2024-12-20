@@ -1,14 +1,14 @@
 from .controls import Buttons, buttons
-from stepper_synth_backend import State, GuiParam, Knob, PythonCmd, SynthEngineType, TrackerIPC
+from stepper_synth_backend import State, GuiParam, Knob, PythonCmd, EffectType, TrackerIPC
 from .config import *
 from .utils import *
 
-engines = [SynthEngineType.B3Organ,
-           SynthEngineType.SubSynth, SynthEngineType.SamplerSynth]
+
+effects = [EffectType.Reverb, EffectType.Chorus]
 INDEX = 0
 
 
-def draw_engine_menu(pygame, screen, fonts, synth_state: State):
+def draw_effect_menu(pygame, screen, fonts, synth_state: State):
     # engine = synth_state.engine
     rad = LINE_WIDTH * 2
 
@@ -46,7 +46,7 @@ def draw_engine_menu(pygame, screen, fonts, synth_state: State):
     offset = SCREEN_HEIGHT / 8 + LINE_WIDTH + line_height / 2
     # x = SCREEN_WIDTH - wdith / 2
 
-    for (i, engine) in enumerate(engines):
+    for (i, engine) in enumerate(effects):
         y = i * line_height + offset
         # print(engine, synth_state.engine, engine == synth_state.engine)
         prefix = "> " if i == INDEX else ""
@@ -57,22 +57,22 @@ def draw_engine_menu(pygame, screen, fonts, synth_state: State):
         screen.blit(text, text_rect)
 
 
-def engine_menu_controles(ipc: TrackerIPC, controls: Buttons, synth_state: State):
+def effect_menu_controles(ipc: TrackerIPC, controls: Buttons, synth_state: State):
     global INDEX
 
     if controls.just_released(buttons.get("up")):
         INDEX -= 1
-        INDEX %= len(engines)
+        INDEX %= len(effects)
     elif controls.just_released(buttons.get("down")):
         INDEX += 1
-        INDEX %= len(engines)
+        INDEX %= len(effects)
     elif controls.just_released(buttons.get("a")):
-        new_engine = engines[INDEX]
-        ipc.send(PythonCmd.ChangeSynthEngine(new_engine))
+        new_effect = effects[INDEX]
+        ipc.send(PythonCmd.ChangeEffectType(new_effect))
         return True
 
 
-def reset_engine_menu():
+def reset_effect_menu():
     global INDEX
 
     INDEX = 0
