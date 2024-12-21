@@ -71,5 +71,6 @@ docs/_build/
 # Pyenv
 .python-version
 .venv
-output.log
+./output.log
+./stepper-synth.log
 cross-build-deps

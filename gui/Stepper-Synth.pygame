@@ -1,10 +1,10 @@
 #!/usr/bin/python
+from typing import Callable, Tuple
 import pygame
 from pygame.rect import Rect
-from stepper_synth_backend import StepperSynth, SynthEngineType, StepperSynthState
+from stepper_synth_backend import StepperSynth, SynthEngineType, StepperSynthState, EffectType
 from pathlib import Path
 from logging import DEBUG, INFO
-# from stepper_synth.synth_state import SynthState
 from stepper_synth.effect_menu import draw_effect_menu, effect_menu_controles, reset_effect_menu
 from stepper_synth.engine_menu import draw_engine_menu, reset_engine_menu, engine_menu_controles
 from stepper_synth.config import *
@@ -12,21 +12,15 @@ from stepper_synth.organ_screen import draw_organ, organ_controls
 from stepper_synth.sub_synth_screen import draw_sub_synth, sub_synth_controls
 from stepper_synth.controls import buttons, Buttons
 from stepper_synth.logger import get_logger
-# import stepper_synth
-#
-# print(dir(stepper_synth))
-# print(stepper_synth.__path__)
-# print(stepper_synth_helpers.__file__)
+from dataclasses import dataclass
 
 
 THIS_DIR = Path(__file__)
 THIS_DIR = THIS_DIR.parent.absolute()
-# print("this dir: ", THIS_DIR)
 ENGINE_MENU = False
 EFFECT_MENU = False
 
 pygame.init()
-# pygame.joystick.init()
 controller_found = False
 joy = None
 screen = pygame.display.set_mode(SCREEN_SIZE)
@@ -40,96 +34,97 @@ log = get_logger("MIDI-Tracker", DEBUG)
 controller = Buttons()
 
 synth = StepperSynth()
-# print("after synth")
+log.debug("after synth")
 state = synth.get_state()
-# print("got state")
+log.debug("got state")
+
+
+@dataclass
+class Logger:
+    debug = log.debug
+    info = log.info
+    warn = log.warning
+    error = log.error
+    critical = log.critical
+
+
+def do_nothing(rect: pygame.Rect) -> pygame.Rect:
+    return rect
+
+
+@dataclass
+class DrawMenuArgs:
+    log = Logger()
+    pygame = pygame
+    screen = screen
+    fonts = fonts
+    state = state
+    synth = synth
+    controller = controller
+
+    def draw_text(self, text: str, font: int, where: Tuple[float, float], color=TEXT_COLOR_1, rect_callback: Callable[[pygame.Rect], pygame.Rect] = do_nothing):
+        display = self.fonts[font].render(
+            text, True, color)
+        text_rect = display.get_rect()
+        x, y = where
+        text_rect.center = (int(x), int(y))
+        text_rect = rect_callback(text_rect)
+
+        screen.blit(display, text_rect)
+
+    # def draw_rect(self, rect_cmd):
+    #     color = rect_cmd.fill_color
+    #     (left, top) = rect_cmd.ancor
+    #     (width, height) = rect_cmd.size
+    #
+    #     rect = Rect((top, left), (width, height))
+    #
+    #     if rect_cmd.center:
+    #         rect.center = (left, top)
+    #
+    #     pygame.draw.rect(screen, color, rect)
 
 
 def clear_screen():
-    # screen.fill((30, 30, 46))
     screen.fill(BACKGROUND_COLOR)
 
 
-def draw_text(text):
-    arg = text.text
-    font = fonts[0]
-    color = text.color
-    display = font.render(
-        arg, True, color)
-    textRect = display.get_rect()
-
-    x, y = text.ancor
-
-    textRect.center = (x, y)
-
-    if not text.center:
-        textRect.left = x
-
-    screen.blit(display, textRect)
-
-
-def draw_rect(rect_cmd):
-    # arg = text.text
-    # font = fonts[0]
-    color = rect_cmd.fill_color
-    # display = font.render(
-    #     arg, True, color)
-    # textRect = display.get_rect()
-
-    # x, y = text.ancor
-
-    # textRect.center = (x, y)
-    (left, top) = rect_cmd.ancor
-    (width, height) = rect_cmd.size
-
-    rect = Rect((top, left), (width, height))
-
-    if rect_cmd.center:
-        rect.center = (left, top)
-
-    # print(f"drawing rect => Rect(({top}, {left}), ({width}, {height}))")
-
-    pygame.draw.rect(screen, color, rect)
-
-    # screen.blit(display, textRect)
-
-
-def check_controller_input(event):
+def check_controller_input(events):
     global controller
 
-    if event.type == pygame.JOYHATMOTION:
-        controller.purge_dpad()
+    for event in events:
+        # TODO: make this a match statement
+        if event.type == pygame.JOYHATMOTION:
+            controller.purge_dpad()
 
-        match event.value:
-            case (_, 1):
-                controller.press((0, 1))
-            case (_, -1):
-                controller.press((0, -1))
+            match event.value:
+                case (_, 1):
+                    controller.press((0, 1))
+                case (_, -1):
+                    controller.press((0, -1))
 
-        match event.value:
-            case (1, _):
-                controller.press((1, 0))
-            case (-1, _):
-                controller.press((-1, 0))
+            match event.value:
+                case (1, _):
+                    controller.press((1, 0))
+                case (-1, _):
+                    controller.press((-1, 0))
 
-    elif event.type == pygame.JOYBUTTONUP:
-        controller.release(event.button)
-    elif event.type == pygame.JOYBUTTONDOWN:
-        controller.press(event.button)
-    elif event.type == pygame.JOYAXISMOTION and event.axis == 4 and event.value > 0.0:
-        controller.press(buttons.get("lt"))
-        # tracker_ipc.send(InputCMD.ButtonPress(Button.LTrig))
-    elif event.type == pygame.JOYAXISMOTION and event.axis == 5 and event.value > 0.0:
-        controller.press(buttons.get("rt"))
-    elif event.type == pygame.JOYAXISMOTION and event.axis == 4 and event.value < 0.0:
-        controller.press(buttons.get("lt"))
-        # tracker_ipc.send(InputCMD.ButtonPress(Button.LTrig))
-    elif event.type == pygame.JOYAXISMOTION and event.axis == 5 and event.value < 0.0:
-        controller.press(buttons.get("rt"))
+        elif event.type == pygame.JOYBUTTONUP:
+            controller.release(event.button)
+        elif event.type == pygame.JOYBUTTONDOWN:
+            controller.press(event.button)
+        elif event.type == pygame.JOYAXISMOTION and event.axis == 4 and event.value > 0.0:
+            controller.press(buttons.get("lt"))
+        elif event.type == pygame.JOYAXISMOTION and event.axis == 5 and event.value > 0.0:
+            controller.press(buttons.get("rt"))
+        elif event.type == pygame.JOYAXISMOTION and event.axis == 4 and event.value < 0.0:
+            controller.press(buttons.get("lt"))
+            # tracker_ipc.send(InputCMD.ButtonPress(Button.LTrig))
+        elif event.type == pygame.JOYAXISMOTION and event.axis == 5 and event.value < 0.0:
+            controller.press(buttons.get("rt"))
 
-    # if event.type == pygame.JOYAXISMOTION and (event.axis == 5 or event.axis == 4):
-    #     print(f"button-event: {event}")
-    # pass
+        # if event.type == pygame.JOYAXISMOTION and (event.axis == 5 or event.axis == 4):
+        #     print(f"button-event: {event}")
 
 
 def handle_pygame_events():
@@ -138,16 +133,21 @@ def handle_pygame_events():
     global ENGINE_MENU
     global EFFECT_MENU
 
+    ctrlr_events = []
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            # stop_synth()
             return True
         elif event.type == pygame.JOYDEVICEADDED:
             joy = pygame.joystick.Joystick(event.device_index)
             controller_found = True
+        elif event.type == pygame.JOYHATMOTION or event.type == pygame.JOYBUTTONUP or event.type == pygame.JOYBUTTONDOWN or event.type == pygame.JOYAXISMOTION:
+            ctrlr_events.append(event)
 
-        if controller_found:
-            check_controller_input(event)
+        # if controller_found:
+        #     check_controller_input(event)
+    if controller_found and ctrlr_events:
+        check_controller_input(ctrlr_events)
 
     if controller.is_pressed(buttons.get("home")) and controller.just_released(buttons.get("start")):
         # stop_synth()
@@ -189,6 +189,10 @@ def draw(synth_state):
             # print("about to handle controls")
             synth = sub_synth_controls(
                 pygame, loc_controller, synth, synth_state)
+        case StepperSynthState.Effect(effect=EffectType.Reverb):
+            log.warning("Reverb screen not yet programmed")
+        case StepperSynthState.Effect(effect=EffectType.Chorus):
+            log.warning("Chorus screen not yet programmed")
 
     # TODO: draw volume & battery
     # TODO: draw engine menu
@@ -242,6 +246,8 @@ def stop_synth():
 
 if __name__ == "__main__":
     # ipc.send(PythonCmd.ChangeSynthEngine(SynthEngineType.SubSynth))
+
+    log.info("starting main loop.")
 
     while not handle_pygame_events():
         step()

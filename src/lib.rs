@@ -219,9 +219,9 @@ fn logger_init() -> Result<()> {
                 message
             ))
         })
-        // .filter(|metadata| metadata.target().starts_with("stepper"))
+        .chain(fern::log_file("stepper-synth.log")?)
+        // .filter(|metadata| metadata..starts_with("stepper"))
         .chain(std::io::stderr())
-        .chain(fern::log_file("output.log")?)
         .apply()?;
 
     #[cfg(not(debug_assertions))]
@@ -233,18 +233,52 @@ fn logger_init() -> Result<()> {
                 message
             ))
         })
+        .chain(fern::log_file("stepper-synth.log")?)
         // .filter(|metadata| metadata.target().starts_with("stepper"))
         .chain(std::io::stderr())
-        .chain(fern::log_file("output.log")?)
         .apply()?;
 
+    info!("logger started");
+
     Ok(())
+}
+
+#[pyfunction]
+fn log_trace(msg: String) {
+    // println!("{msg}");
+    trace!("{msg}")
+}
+
+#[pyfunction]
+fn log_debug(msg: String) {
+    debug!("{msg}")
+}
+
+#[pyfunction]
+fn log_info(msg: String) {
+    // println!("{msg}");
+    info!("{msg}")
+}
+
+#[pyfunction]
+fn log_warn(msg: String) {
+    warn!("{msg}")
+}
+
+#[pyfunction]
+fn log_error(msg: String) {
+    error!("{msg}")
 }
 
 /// A Python module implemented in Rust.
 #[pymodule]
 fn stepper_synth_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // m.add_function(wrap_pyfunction!(start_audio, m)?)?;
+    m.add_function(wrap_pyfunction!(log_trace, m)?)?;
+    m.add_function(wrap_pyfunction!(log_debug, m)?)?;
+    m.add_function(wrap_pyfunction!(log_info, m)?)?;
+    m.add_function(wrap_pyfunction!(log_warn, m)?)?;
+    m.add_function(wrap_pyfunction!(log_error, m)?)?;
 
     m.add_class::<SynthParam>()?;
     // m.add_class::<PythonCmd>()?;

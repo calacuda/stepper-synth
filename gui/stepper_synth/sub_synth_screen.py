@@ -197,6 +197,11 @@ def draw_divider(pygame, screen, middle_x, middle_y):
 def move_cursor(controller):
     global INDEX
 
+    # if len(controller.pressed_now) > 1:
+    if select_mod_pressed(controller):
+        # print(controller.pressed_now)
+        return
+
     if controller.is_pressed(buttons.get("a")) and not select_mod_pressed(controller):
         if controller.just_pressed(buttons.get("right")):
             INDEX[4] = (INDEX[4] + 1) % 4

@@ -209,11 +209,9 @@ impl StepperSynth {
 
         if let Err(reason) = logger_init() {
             eprintln!("failed to initiate logger because {reason}");
-        } else {
-            debug!("logger initiated");
         }
 
-        info!("run_midi called");
+        info!("Synth is ready to make sound");
 
         Self {
             synth,

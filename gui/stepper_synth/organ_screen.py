@@ -168,15 +168,19 @@ def draw_adsr_graph(pygame, screen, state: StepperSynthState):
 def move_cursor(controller):
     global INDEX
 
-    if len(controller.pressed_now) > 1:
+    # if len(controller.pressed_now) > 1:
+    if select_mod_pressed(controller):
+        # print(controller.pressed_now)
         return
 
     if controller.just_pressed(buttons.get("right")):
+        # print(INDEX[2])
         max_len = len(CONTROLS[INDEX[2]])
 
         INDEX[INDEX[2]] += 1
         INDEX[INDEX[2]] %= max_len
     elif controller.just_pressed(buttons.get("left")):
+        # print(INDEX[2])
         max_len = len(CONTROLS[INDEX[2]])
 
         INDEX[INDEX[2]] -= 1
@@ -184,11 +188,12 @@ def move_cursor(controller):
     elif controller.just_pressed(buttons.get("up")):
         # INDEX[2] += 1
         # INDEX[2] %= len(CONTROLS)
-        INDEX[2] = int(set_max(INDEX[2] - 1, float(len(CONTROLS))))
+        INDEX[2] = int(
+            set_max(INDEX[2] - 1, float(len(CONTROLS)) - 1.0, min=0.0))
     elif controller.just_pressed(buttons.get("down")):
         # INDEX[2] += 1
         # INDEX[2] %= len(CONTROLS)
-        INDEX[2] = int(set_max(INDEX[2] + 1, float(len(CONTROLS))))
+        INDEX[2] = int(set_max(INDEX[2] + 1, float(len(CONTROLS)) - 1.0))
 
 
 def timer_is_done(pygame) -> bool:
