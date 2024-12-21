@@ -3,7 +3,6 @@ use effects::reverb::ReverbParam;
 use effects::EffectType;
 use fern::colors::{Color, ColoredLevelConfig};
 use fxhash::FxHashMap;
-// use ipc::TrackerIPC;
 use log::*;
 use midi_control::ControlEvent;
 use midi_control::KeyEvent;
@@ -33,13 +32,8 @@ pub trait SampleGen {
     fn get_sample(&mut self) -> f32;
 }
 
-// TODO: make python ogject use try_lock() in a loop so it doesn't disturb audio gen.
-
 #[allow(unused_variables)]
 pub trait KnobCtrl {
-    // TODO: have these return a bool, representing if the system should send a state update
-    // message to the python front end.
-
     // parameters edited by the MIDI controllers built in knobs
     fn knob_1(&mut self, value: f32) -> bool {
         false
@@ -106,21 +100,12 @@ impl Iterator for Player {
     }
 }
 
-// fn send_mesg(tx: &Sender<State>, msg: State) {
-//     if let Err(e) = tx.send(msg.clone()) {
-//         error!("failed to send \"{msg:?}\" to python frontend because: {e}.");
-//     }
-// }
-
 fn run_midi(
     synth: Arc<Mutex<Synth>>,
     updated: Arc<Mutex<bool>>,
     exit: Arc<AtomicBool>,
 ) -> Result<()> {
-    // let tx = my_ipc.tx;
     let mut registered_ports = HashMap::default();
-
-    // send_mesg(&tx, synth.lock().unwrap().get_state());
 
     while !exit.load(Ordering::Relaxed) {
         let mut midi_in = MidiInput::new("midir reading input")?;
@@ -255,61 +240,6 @@ fn logger_init() -> Result<()> {
 
     Ok(())
 }
-
-// /// Formats the sum of two numbers as string.
-// #[pyfunction]
-// fn start_audio() -> PyResult<(TrackerIPC, State)> {
-//     let (my_ipc, py_ipc) = gen_ipc();
-//
-//     // build synth in arc mutex
-//     let synth = Arc::new(Mutex::new(Synth::new()));
-//
-//     {
-//         let s = synth.clone();
-//
-//         spawn(move || {
-//             let res = logger_init();
-//
-//             if let Err(reason) = res {
-//                 eprintln!("failed to initiate logger because {reason}");
-//             } else {
-//                 log::debug!("logger initiated");
-//             }
-//
-//             let params = OutputDeviceParameters {
-//                 channels_count: 1,
-//                 sample_rate: SAMPLE_RATE as usize,
-//                 // channel_sample_count: 2048,
-//                 channel_sample_count: 1024,
-//             };
-//             let device = {
-//                 let s = s.clone();
-//
-//                 run_output_device(params, move |data| {
-//                     for samples in data.chunks_mut(params.channels_count) {
-//                         let value = s.lock().expect("couldn't lock synth").get_sample();
-//
-//                         for sample in samples {
-//                             *sample = value;
-//                         }
-//                     }
-//                 })
-//             };
-//
-//             if let Err(e) = device {
-//                 error!("strating audio playback caused error: {e}");
-//             }
-//
-//             if let Err(e) = run_midi(s, my_ipc) {
-//                 error!("{e}");
-//             }
-//         });
-//     }
-//
-//     println!("run_midi called");
-//
-//     Ok((py_ipc, synth.clone().lock().unwrap().get_state()))
-// }
 
 /// A Python module implemented in Rust.
 #[pymodule]
