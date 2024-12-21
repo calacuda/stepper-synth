@@ -16,20 +16,20 @@ use std::{
 };
 use tinyaudio::prelude::*;
 
-#[pyclass(module = "stepper_synth_backend", eq, get_all)]
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub enum SynthParam {
-    Atk(f32),
-    Dcy(f32),
-    Sus(f32),
-    Rel(f32),
-    FilterCutoff(f32),
-    FilterRes(f32),
-    DelayVol(f32),
-    DelayTime(f32),
-    SpeakerSpinSpeed(f32),
-    PitchBend(f32),
-}
+// #[pyclass(module = "stepper_synth_backend", eq, get_all)]
+// #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+// pub enum SynthParam {
+//     Atk(f32),
+//     Dcy(f32),
+//     Sus(f32),
+//     Rel(f32),
+//     FilterCutoff(f32),
+//     FilterRes(f32),
+//     DelayVol(f32),
+//     DelayTime(f32),
+//     SpeakerSpinSpeed(f32),
+//     PitchBend(f32),
+// }
 
 /// a MIDI Note
 // pub type Note = u8;
@@ -69,6 +69,7 @@ pub enum Knob {
 pub enum SynthEngineType {
     SubSynth,
     B3Organ,
+    // DrumSynth,
     // SamplerSynth,
     // WaveTableSynth,
 }
