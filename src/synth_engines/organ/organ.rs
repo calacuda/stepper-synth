@@ -9,7 +9,7 @@ use crate::{
             WaveTable,
             WAVE_TABLE_SIZE,
         },
-        SynthEngine,
+        Param, SynthEngine,
     },
     HashMap, KnobCtrl, SampleGen,
 };
@@ -460,4 +460,6 @@ impl KnobCtrl for Organ {
 
         true
     }
+
+    fn lfo_control(&mut self, param: Param, lfo_sample: f32) {}
 }

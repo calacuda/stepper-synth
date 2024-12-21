@@ -1,3 +1,4 @@
+#![feature(let_chains)]
 use anyhow::Result;
 use effects::reverb::ReverbParam;
 use effects::EffectType;
@@ -12,12 +13,13 @@ use midir::{Ignore, PortInfoError};
 use pygame_coms::Screen;
 use pygame_coms::StepperSynth;
 use pygame_coms::StepperSynthState;
-use pygame_coms::{GuiParam, Knob, SynthEngineType, SynthParam};
+use pygame_coms::{GuiParam, Knob, SynthEngineType};
 use pyo3::prelude::*;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use synth_engines::synth::OscType;
+use synth_engines::Param;
 use synth_engines::Synth;
 
 pub type HashMap<Key, Val> = FxHashMap<Key, Val>;
@@ -85,6 +87,8 @@ pub trait KnobCtrl {
     fn gui_param_8(&mut self, value: f32) -> bool {
         false
     }
+
+    fn lfo_control(&mut self, param: Param, lfo_sample: f32);
 }
 
 pub struct Player {
@@ -280,7 +284,7 @@ fn stepper_synth_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(log_warn, m)?)?;
     m.add_function(wrap_pyfunction!(log_error, m)?)?;
 
-    m.add_class::<SynthParam>()?;
+    // m.add_class::<SynthParam>()?;
     // m.add_class::<PythonCmd>()?;
     // m.add_class::<TrackerIPC>()?;
     m.add_class::<Knob>()?;
@@ -294,6 +298,7 @@ fn stepper_synth_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<StepperSynth>()?;
     m.add_class::<StepperSynthState>()?;
     // m.add_class::<>()?;
+    m.add_class::<Param>()?;
 
     Ok(())
 }

@@ -3,7 +3,7 @@ use crate::{
     pygame_coms::{GuiParam, Knob},
     synth_engines::{
         synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN},
-        SynthEngine,
+        Param, SynthEngine,
     },
     HashMap, KnobCtrl, SampleGen,
 };
@@ -348,4 +348,6 @@ impl KnobCtrl for Synth {
         self.osc_s[1].1 = value as i16;
         true
     }
+
+    fn lfo_control(&mut self, param: Param, lfo_sample: f32) {}
 }

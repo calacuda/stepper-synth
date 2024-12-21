@@ -1,5 +1,5 @@
 use super::{Effect, EffectParam};
-use crate::{SampleGen, SAMPLE_RATE};
+use crate::{synth_engines::Param, KnobCtrl, SampleGen, SAMPLE_RATE};
 use pyo3::prelude::*;
 use std::fmt::Display;
 use strum::{EnumIter, IntoEnumIterator};
@@ -99,6 +99,12 @@ impl SampleGen for Chorus {
     }
 }
 
+impl KnobCtrl for Chorus {
+    fn lfo_control(&mut self, param: Param, lfo_sample: f32) {
+        // self.lfo_sample =
+    }
+}
+
 impl Effect for Chorus {
     type Param = ChorusParam;
 
@@ -123,4 +129,6 @@ impl Effect for Chorus {
             ChorusParam::Speed => self.speed,
         }
     }
+
+    fn lfo_nudge_param(&mut self, param: Self::Param) {}
 }

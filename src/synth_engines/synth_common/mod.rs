@@ -6,4 +6,4 @@ pub mod moog_filter;
 pub mod osc;
 
 pub type WaveTable = Arc<[f32]>;
-pub const WAVE_TABLE_SIZE: usize = 126;
+pub const WAVE_TABLE_SIZE: usize = 128;

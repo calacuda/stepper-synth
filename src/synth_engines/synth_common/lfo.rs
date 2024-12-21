@@ -58,3 +58,7 @@ impl LFO {
             + next_index_weight * self.wave_table[next_index]
     }
 }
+
+pub fn default_lfo_param_tweek(param: f32, lfo_sample: f32) -> f32 {
+    (param * 0.5) + (param * lfo_sample)
+}

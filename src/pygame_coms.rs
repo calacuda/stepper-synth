@@ -16,30 +16,8 @@ use std::{
 };
 use tinyaudio::prelude::*;
 
-// #[pyclass(module = "stepper_synth_backend", eq, get_all)]
-// #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-// pub enum SynthParam {
-//     Atk(f32),
-//     Dcy(f32),
-//     Sus(f32),
-//     Rel(f32),
-//     FilterCutoff(f32),
-//     FilterRes(f32),
-//     DelayVol(f32),
-//     DelayTime(f32),
-//     SpeakerSpinSpeed(f32),
-//     PitchBend(f32),
-// }
-
-/// a MIDI Note
-// pub type Note = u8;
-// /// a collection of all the known phrases.
-// pub type Phrases = [Option<Phrase>; 256];
-/// an index into a list of all known type T
-// pub type Index = usize;
-
 #[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)]
-#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum GuiParam {
     A,
     B,
@@ -52,7 +30,7 @@ pub enum GuiParam {
 }
 
 #[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)]
-#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum Knob {
     One,
     Two,

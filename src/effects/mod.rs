@@ -1,4 +1,4 @@
-use crate::{HashMap, SampleGen};
+use crate::{HashMap, KnobCtrl, SampleGen};
 use chorus::Chorus;
 use pyo3::{prelude::*, PyClass};
 use reverb::Reverb;
@@ -34,7 +34,7 @@ impl EffectType {
 
 pub trait EffectParam: Debug + Clone + Display + TryFrom<f32> + PyClass {}
 
-pub trait Effect: Debug + SampleGen + Send {
+pub trait Effect: Debug + SampleGen + Send + KnobCtrl {
     type Param: EffectParam;
 
     fn take_input(&mut self, value: f32);
@@ -43,6 +43,8 @@ pub trait Effect: Debug + SampleGen + Send {
     fn nudge_param(&mut self, param: Self::Param, by: f32) {
         self.set_param(param.clone(), self.get_param_value(param) + by);
     }
+    fn lfo_nudge_param(&mut self, param: Self::Param);
+
     fn get_param_value(&self, param: Self::Param) -> f32;
 }
 
@@ -71,6 +73,16 @@ impl EffectsModule {
             Self::Chorus(effect) => Self::do_get_param(effect),
         }
     }
+
+    // fn do_lfo_set_param(effect: &mut impl Effect, param_n: usize, to: f32) {
+    //     let params = effect.get_param_list();
+    //
+    //     let Some(param) = params.get(param_n) else {
+    //         return;
+    //     };
+    //
+    //     effect.lfo_control(param.clone(), to);
+    // }
 }
 
 impl From<EffectType> for EffectsModule {
@@ -80,6 +92,21 @@ impl From<EffectType> for EffectsModule {
             EffectType::Chorus => Self::Chorus(Chorus::new()),
             // TODO: write delay
             EffectType::Delay => Self::Chorus(Chorus::new()),
+        }
+    }
+}
+
+impl KnobCtrl for EffectsModule {
+    //     fn knob_1(&mut self, value: f32) -> bool {
+    //         match self {
+    //             Self::Reverb(effect) => Self::do_get_param(effect),
+    //             Self::Chorus(effect) => Self::do_get_param(effect),
+    //         }
+    //     }
+    fn lfo_control(&mut self, param: crate::synth_engines::Param, lfo_sample: f32) {
+        match self {
+            Self::Reverb(effect) => effect.lfo_control(param, lfo_sample),
+            Self::Chorus(effect) => effect.lfo_control(param, lfo_sample),
         }
     }
 }

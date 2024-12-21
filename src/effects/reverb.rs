@@ -1,5 +1,9 @@
 use super::{Effect, EffectParam};
-use crate::SampleGen;
+use crate::{
+    pygame_coms::Knob,
+    synth_engines::{synth_common::lfo::default_lfo_param_tweek, Param},
+    KnobCtrl, SampleGen,
+};
 use pyo3::prelude::*;
 use reverb;
 use std::fmt::Display;
@@ -58,6 +62,8 @@ pub struct Reverb {
     in_sample: f32,
     damping: f32,
     cutoff: f32,
+    lfo_sample: f32,
+    lfo_target: Option<ReverbParam>,
 }
 
 impl Reverb {
@@ -69,11 +75,21 @@ impl Reverb {
             in_sample: 0.0,
             damping: 0.5,
             cutoff: 0.5,
+            lfo_sample: 0.0,
+            lfo_target: None,
         }
     }
 
     pub fn get_sample(&mut self, in_sample: f32) -> f32 {
-        self.effect.calc_sample(in_sample, self.gain)
+        let gain = if self
+            .lfo_target
+            .is_some_and(|target| target == ReverbParam::Gain)
+        {
+            default_lfo_param_tweek(self.gain, self.lfo_sample)
+        } else {
+            self.gain
+        };
+        self.effect.calc_sample(in_sample, gain)
     }
 
     pub fn set_gain(&mut self, gain: f32) {
@@ -105,6 +121,22 @@ impl SampleGen for Reverb {
     }
 }
 
+impl KnobCtrl for Reverb {
+    fn lfo_control(&mut self, param: Param, lfo_sample: f32) {
+        self.lfo_sample = lfo_sample;
+
+        let param = match param {
+            Param::Knob(Knob::One) => ReverbParam::Gain,
+            Param::Knob(Knob::Two) => ReverbParam::Decay,
+            Param::Knob(Knob::Three) => ReverbParam::Damping,
+            Param::Knob(Knob::Four) => ReverbParam::Cutoff,
+            _ => return,
+        };
+
+        self.lfo_nudge_param(param)
+    }
+}
+
 impl Effect for Reverb {
     type Param = ReverbParam;
 
@@ -131,6 +163,15 @@ impl Effect for Reverb {
             ReverbParam::Decay => self.decay,
             ReverbParam::Cutoff => self.cutoff,
             ReverbParam::Damping => self.damping,
+        }
+    }
+
+    fn lfo_nudge_param(&mut self, param: Self::Param) {
+        self.effect = match param {
+            ReverbParam::Gain => return,
+            ReverbParam::Decay => self.effect.decay(self.decay * self.lfo_sample).clone(),
+            ReverbParam::Damping => self.effect.damping(self.damping * self.lfo_sample).clone(),
+            ReverbParam::Cutoff => self.effect.bandwidth(self.cutoff * self.lfo_sample).clone(),
         }
     }
 }

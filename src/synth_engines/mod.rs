@@ -3,9 +3,9 @@ use crate::{
     pygame_coms::{GuiParam, Knob, SynthEngineType},
     HashMap, KnobCtrl, SampleGen,
 };
-use log::*;
 use midi_control::MidiNote;
 use organ::organ::Organ;
+use pyo3::prelude::*;
 use std::fmt::Debug;
 use synth_common::lfo::LFO;
 
@@ -27,9 +27,19 @@ pub trait SynthEngine: Debug + SampleGen + KnobCtrl + Send {
     fn get_gui_params(&self) -> HashMap<GuiParam, f32>;
 }
 
-#[derive(Debug, Clone)]
-pub enum LfoTarget {}
+#[pyclass(module = "stepper_synth_backend", get_all, eq)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub enum Param {
+    Knob(Knob),
+    Gui(GuiParam),
+}
 
+#[pyclass(module = "stepper_synth_backend", get_all, eq)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub enum LfoTarget {
+    Synth(Param),
+    Effect(Param),
+}
 #[derive(Debug)]
 pub struct Synth {
     pub lfo: LFO,
@@ -40,6 +50,7 @@ pub struct Synth {
     pub effect: EffectsModule,
     // pub effect_power: bool,
     pub lfo_target: Option<LfoTarget>,
+    pub lfo_routed: bool,
 }
 
 impl Synth {
@@ -52,6 +63,7 @@ impl Synth {
             lfo_target: None,
             engine_type: SynthEngineType::B3Organ,
             engine: Box::new(Organ::new()),
+            lfo_routed: false,
         }
     }
 
@@ -99,8 +111,16 @@ impl Synth {
 
 impl SampleGen for Synth {
     fn get_sample(&mut self) -> f32 {
-        if let Some(ref mut _target) = self.lfo_target {
-            info!("sending lfo data to target");
+        if let Some(ref mut target) = self.lfo_target
+            && self.lfo_routed
+        {
+            // info!("sending lfo data to target");
+            let lfo_sample = self.lfo.get_sample();
+
+            match target {
+                LfoTarget::Synth(param) => self.engine.lfo_control(*param, lfo_sample),
+                LfoTarget::Effect(param) => self.effect.lfo_control(*param, lfo_sample),
+            }
         }
 
         let sample = self.engine.get_sample();
