@@ -26,7 +26,6 @@ pub type HashMap<Key, Val> = FxHashMap<Key, Val>;
 pub const SAMPLE_RATE: u32 = 48_000;
 
 pub mod effects;
-// pub mod ipc;
 pub mod pygame_coms;
 pub mod synth_engines;
 
