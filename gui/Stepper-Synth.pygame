@@ -167,6 +167,10 @@ def handle_pygame_events():
     return False
 
 
+def do_nothing_control_f(*args, **kwargs):
+    pass
+
+
 def draw(synth_state):
     """draws the synth ui to the screen"""
     # print(dir(synth_state))
@@ -178,17 +182,18 @@ def draw(synth_state):
 
     # print(synth_state)
 
+    controls_f = do_nothing_control_f
+    controls_args = []
+
     match synth_state:
         case StepperSynthState.Synth(engine=SynthEngineType.B3Organ):
-            # print("organ")
             draw_organ(pygame, screen, fonts, synth_state)
-            synth = organ_controls(pygame, loc_controller, synth, synth_state)
+            controls_f = organ_controls
+            controls_args = [pygame, loc_controller, synth, synth_state]
         case StepperSynthState.Synth(engine=SynthEngineType.SubSynth):
-            # print("about to draw")
             draw_sub_synth(pygame, screen, fonts, synth_state)
-            # print("about to handle controls")
-            synth = sub_synth_controls(
-                pygame, loc_controller, synth, synth_state)
+            controls_f = sub_synth_controls
+            controls_args = [pygame, loc_controller, synth, synth_state]
         case StepperSynthState.Effect(effect=EffectType.Reverb):
             log.warning("Reverb screen not yet programmed")
         case StepperSynthState.Effect(effect=EffectType.Chorus):
@@ -205,6 +210,8 @@ def draw(synth_state):
         (synth, effect_changed) = effect_menu_controles(synth, controller)
         EFFECT_MENU = effect_changed is None or not effect_changed
     else:
+        tmp_synth = controls_f(*controls_args)
+        synth = tmp_synth if tmp_synth is not None else synth
         reset_engine_menu()
         reset_effect_menu()
 
