@@ -5,7 +5,7 @@ from pygame.rect import Rect
 from stepper_synth_backend import StepperSynth, SynthEngineType, StepperSynthState, EffectType
 from pathlib import Path
 from logging import DEBUG, INFO
-from stepper_synth.effect_menu import draw_effect_menu, effect_menu_controles, reset_effect_menu
+# from stepper_synth.effect_menu import draw_effect_menu, effect_menu_controles, reset_effect_menu
 from stepper_synth.engine_menu import draw_engine_menu, reset_engine_menu, engine_menu_controles
 from stepper_synth.config import *
 from stepper_synth.organ_screen import draw_organ, organ_controls
@@ -17,8 +17,8 @@ from dataclasses import dataclass
 
 THIS_DIR = Path(__file__)
 THIS_DIR = THIS_DIR.parent.absolute()
-ENGINE_MENU = False
-EFFECT_MENU = False
+SYNTH_MENU = False
+# EFFECT_MENU = False
 
 pygame.init()
 controller_found = False
@@ -130,8 +130,8 @@ def check_controller_input(events):
 def handle_pygame_events():
     global joy
     global controller_found
-    global ENGINE_MENU
-    global EFFECT_MENU
+    global SYNTH_MENU
+    # global EFFECT_MENU
 
     ctrlr_events = []
 
@@ -154,15 +154,18 @@ def handle_pygame_events():
         return True
 
     x_pressed = controller.just_released(buttons.get("x"))
-    y_pressed = controller.just_released(buttons.get("y"))
+    b_pressed = controller.just_released(buttons.get("b"))
+    # y_pressed = controller.just_released(buttons.get("y"))
 
-    if x_pressed and not EFFECT_MENU:
-        ENGINE_MENU = not ENGINE_MENU
+    if x_pressed:
+        SYNTH_MENU = not SYNTH_MENU
+    elif b_pressed and SYNTH_MENU:
+        SYNTH_MENU = False
 
-    if y_pressed and not ENGINE_MENU:
-        EFFECT_MENU = not EFFECT_MENU
+    # if y_pressed and not SYNTH_MENU:
+    #     EFFECT_MENU = not EFFECT_MENU
 
-    # print(f"x-pressed = {x_pressed}, ENGINE_MENU = {ENGINE_MENU}")
+    # print(f"x-pressed = {x_pressed}, SYNTH_MENU = {SYNTH_MENU}")
 
     return False
 
@@ -174,11 +177,11 @@ def do_nothing_control_f(*args, **kwargs):
 def draw(synth_state):
     """draws the synth ui to the screen"""
     # print(dir(synth_state))
-    global ENGINE_MENU
-    global EFFECT_MENU
+    global SYNTH_MENU
+    # global EFFECT_MENU
     global synth
 
-    loc_controller = controller if not ENGINE_MENU else Buttons()
+    loc_controller = controller if not SYNTH_MENU else Buttons()
 
     # print(synth_state)
 
@@ -200,20 +203,20 @@ def draw(synth_state):
             log.warning("Chorus screen not yet programmed")
 
     # TODO: draw volume & battery
-    # TODO: draw engine menu
-    if ENGINE_MENU:
+    # draw engine menu
+    if SYNTH_MENU:
         draw_engine_menu(pygame, screen, fonts)
         (synth, engine_changed) = engine_menu_controles(synth, controller)
-        ENGINE_MENU = engine_changed is None or not engine_changed
-    elif EFFECT_MENU:
-        draw_effect_menu(pygame, screen, fonts)
-        (synth, effect_changed) = effect_menu_controles(synth, controller)
-        EFFECT_MENU = effect_changed is None or not effect_changed
+        SYNTH_MENU = engine_changed is None or not engine_changed
+    # elif EFFECT_MENU:
+    #     draw_effect_menu(pygame, screen, fonts)
+    #     (synth, effect_changed) = effect_menu_controles(synth, controller)
+    #     EFFECT_MENU = effect_changed is None or not effect_changed
     else:
         tmp_synth = controls_f(*controls_args)
         synth = tmp_synth if tmp_synth is not None else synth
         reset_engine_menu()
-        reset_effect_menu()
+        # reset_effect_menu()
 
 
 def proccess_cmd():

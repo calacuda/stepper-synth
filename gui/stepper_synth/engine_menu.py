@@ -1,10 +1,10 @@
 from .controls import Buttons, buttons
-from stepper_synth_backend import GuiParam, Knob, SynthEngineType, StepperSynth, StepperSynthState, Screen
+from stepper_synth_backend import GuiParam, Knob, SynthEngineType, StepperSynth, StepperSynthState, Screen, EffectType
 from .config import *
 from .utils import *
 
 engines = [SynthEngineType.B3Organ,
-           SynthEngineType.SubSynth]
+           SynthEngineType.SubSynth, EffectType.Reverb, EffectType.Chorus]
 INDEX = 0
 
 
@@ -67,11 +67,17 @@ def engine_menu_controles(synth: StepperSynth, controls: Buttons):
         INDEX += 1
         INDEX %= len(engines)
     elif controls.just_released(buttons.get("a")):
-        new_engine = engines[INDEX]
+        new_screen = engines[INDEX]
         # ipc.send(PythonCmd.ChangeSynthEngine(new_engine))
         # print("new_engine", new_engine)
-        synth.set_screen(Screen.Synth(new_engine))
+        # synth.set_screen(Screen.Synth(new_engine))
         # print("engine after set", synth.get_state().engine)
+        match new_screen:
+            case SynthEngineType.B3Organ | SynthEngineType.SubSynth:
+                synth.set_screen(Screen.Synth(new_screen))
+            case EffectType.Reverb | EffectType.Chorus:
+                synth.set_screen(Screen.Effect(new_screen))
+
         return (synth, True)
 
     return (synth, False)
