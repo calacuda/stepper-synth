@@ -1,5 +1,5 @@
 use crate::{
-    effects::{Effect, EffectType, EffectsModule, EffectsModules},
+    effects::{EffectType, EffectsModules},
     pygame_coms::{GuiParam, Knob, SynthEngineType},
     HashMap, KnobCtrl, SampleGen,
 };
@@ -40,6 +40,7 @@ pub enum LfoTarget {
     Synth(Param),
     Effect(Param),
 }
+
 #[derive(Debug)]
 pub struct Synth {
     pub lfo: LFO,
@@ -104,12 +105,6 @@ impl Synth {
 
         true
     }
-
-    // fn apply_effect(effect: &mut impl Effect, sample: f32) -> f32 {
-    //     effect.take_input(sample);
-    //
-    //     effect.get_sample()
-    // }
 }
 
 impl SampleGen for Synth {
@@ -132,38 +127,8 @@ impl SampleGen for Synth {
             return sample;
         }
 
-        // Self::get_sample
         self.effect.take_input(sample);
 
         self.effect.get_sample()
-        // match self.effect {
-        //     EffectsModule::Reverb(ref mut effect) => Self::apply_effect(effect, sample),
-        //     EffectsModule::Chorus(ref mut effect) => {
-        //         // warn!("chorus is not implemented yet!");
-        //         // return sample;
-        //         Self::apply_effect(effect, sample)
-        //         // Self::apply_effect(effect, sample),
-        //     } // EffectsModule::(effect) => self.apply_effect(effect, sample),
-        // }
     }
 }
-
-// impl Synth {
-//     pub fn get_state(&mut self) -> State {
-//         let engine = self.engine_type;
-//      let knob_params = self.engine.get_params();
-//         let gui_params = self.engine.get_gui_params();
-//         let effect = match self.effect {
-//             EffectsModule::Reverb(_) => EffectType::Reverb,
-//             EffectsModule::Chorus(_) => EffectType::Chorus,
-//         };
-//
-//         State {
-//             engine,
-//             effect,
-//             effect_on: self.effect_power,
-//             knob_params,
-//             gui_params,
-//         }
-//     }
-// }

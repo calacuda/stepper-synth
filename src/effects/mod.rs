@@ -35,6 +35,7 @@ impl EffectType {
 
 pub trait EffectParam: Debug + Clone + Display + TryFrom<f32> + PyClass {}
 
+// TODO: use this enum dispatch trick on the synth_engines too.
 #[enum_dispatch(EffectsModule)]
 pub trait Effect: Debug + SampleGen + Send + KnobCtrl {
     // type Param: EffectParam;

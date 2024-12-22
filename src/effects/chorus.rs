@@ -68,7 +68,7 @@ impl Chorus {
     }
 
     pub fn get_sample(&mut self) -> f32 {
-        let chorus = (self.buff[self.i] + self.input);
+        let chorus = self.buff[self.i] + self.input;
         // self.buff[self.i ] = echo;
         self.buff[(self.i + self.step) % self.size] = chorus * self.volume;
         // self.buff[self.i] = 0.0;
