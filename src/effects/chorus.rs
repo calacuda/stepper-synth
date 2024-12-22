@@ -60,15 +60,15 @@ impl Chorus {
             size: SAMPLE_RATE as usize,
             buff: [0.0; SAMPLE_RATE as usize],
             i: 0,
-            step: 1,
+            step: (SAMPLE_RATE as f32 * (0.25 * 0.5)) as usize,
             volume: 0.75,
-            speed: 0.0,
+            speed: 0.25,
             input: 0.0,
         }
     }
 
     pub fn get_sample(&mut self) -> f32 {
-        let chorus = ((self.buff[self.i] * self.volume) + self.input).tanh();
+        let chorus = (self.buff[self.i] * self.volume + self.input * self.volume).tanh();
         // self.buff[self.i ] = echo;
         self.buff[(self.i + self.step) % self.size] = chorus;
         // self.buff[self.i] = 0.0;
@@ -84,7 +84,8 @@ impl Chorus {
     pub fn set_speed(&mut self, speed: f32) {
         // info!("speed: {}", speed);
         self.speed = speed;
-        self.step = (SAMPLE_RATE as f32 * (speed * 0.05)) as usize;
+        // self.step = (SAMPLE_RATE as f32 * (speed * 0.05)) as usize;
+        self.step = (SAMPLE_RATE as f32 * (speed * 0.5)) as usize;
         // info!("step:  {}", self.step);
     }
 
@@ -101,15 +102,21 @@ impl SampleGen for Chorus {
 
 impl KnobCtrl for Chorus {
     fn lfo_control(&mut self, param: Param, lfo_sample: f32) {
-        // self.lfo_sample =
+        // self.lfo_sample = lfo_sample;
+        //
+        // self.effect = match param {
+        //     // Param::Knob(Knob::One) => ReverbParam::Gain,
+        //     Param::Knob(Knob::Two) => self.effect.decay(self.decay * self.lfo_sample).clone(),
+        //     Param::Knob(Knob::Three) => self.effect.damping(self.damping * self.lfo_sample).clone(),
+        //     Param::Knob(Knob::Four) => self.effect.bandwidth(self.cutoff * self.lfo_sample).clone(),
+        //     _ => return,
+        // }
     }
 }
 
 impl Effect for Chorus {
-    // type Param = ChorusParam;
-
     fn take_input(&mut self, value: f32) {
-        self.input = value;
+        self.input = value * self.volume;
     }
 
     fn get_param_list(&self) -> Vec<String> {
@@ -121,22 +128,8 @@ impl Effect for Chorus {
     fn get_params(&self) -> crate::HashMap<String, f32> {
         let mut map = HashMap::default();
 
+        // TODO: Write this
+
         map
     }
-
-    // fn set_param(&mut self, param: Self::Param, to: f32) {
-    //     match param {
-    //         ChorusParam::Volume => self.set_volume(to),
-    //         ChorusParam::Speed => self.set_speed(to),
-    //     }
-    // }
-    //
-    // fn get_param_value(&self, param: Self::Param) -> f32 {
-    //     match param {
-    //         ChorusParam::Volume => self.volume,
-    //         ChorusParam::Speed => self.speed,
-    //     }
-    // }
-    //
-    // fn lfo_nudge_param(&mut self, param: Self::Param) {}
 }

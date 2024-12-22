@@ -126,15 +126,6 @@ impl KnobCtrl for Reverb {
     fn lfo_control(&mut self, param: Param, lfo_sample: f32) {
         self.lfo_sample = lfo_sample;
 
-        // let param = match param {
-        //     Param::Knob(Knob::One) => ReverbParam::Gain,
-        //     Param::Knob(Knob::Two) => ReverbParam::Decay,
-        //     Param::Knob(Knob::Three) => ReverbParam::Damping,
-        //     Param::Knob(Knob::Four) => ReverbParam::Cutoff,
-        //     _ => return,
-        // };
-        //
-        // self.lfo_nudge_param(param)
         self.effect = match param {
             // Param::Knob(Knob::One) => ReverbParam::Gain,
             Param::Knob(Knob::Two) => self.effect.decay(self.decay * self.lfo_sample).clone(),
