@@ -74,3 +74,4 @@ docs/_build/
 ./output.log
 ./stepper-synth.log
 cross-build-deps
+Cargo.lock
