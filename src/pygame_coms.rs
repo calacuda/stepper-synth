@@ -242,20 +242,14 @@ impl StepperSynth {
         match self.screen {
             Screen::Synth(SynthEngineType::B3Organ) => StepperSynthState::Synth {
                 engine: SynthEngineType::B3Organ,
-                effect: match synth.effect {
-                    EffectsModule::Reverb(_) => EffectType::Reverb,
-                    EffectsModule::Chorus(_) => EffectType::Chorus,
-                },
+                effect: synth.effect.effect,
                 effect_on: synth.effect_power,
                 knob_params: synth.engine.get_params(),
                 gui_params: synth.engine.get_gui_params(),
             },
             Screen::Synth(SynthEngineType::SubSynth) => StepperSynthState::Synth {
                 engine: SynthEngineType::SubSynth,
-                effect: match synth.effect {
-                    EffectsModule::Reverb(_) => EffectType::Reverb,
-                    EffectsModule::Chorus(_) => EffectType::Chorus,
-                },
+                effect: synth.effect.effect,
                 effect_on: synth.effect_power,
                 knob_params: synth.engine.get_params(),
                 gui_params: synth.engine.get_gui_params(),

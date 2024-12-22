@@ -1,5 +1,5 @@
 use super::{Effect, EffectParam};
-use crate::{synth_engines::Param, KnobCtrl, SampleGen, SAMPLE_RATE};
+use crate::{synth_engines::Param, HashMap, KnobCtrl, SampleGen, SAMPLE_RATE};
 use pyo3::prelude::*;
 use std::fmt::Display;
 use strum::{EnumIter, IntoEnumIterator};
@@ -106,29 +106,37 @@ impl KnobCtrl for Chorus {
 }
 
 impl Effect for Chorus {
-    type Param = ChorusParam;
+    // type Param = ChorusParam;
 
     fn take_input(&mut self, value: f32) {
         self.input = value;
     }
 
-    fn get_param_list(&self) -> Vec<Self::Param> {
-        Self::Param::iter().collect()
+    fn get_param_list(&self) -> Vec<String> {
+        ChorusParam::iter()
+            .map(|param| format!("{param}"))
+            .collect()
     }
 
-    fn set_param(&mut self, param: Self::Param, to: f32) {
-        match param {
-            ChorusParam::Volume => self.set_volume(to),
-            ChorusParam::Speed => self.set_speed(to),
-        }
+    fn get_params(&self) -> crate::HashMap<String, f32> {
+        let mut map = HashMap::default();
+
+        map
     }
 
-    fn get_param_value(&self, param: Self::Param) -> f32 {
-        match param {
-            ChorusParam::Volume => self.volume,
-            ChorusParam::Speed => self.speed,
-        }
-    }
-
-    fn lfo_nudge_param(&mut self, param: Self::Param) {}
+    // fn set_param(&mut self, param: Self::Param, to: f32) {
+    //     match param {
+    //         ChorusParam::Volume => self.set_volume(to),
+    //         ChorusParam::Speed => self.set_speed(to),
+    //     }
+    // }
+    //
+    // fn get_param_value(&self, param: Self::Param) -> f32 {
+    //     match param {
+    //         ChorusParam::Volume => self.volume,
+    //         ChorusParam::Speed => self.speed,
+    //     }
+    // }
+    //
+    // fn lfo_nudge_param(&mut self, param: Self::Param) {}
 }

@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = { version = "1.0.94", features = ["backtrace"] }
+enum_dispatch = "0.3.13"
 fern = { version = "0.7.0", features = ["colored"] }
 fxhash = "0.2.1"
 log = { version = "0.4.22", features = ["max_level_info", "release_max_level_info"] }

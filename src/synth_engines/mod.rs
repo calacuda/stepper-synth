@@ -1,5 +1,5 @@
 use crate::{
-    effects::{Effect, EffectType, EffectsModule},
+    effects::{Effect, EffectType, EffectsModule, EffectsModules},
     pygame_coms::{GuiParam, Knob, SynthEngineType},
     HashMap, KnobCtrl, SampleGen,
 };
@@ -47,7 +47,7 @@ pub struct Synth {
     pub engine_type: SynthEngineType,
     // pub effect: EffectType,
     pub effect_power: bool,
-    pub effect: EffectsModule,
+    pub effect: EffectsModules,
     // pub effect_power: bool,
     pub lfo_target: Option<LfoTarget>,
     pub lfo_routed: bool,
@@ -57,7 +57,7 @@ impl Synth {
     pub fn new() -> Self {
         Self {
             lfo: LFO::new(),
-            effect: EffectsModule::new(),
+            effect: EffectsModules::new(),
             // effect: EffectType::Reverb,
             effect_power: false,
             lfo_target: None,
@@ -90,7 +90,10 @@ impl Synth {
     }
 
     pub fn set_effect(&mut self, effect: EffectType) -> bool {
-        self.effect = EffectsModule::from(effect);
+        // self.effect = EffectsModule::from(effect);
+
+        self.effect.set(effect);
+
         self.effect_power = true;
 
         true
@@ -102,11 +105,11 @@ impl Synth {
         true
     }
 
-    fn apply_effect(effect: &mut impl Effect, sample: f32) -> f32 {
-        effect.take_input(sample);
-
-        effect.get_sample()
-    }
+    // fn apply_effect(effect: &mut impl Effect, sample: f32) -> f32 {
+    //     effect.take_input(sample);
+    //
+    //     effect.get_sample()
+    // }
 }
 
 impl SampleGen for Synth {
@@ -129,15 +132,19 @@ impl SampleGen for Synth {
             return sample;
         }
 
-        match self.effect {
-            EffectsModule::Reverb(ref mut effect) => Self::apply_effect(effect, sample),
-            EffectsModule::Chorus(ref mut effect) => {
-                // warn!("chorus is not implemented yet!");
-                // return sample;
-                Self::apply_effect(effect, sample)
-                // Self::apply_effect(effect, sample),
-            } // EffectsModule::(effect) => self.apply_effect(effect, sample),
-        }
+        // Self::get_sample
+        self.effect.take_input(sample);
+
+        self.effect.get_sample()
+        // match self.effect {
+        //     EffectsModule::Reverb(ref mut effect) => Self::apply_effect(effect, sample),
+        //     EffectsModule::Chorus(ref mut effect) => {
+        //         // warn!("chorus is not implemented yet!");
+        //         // return sample;
+        //         Self::apply_effect(effect, sample)
+        //         // Self::apply_effect(effect, sample),
+        //     } // EffectsModule::(effect) => self.apply_effect(effect, sample),
+        // }
     }
 }
 

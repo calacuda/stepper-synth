@@ -2,6 +2,8 @@
 use anyhow::Result;
 use effects::reverb::ReverbParam;
 use effects::EffectType;
+use effects::EffectsModule;
+use enum_dispatch::enum_dispatch;
 use fern::colors::{Color, ColoredLevelConfig};
 use fxhash::FxHashMap;
 use log::*;
@@ -30,11 +32,13 @@ pub mod effects;
 pub mod pygame_coms;
 pub mod synth_engines;
 
+#[enum_dispatch(EffectsModule)]
 pub trait SampleGen {
     fn get_sample(&mut self) -> f32;
 }
 
 #[allow(unused_variables)]
+#[enum_dispatch(EffectsModule)]
 pub trait KnobCtrl {
     // parameters edited by the MIDI controllers built in knobs
     fn knob_1(&mut self, value: f32) -> bool {

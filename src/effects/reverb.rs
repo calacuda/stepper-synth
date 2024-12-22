@@ -2,8 +2,9 @@ use super::{Effect, EffectParam};
 use crate::{
     pygame_coms::Knob,
     synth_engines::{synth_common::lfo::default_lfo_param_tweek, Param},
-    KnobCtrl, SampleGen,
+    HashMap, KnobCtrl, SampleGen,
 };
+use enum_dispatch::enum_dispatch;
 use pyo3::prelude::*;
 use reverb;
 use std::fmt::Display;
@@ -125,53 +126,73 @@ impl KnobCtrl for Reverb {
     fn lfo_control(&mut self, param: Param, lfo_sample: f32) {
         self.lfo_sample = lfo_sample;
 
-        let param = match param {
-            Param::Knob(Knob::One) => ReverbParam::Gain,
-            Param::Knob(Knob::Two) => ReverbParam::Decay,
-            Param::Knob(Knob::Three) => ReverbParam::Damping,
-            Param::Knob(Knob::Four) => ReverbParam::Cutoff,
+        // let param = match param {
+        //     Param::Knob(Knob::One) => ReverbParam::Gain,
+        //     Param::Knob(Knob::Two) => ReverbParam::Decay,
+        //     Param::Knob(Knob::Three) => ReverbParam::Damping,
+        //     Param::Knob(Knob::Four) => ReverbParam::Cutoff,
+        //     _ => return,
+        // };
+        //
+        // self.lfo_nudge_param(param)
+        self.effect = match param {
+            // Param::Knob(Knob::One) => ReverbParam::Gain,
+            Param::Knob(Knob::Two) => self.effect.decay(self.decay * self.lfo_sample).clone(),
+            Param::Knob(Knob::Three) => self.effect.damping(self.damping * self.lfo_sample).clone(),
+            Param::Knob(Knob::Four) => self.effect.bandwidth(self.cutoff * self.lfo_sample).clone(),
             _ => return,
-        };
-
-        self.lfo_nudge_param(param)
+        }
     }
 }
 
 impl Effect for Reverb {
-    type Param = ReverbParam;
+    // type Param = ReverbParam;
 
     fn take_input(&mut self, value: f32) {
         self.in_sample = value;
     }
 
-    fn get_param_list(&self) -> Vec<Self::Param> {
-        Self::Param::iter().collect()
+    fn get_param_list(&self) -> Vec<String> {
+        ReverbParam::iter()
+            .map(|param| format!("{param}"))
+            .collect()
     }
 
-    fn set_param(&mut self, param: Self::Param, to: f32) {
-        match param {
-            ReverbParam::Gain => self.set_gain(to),
-            ReverbParam::Decay => self.set_decay(to),
-            ReverbParam::Cutoff => self.set_cutoff(to),
-            ReverbParam::Damping => self.set_damping(to),
-        }
+    fn get_params(&self) -> crate::HashMap<String, f32> {
+        let mut map = HashMap::default();
+
+        map.insert("Gain".into(), self.gain);
+        map.insert("Decay".into(), self.decay);
+        map.insert("Damping".into(), self.damping);
+        map.insert("Cutoff".into(), self.cutoff);
+
+        map
     }
 
-    fn get_param_value(&self, param: Self::Param) -> f32 {
-        match param {
-            ReverbParam::Gain => self.gain,
-            ReverbParam::Decay => self.decay,
-            ReverbParam::Cutoff => self.cutoff,
-            ReverbParam::Damping => self.damping,
-        }
-    }
-
-    fn lfo_nudge_param(&mut self, param: Self::Param) {
-        self.effect = match param {
-            ReverbParam::Gain => return,
-            ReverbParam::Decay => self.effect.decay(self.decay * self.lfo_sample).clone(),
-            ReverbParam::Damping => self.effect.damping(self.damping * self.lfo_sample).clone(),
-            ReverbParam::Cutoff => self.effect.bandwidth(self.cutoff * self.lfo_sample).clone(),
-        }
-    }
+    // fn set_param(&mut self, param: Self::Param, to: f32) {
+    //     match param {
+    //         ReverbParam::Gain => self.set_gain(to),
+    //         ReverbParam::Decay => self.set_decay(to),
+    //         ReverbParam::Cutoff => self.set_cutoff(to),
+    //         ReverbParam::Damping => self.set_damping(to),
+    //     }
+    // }
+    //
+    // fn get_param_value(&self, param: Self::Param) -> f32 {
+    //     match param {
+    //         ReverbParam::Gain => self.gain,
+    //         ReverbParam::Decay => self.decay,
+    //         ReverbParam::Cutoff => self.cutoff,
+    //         ReverbParam::Damping => self.damping,
+    //     }
+    // }
+    //
+    // fn lfo_nudge_param(&mut self, param: Self::Param) {
+    //     self.effect = match param {
+    //         ReverbParam::Gain => return,
+    //         ReverbParam::Decay => self.effect.decay(self.decay * self.lfo_sample).clone(),
+    //         ReverbParam::Damping => self.effect.damping(self.damping * self.lfo_sample).clone(),
+    //         ReverbParam::Cutoff => self.effect.bandwidth(self.cutoff * self.lfo_sample).clone(),
+    //     }
+    // }
 }

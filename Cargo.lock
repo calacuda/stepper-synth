@@ -257,6 +257,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 
 [[package]]
+name = "enum_dispatch"
+version = "0.3.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa18ce2bc66555b3218614519ac839ddb759a7d6720732f979ef8d13be147ecd"
+dependencies = [
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "fern"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -451,9 +463,9 @@ dependencies = [
 
 [[package]]
 name = "object"
-version = "0.36.5"
+version = "0.36.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aedf0a2d09c573ed1d8d85b30c119153926a2b36dce0ab28322c09a117a4683e"
+checksum = "62948e14d923ea95ea2c7c86c71013138b66525b86bdc08d2dcc262bdb497b87"
 dependencies = [
  "memchr",
 ]
@@ -665,6 +677,7 @@ name = "stepper-synth"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "enum_dispatch",
  "fern",
  "fxhash",
  "log",
