@@ -41,5 +41,6 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 
 ## Currently Working On
 
-effects & effects switch menu
+- combine effects & synth-engine menus into one screen selection menu.
+- allow for effects to be toggled from they're respective menus using the "A" button.
 
