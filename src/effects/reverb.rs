@@ -4,7 +4,7 @@ use crate::{
     synth_engines::{synth_common::lfo::default_lfo_param_tweek, Param},
     HashMap, KnobCtrl, SampleGen,
 };
-use enum_dispatch::enum_dispatch;
+use log::info;
 use pyo3::prelude::*;
 use reverb;
 use std::fmt::Display;
@@ -71,11 +71,11 @@ impl Reverb {
     pub fn new() -> Self {
         Self {
             effect: reverb::Reverb::new(),
-            gain: 0.5,
+            gain: 0.75,
             decay: 0.5,
             in_sample: 0.0,
-            damping: 0.5,
-            cutoff: 0.5,
+            damping: 0.0,
+            cutoff: 1.0,
             lfo_sample: 0.0,
             lfo_target: None,
         }
@@ -123,15 +123,59 @@ impl SampleGen for Reverb {
 }
 
 impl KnobCtrl for Reverb {
+    fn knob_1(&mut self, value: f32) -> bool {
+        // info!("setting gain");
+        self.set_gain(value);
+
+        true
+    }
+
+    fn knob_2(&mut self, value: f32) -> bool {
+        // info!("setting decay");
+        self.set_decay(value);
+
+        true
+    }
+
+    fn knob_3(&mut self, value: f32) -> bool {
+        // info!("setting Damping");
+        self.set_damping(value);
+
+        true
+    }
+
+    fn knob_4(&mut self, value: f32) -> bool {
+        // info!("setting cutoff");
+        self.set_cutoff(value);
+
+        true
+    }
+
     fn lfo_control(&mut self, param: Param, lfo_sample: f32) {
         self.lfo_sample = lfo_sample;
+        // self.lfo_target = Some(param);
 
         self.effect = match param {
-            // Param::Knob(Knob::One) => ReverbParam::Gain,
-            Param::Knob(Knob::Two) => self.effect.decay(self.decay * self.lfo_sample).clone(),
-            Param::Knob(Knob::Three) => self.effect.damping(self.damping * self.lfo_sample).clone(),
-            Param::Knob(Knob::Four) => self.effect.bandwidth(self.cutoff * self.lfo_sample).clone(),
-            _ => return,
+            Param::Knob(Knob::One) => {
+                self.lfo_target = Some(ReverbParam::Gain);
+                return;
+            }
+            Param::Knob(Knob::Two) => {
+                self.lfo_target = Some(ReverbParam::Decay);
+                self.effect.decay(self.decay * self.lfo_sample).clone()
+            }
+            Param::Knob(Knob::Three) => {
+                self.lfo_target = Some(ReverbParam::Damping);
+                self.effect.damping(self.damping * self.lfo_sample).clone()
+            }
+            Param::Knob(Knob::Four) => {
+                self.lfo_target = Some(ReverbParam::Cutoff);
+                self.effect.bandwidth(self.cutoff * self.lfo_sample).clone()
+            }
+            _ => {
+                self.lfo_target = None;
+                return;
+            }
         }
     }
 }

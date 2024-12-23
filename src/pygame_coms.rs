@@ -1,8 +1,6 @@
 use crate::{
-    effects::{EffectType, EffectsModule},
-    logger_init, run_midi,
-    synth_engines::Synth,
-    HashMap, SampleGen, SAMPLE_RATE,
+    effects::EffectType, logger_init, run_midi, synth_engines::Synth, HashMap, KnobCtrl, SampleGen,
+    SAMPLE_RATE,
 };
 use log::*;
 use pyo3::prelude::*;
@@ -210,6 +208,14 @@ impl StepperSynth {
         *self.updated.lock().unwrap()
     }
 
+    pub fn toggle_effect_power(&mut self) {
+        {
+            let mut synth = self.synth.lock().unwrap();
+            synth.effect_power = !synth.effect_power;
+        }
+        self.set_updated();
+    }
+
     fn set_updated(&mut self) {
         (*self.updated.lock().unwrap()) = true;
     }
@@ -305,15 +311,23 @@ impl StepperSynth {
         self.set_updated();
         let mut synth = self.synth.lock().unwrap();
 
-        match param {
-            Knob::One => synth.engine.knob_1(value),
-            Knob::Two => synth.engine.knob_2(value),
-            Knob::Three => synth.engine.knob_3(value),
-            Knob::Four => synth.engine.knob_4(value),
-            Knob::Five => synth.engine.knob_5(value),
-            Knob::Six => synth.engine.knob_6(value),
-            Knob::Seven => synth.engine.knob_7(value),
-            Knob::Eight => synth.engine.knob_8(value),
+        match (param, self.screen) {
+            (Knob::One, Screen::Synth(_)) => synth.engine.knob_1(value),
+            (Knob::Two, Screen::Synth(_)) => synth.engine.knob_2(value),
+            (Knob::Three, Screen::Synth(_)) => synth.engine.knob_3(value),
+            (Knob::Four, Screen::Synth(_)) => synth.engine.knob_4(value),
+            (Knob::Five, Screen::Synth(_)) => synth.engine.knob_5(value),
+            (Knob::Six, Screen::Synth(_)) => synth.engine.knob_6(value),
+            (Knob::Seven, Screen::Synth(_)) => synth.engine.knob_7(value),
+            (Knob::Eight, Screen::Synth(_)) => synth.engine.knob_8(value),
+            (Knob::One, Screen::Effect(_)) => synth.effect.knob_1(value),
+            (Knob::Two, Screen::Effect(_)) => synth.effect.knob_2(value),
+            (Knob::Three, Screen::Effect(_)) => synth.effect.knob_3(value),
+            (Knob::Four, Screen::Effect(_)) => synth.effect.knob_4(value),
+            (Knob::Five, Screen::Effect(_)) => synth.effect.knob_5(value),
+            (Knob::Six, Screen::Effect(_)) => synth.effect.knob_6(value),
+            (Knob::Seven, Screen::Effect(_)) => synth.effect.knob_7(value),
+            (Knob::Eight, Screen::Effect(_)) => synth.effect.knob_8(value),
         };
     }
 }

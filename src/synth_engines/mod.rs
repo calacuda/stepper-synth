@@ -95,7 +95,7 @@ impl Synth {
 
         self.effect.set(effect);
 
-        self.effect_power = true;
+        // self.effect_power = true;
 
         true
     }

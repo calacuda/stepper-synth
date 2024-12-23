@@ -162,12 +162,42 @@ impl EffectsModule {
 // }
 
 impl KnobCtrl for EffectsModules {
-    //     fn knob_1(&mut self, value: f32) -> bool {
-    //         match self {
-    //             Self::Reverb(effect) => Self::do_get_param(effect),
-    //             Self::Chorus(effect) => Self::do_get_param(effect),
-    //         }
-    //     }
+    fn knob_1(&mut self, value: f32) -> bool {
+        if let Some(effect) = self.effects.get_mut(self.effect_i) {
+            // info!("setting knob 1 for {effect:?}");
+            effect.knob_1(value)
+        } else {
+            false
+        }
+    }
+
+    fn knob_2(&mut self, value: f32) -> bool {
+        if let Some(effect) = self.effects.get_mut(self.effect_i) {
+            // info!("setting knob 2 for {effect:?}");
+            effect.knob_2(value)
+        } else {
+            false
+        }
+    }
+
+    fn knob_3(&mut self, value: f32) -> bool {
+        if let Some(effect) = self.effects.get_mut(self.effect_i) {
+            // info!("setting knob 3 for {effect:?}");
+            effect.knob_3(value)
+        } else {
+            false
+        }
+    }
+
+    fn knob_4(&mut self, value: f32) -> bool {
+        if let Some(effect) = self.effects.get_mut(self.effect_i) {
+            // info!("setting knob 4 for {effect:?}");
+            effect.knob_4(value)
+        } else {
+            false
+        }
+    }
+
     fn lfo_control(&mut self, param: crate::synth_engines::Param, lfo_sample: f32) {
         // match self {
         //     Self::Reverb(effect) => effect.lfo_control(param, lfo_sample),
