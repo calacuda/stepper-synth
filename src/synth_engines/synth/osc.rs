@@ -1,3 +1,5 @@
+use log::warn;
+
 use super::{
     build_sine_table, saw_tooth::SawToothOsc, OscType, SynthBackend, SynthOscilatorBackend,
 };
@@ -87,11 +89,11 @@ impl SynthOscilatorBackend for WavetableOscillator {
     }
 
     fn sync_reset(&mut self) {
-        if self.index > WAVE_TABLE_SIZE as f32 * (3.0 / 12.0)
+        if self.index > WAVE_TABLE_SIZE as f32 * (5.0 / 12.0)
         // && self.wave_table[self.index as usize] != 0.0
         {
             // warn!("reset wave_table");
-            // self.index = 0.0;
+            self.index = 0.0;
             self.direction = !self.direction;
         }
     }

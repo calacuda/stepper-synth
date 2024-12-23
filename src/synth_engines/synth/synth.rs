@@ -26,8 +26,8 @@ impl Synth {
         let osc_1: Vec<SynthOscillator> = (0..VOICES).map(|_| SynthOscillator::new()).collect();
         let osc_2: Vec<SynthOscillator> = (0..VOICES)
             .map(|_| {
-                let osc = SynthOscillator::new();
-                // osc.set_osc_type(OscType::Sin);
+                let mut osc = SynthOscillator::new();
+                osc.set_osc_type(OscType::Sin);
                 osc
             })
             .collect();
@@ -38,7 +38,7 @@ impl Synth {
             osc_type: [
                 // (OscType::Sin, 1.0),
                 (OscType::Saw, 1.0),
-                (OscType::Saw, 1.0),
+                (OscType::Sin, 1.0),
                 // (OscType::Saw, 1.0),
                 // (OscType::Tri, 0.75),
                 // (OscType::Sqr, 1.0),
@@ -53,7 +53,8 @@ impl Synth {
 
     pub fn get_sample(&mut self) -> f32 {
         let mut sample = 0.0;
-        let mut reset = false;
+        let mut reset = [false; VOICES];
+        // let
         // println!("lfo sample {lfo_sample}");
 
         for (i, ((osc_s, _offset), mix)) in self
@@ -67,18 +68,24 @@ impl Synth {
             // info!("mix :  {mix}");
             let mut tmp_sample = 0.0;
 
-            for osc in osc_s {
+            for (reset_i, osc) in osc_s.iter_mut().enumerate() {
                 if osc.playing.is_some() {
                     // osc.for_each(|(osc, _offset)| {
                     // info!("mix :  {mix}");
-                    if reset {
+                    if reset[reset_i] {
                         osc.sync_reset();
                         // warn!("RESET");
                     }
 
                     // println!("playing");
                     // sample += osc.get_sample() * mix;
-                    tmp_sample += osc.get_sample();
+                    let raw_sample = osc.get_sample();
+                    tmp_sample += raw_sample;
+
+                    reset[reset_i] = i == 0
+                        && (raw_sample < 0.000000000000001 || raw_sample > -0.000000000000001)
+                        // && raw_sample == 0.0
+                        && self.osc_sync;
 
                     // sample += osc.get_sample(&wave_table) * volume * self.mix;
                     // println!(
@@ -89,9 +96,6 @@ impl Synth {
                     // });
                 }
             }
-            reset = i == 0
-                && (tmp_sample < 0.000000000000001 || tmp_sample > -0.000000000000001)
-                && self.osc_sync;
 
             sample += tmp_sample * mix;
         }
