@@ -128,6 +128,7 @@ pub struct StepperSynth {
     screen: Screen,
     _handle: JoinHandle<()>,
     exit: Arc<AtomicBool>,
+    effect_midi: Arc<AtomicBool>,
 }
 
 #[pymethods]
@@ -139,11 +140,13 @@ impl StepperSynth {
 
         let updated = Arc::new(Mutex::new(true));
         let exit = Arc::new(AtomicBool::new(false));
+        let effect_midi = Arc::new(AtomicBool::new(false));
 
         let handle = {
             let s = synth.clone();
             let u = updated.clone();
             let exit = exit.clone();
+            let effect_midi = effect_midi.clone();
 
             spawn(move || {
                 // let res = ;
@@ -178,7 +181,7 @@ impl StepperSynth {
                     error!("strating audio playback caused error: {e}");
                 }
 
-                if let Err(e) = run_midi(s, u, exit) {
+                if let Err(e) = run_midi(s, u, exit, effect_midi) {
                     error!("{e}");
                 }
             })
@@ -196,6 +199,7 @@ impl StepperSynth {
             screen: Screen::Synth(SynthEngineType::B3Organ),
             _handle: handle,
             exit,
+            effect_midi,
         }
     }
 
@@ -227,9 +231,11 @@ impl StepperSynth {
         match screen {
             Screen::Effect(effect) => {
                 self.set_effect(effect);
+                self.effect_midi.store(true, Ordering::Relaxed)
             }
             Screen::Synth(engine) => {
                 self.set_engine(engine);
+                self.effect_midi.store(false, Ordering::Relaxed)
             }
         }
 

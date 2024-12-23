@@ -28,7 +28,8 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [x] effect switch menu
 - [ ] volume & battery icons
 - [x] reverb ui
-- [ ] better delay
+- [ ] chorus ui
+- [x] better delay
 - [ ] delay ui
 - [ ] LFO ui
 - [x] LFO Routing

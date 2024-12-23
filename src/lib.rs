@@ -112,6 +112,7 @@ fn run_midi(
     synth: Arc<Mutex<Synth>>,
     updated: Arc<Mutex<bool>>,
     exit: Arc<AtomicBool>,
+    effect_midi: Arc<AtomicBool>,
 ) -> Result<()> {
     let mut registered_ports = HashMap::default();
 
@@ -142,6 +143,7 @@ fn run_midi(
             let synth = synth.clone();
             // let tx = tx.clone();
             let updated = updated.clone();
+            let effect = effect_midi.clone();
 
             registered_ports.insert(
                 port_name,
@@ -184,10 +186,30 @@ fn run_midi(
                                 let value = value as f32 / 127.0;
 
                                 if match control {
-                                    70 => synth.lock().unwrap().engine.knob_1(value),
-                                    71 => synth.lock().unwrap().engine.knob_2(value),
-                                    72 => synth.lock().unwrap().engine.knob_3(value),
-                                    73 => synth.lock().unwrap().engine.knob_4(value),
+                                    70 if !effect.load(Ordering::Relaxed) => {
+                                        synth.lock().unwrap().engine.knob_1(value)
+                                    }
+                                    71 if !effect.load(Ordering::Relaxed) => {
+                                        synth.lock().unwrap().engine.knob_2(value)
+                                    }
+                                    72 if !effect.load(Ordering::Relaxed) => {
+                                        synth.lock().unwrap().engine.knob_3(value)
+                                    }
+                                    73 if !effect.load(Ordering::Relaxed) => {
+                                        synth.lock().unwrap().engine.knob_4(value)
+                                    }
+                                    70 if effect.load(Ordering::Relaxed) => {
+                                        synth.lock().unwrap().effect.knob_1(value)
+                                    }
+                                    71 if effect.load(Ordering::Relaxed) => {
+                                        synth.lock().unwrap().effect.knob_2(value)
+                                    }
+                                    72 if effect.load(Ordering::Relaxed) => {
+                                        synth.lock().unwrap().effect.knob_3(value)
+                                    }
+                                    73 if effect.load(Ordering::Relaxed) => {
+                                        synth.lock().unwrap().effect.knob_4(value)
+                                    }
                                     74 => synth.lock().unwrap().engine.knob_5(value),
                                     75 => synth.lock().unwrap().engine.knob_6(value),
                                     76 => synth.lock().unwrap().engine.knob_7(value),
