@@ -18,12 +18,19 @@ pub struct Synth {
     // pub overtones: [Overtone; 10],
     pub volume: f32,
     pub mix: f32,
+    pub osc_sync: bool,
 }
 
 impl Synth {
     pub fn new() -> Self {
         let osc_1: Vec<SynthOscillator> = (0..VOICES).map(|_| SynthOscillator::new()).collect();
-        let osc_2: Vec<SynthOscillator> = (0..VOICES).map(|_| SynthOscillator::new()).collect();
+        let osc_2: Vec<SynthOscillator> = (0..VOICES)
+            .map(|_| {
+                let osc = SynthOscillator::new();
+                // osc.set_osc_type(OscType::Sin);
+                osc
+            })
+            .collect();
 
         Self {
             osc_s: [(osc_1, 0), (osc_2, 0)],
@@ -40,28 +47,39 @@ impl Synth {
             // osc_type: Arc::new([(OscType::Tri, 1.0)]),
             volume: 1.0,
             mix: 0.5,
+            osc_sync: true,
         }
     }
 
     pub fn get_sample(&mut self) -> f32 {
         let mut sample = 0.0;
+        let mut reset = false;
         // println!("lfo sample {lfo_sample}");
 
-        for ((osc_s, _offset), mix) in self
+        for (i, ((osc_s, _offset), mix)) in self
             .osc_s
             .iter_mut()
             // .zip(self.wave_tables.index(&self.osc_type.clone().into()).iter())
             .zip([1.0 - self.mix, self.mix])
+            .enumerate()
         {
             // println!("{:?}", osc_s.len());
             // info!("mix :  {mix}");
+            let mut tmp_sample = 0.0;
+
             for osc in osc_s {
                 if osc.playing.is_some() {
                     // osc.for_each(|(osc, _offset)| {
                     // info!("mix :  {mix}");
+                    if reset {
+                        osc.sync_reset();
+                        // warn!("RESET");
+                    }
 
                     // println!("playing");
-                    sample += osc.get_sample() * mix;
+                    // sample += osc.get_sample() * mix;
+                    tmp_sample += osc.get_sample();
+
                     // sample += osc.get_sample(&wave_table) * volume * self.mix;
                     // println!(
                     //     "env => {}, {}",
@@ -71,6 +89,11 @@ impl Synth {
                     // });
                 }
             }
+            reset = i == 0
+                && (tmp_sample < 0.000000000000001 || tmp_sample > -0.000000000000001)
+                && self.osc_sync;
+
+            sample += tmp_sample * mix;
         }
 
         sample *= self.volume;

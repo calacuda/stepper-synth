@@ -14,6 +14,7 @@ pub struct WavetableOscillator {
     index: f32,
     index_increment: f32,
     wave_table: WaveTable,
+    direction: bool,
 }
 
 impl WavetableOscillator {
@@ -26,11 +27,13 @@ impl WavetableOscillator {
             index: 0.0,
             index_increment: 0.0,
             wave_table,
+            direction: true,
         }
     }
 
     pub fn set_frequency(&mut self, frequency: f32) {
         self.index_increment = frequency * WAVE_TABLE_SIZE as f32 / self.sample_rate;
+        self.index = 0.0;
     }
 
     fn get_sample(&mut self) -> f32 {
@@ -40,8 +43,18 @@ impl WavetableOscillator {
         sample += self.lerp(&self.wave_table);
         // }
 
-        self.index += self.index_increment;
-        self.index %= WAVE_TABLE_SIZE as f32;
+        if self.direction {
+            self.index += self.index_increment;
+            self.index %= WAVE_TABLE_SIZE as f32;
+        }
+        // else if self.index_increment > self.index {
+        //     let inc = self.index_increment - self.index;
+        //     self.index = WAVE_TABLE_SIZE as f32 - 1.0 - inc;
+        // }
+        else {
+            self.index -= self.index_increment;
+            self.index %= WAVE_TABLE_SIZE as f32;
+        }
 
         sample
     }
@@ -49,6 +62,10 @@ impl WavetableOscillator {
     fn lerp(&self, wave_table: &[f32]) -> f32 {
         let truncated_index = self.index as usize;
         let next_index = (truncated_index + 1) % WAVE_TABLE_SIZE;
+
+        // if next_index == WAVE_TABLE_SIZE {
+        //     next_index = 0;
+        // }
 
         let next_index_weight = self.index - truncated_index as f32;
         let truncated_index_weight = 1.0 - next_index_weight;
@@ -67,6 +84,16 @@ impl SampleGen for WavetableOscillator {
 impl SynthOscilatorBackend for WavetableOscillator {
     fn set_frequency(&mut self, frequency: f32) {
         self.set_frequency(frequency)
+    }
+
+    fn sync_reset(&mut self) {
+        if self.index > WAVE_TABLE_SIZE as f32 * (3.0 / 12.0)
+        // && self.wave_table[self.index as usize] != 0.0
+        {
+            // warn!("reset wave_table");
+            // self.index = 0.0;
+            self.direction = !self.direction;
+        }
     }
 }
 
@@ -95,6 +122,10 @@ impl SynthOscillator {
             // note_space: 2.0_f32.powf(1.0 / 12.0),
             low_pass: LowPass::new(),
         }
+    }
+
+    pub fn sync_reset(&mut self) {
+        self.osc.sync_reset()
     }
 
     pub fn set_osc_type(&mut self, osc_type: OscType) {

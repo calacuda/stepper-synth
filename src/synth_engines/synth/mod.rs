@@ -13,6 +13,7 @@ pub mod synth;
 trait SynthOscilatorBackend: Debug + SampleGen {
     fn set_frequency(&mut self, frequency: f32);
     // fn set_type(&mut self, osc_type: OscType);
+    fn sync_reset(&mut self);
 }
 
 // pub trait OscBackend {
@@ -49,6 +50,13 @@ impl SynthOscilatorBackend for SynthBackend {
         match self {
             Self::Sin(osc) => osc.set_frequency(frequency),
             Self::Saw(osc) => osc.set_frequency(frequency),
+        }
+    }
+
+    fn sync_reset(&mut self) {
+        match self {
+            Self::Sin(osc) => osc.sync_reset(),
+            Self::Saw(osc) => osc.sync_reset(),
         }
     }
 }
