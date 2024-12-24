@@ -39,9 +39,9 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [ ] Wave Table Synth ui
 - [ ] config file
 - [ ] maybe a CLI (emphasis on maybe)
+- [ ] midi sequencer
 
 ## Currently Working On
 
-- combine effects & synth-engine menus into one screen selection menu.
 - allow for effects to be toggled from they're respective menus using the "A" button.
 
