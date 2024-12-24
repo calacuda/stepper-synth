@@ -30,6 +30,7 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [x] reverb ui
 - [ ] chorus ui
 - [x] better delay
+- [ ] better osc-synth
 - [ ] delay ui
 - [ ] LFO ui
 - [x] LFO Routing
@@ -43,5 +44,10 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 
 ## Currently Working On
 
-- allow for effects to be toggled from they're respective menus using the "A" button.
+- enable and diable osc sync from ui
+
+## TODOs
+
+- [ ] enable 1-4 toggles for effects
+- [ ] enable midi recording and playback via sequencer.
 

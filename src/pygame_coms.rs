@@ -1,6 +1,9 @@
 use crate::{
-    effects::EffectType, logger_init, run_midi, synth_engines::Synth, HashMap, KnobCtrl, SampleGen,
-    SAMPLE_RATE,
+    effects::{Effect, EffectType},
+    logger_init, run_midi,
+    sequencer::Sequence,
+    synth_engines::{Synth, SynthEngine},
+    HashMap, KnobCtrl, SampleGen, SAMPLE_RATE,
 };
 use log::*;
 use pyo3::prelude::*;
@@ -12,6 +15,7 @@ use std::{
     },
     thread::{spawn, JoinHandle},
 };
+use strum::EnumIter;
 use tinyaudio::prelude::*;
 
 #[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)]
@@ -41,13 +45,22 @@ pub enum Knob {
 }
 
 #[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int)]
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Hash, EnumIter)]
 pub enum SynthEngineType {
     SubSynth,
     B3Organ,
     // DrumSynth,
     // SamplerSynth,
     // WaveTableSynth,
+}
+
+impl Into<usize> for SynthEngineType {
+    fn into(self) -> usize {
+        match self {
+            Self::B3Organ => 0,
+            Self::SubSynth => 1,
+        }
+    }
 }
 
 impl Display for SynthEngineType {
@@ -68,35 +81,13 @@ impl SynthEngineType {
     }
 }
 
-// #[pyclass(module = "stepper_synth_backend", get_all)]
-// #[derive(Debug, Clone, PartialEq, PartialOrd)]
-// pub enum PythonCmd {
-//     // SetSynthParam(SynthParam),
-//     SetGuiParam { param: GuiParam, set_to: f32 },
-//     SetKnob { knob: Knob, set_to: f32 },
-//     ChangeSynthEngine(SynthEngineType),
-//     EffectPowerToggle(),
-//     ChangeEffectType(EffectType),
-//     Exit(),
-// }
-
-// pub type State = SynthParam;
-
-// #[pyclass(module = "stepper_synth_backend", get_all)]
-// #[derive(Debug, Clone)]
-// pub struct State {
-//     pub engine: SynthEngineType,
-//     pub effect: EffectType,
-//     pub effect_on: bool,
-//     pub knob_params: HashMap<Knob, f32>,
-//     pub gui_params: HashMap<GuiParam, f32>,
-// }
-
 #[pyclass(module = "stepper_synth_backend", get_all)]
 #[derive(Debug, Clone, Copy)]
 pub enum Screen {
     Synth(SynthEngineType),
     Effect(EffectType),
+    Stepper(usize),
+    // Sequencer(),
     // MidiStepper(),
     // MidiSeq(),
 }
@@ -116,7 +107,11 @@ pub enum StepperSynthState {
         effect_on: bool,
         params: HashMap<String, f32>,
     },
-    // MidiStepper(),
+    MidiStepper {
+        playing: bool,
+        recording: bool,
+        sequence: Sequence,
+    },
     // MidiSeq(),
 }
 
@@ -128,7 +123,6 @@ pub struct StepperSynth {
     screen: Screen,
     _handle: JoinHandle<()>,
     exit: Arc<AtomicBool>,
-    effect_midi: Arc<AtomicBool>,
 }
 
 #[pymethods]
@@ -140,13 +134,13 @@ impl StepperSynth {
 
         let updated = Arc::new(Mutex::new(true));
         let exit = Arc::new(AtomicBool::new(false));
-        let effect_midi = Arc::new(AtomicBool::new(false));
+        // let effect_midi = Arc::new(AtomicBool::new(false));
 
         let handle = {
             let s = synth.clone();
-            let u = updated.clone();
+            let updated = updated.clone();
             let exit = exit.clone();
-            let effect_midi = effect_midi.clone();
+            // let effect_midi = effect_midi.clone();
 
             spawn(move || {
                 // let res = ;
@@ -181,7 +175,7 @@ impl StepperSynth {
                     error!("strating audio playback caused error: {e}");
                 }
 
-                if let Err(e) = run_midi(s, u, exit, effect_midi) {
+                if let Err(e) = run_midi(s, updated, exit) {
                     error!("{e}");
                 }
             })
@@ -199,7 +193,7 @@ impl StepperSynth {
             screen: Screen::Synth(SynthEngineType::B3Organ),
             _handle: handle,
             exit,
-            effect_midi,
+            // effect_midi,
         }
     }
 
@@ -231,12 +225,15 @@ impl StepperSynth {
         match screen {
             Screen::Effect(effect) => {
                 self.set_effect(effect);
-                self.effect_midi.store(true, Ordering::Relaxed)
+                // self.effect_midi.store(true, Ordering::Relaxed)
+                self.synth.lock().unwrap().target_effects = true;
             }
             Screen::Synth(engine) => {
                 self.set_engine(engine);
-                self.effect_midi.store(false, Ordering::Relaxed)
+                // self.effect_midi.store(false, Ordering::Relaxed)
+                self.synth.lock().unwrap().target_effects = false;
             }
+            Screen::Stepper(_) => {} // Screen::Sequencer() => {}
         }
 
         // info!("screen engine/effect set");
@@ -249,37 +246,42 @@ impl StepperSynth {
         (*self.updated.lock().unwrap()) = false;
         // info!("after set");
 
-        let synth = self.synth.lock().unwrap();
+        let mut synth = self.synth.lock().unwrap();
 
         match self.screen {
             Screen::Synth(SynthEngineType::B3Organ) => StepperSynthState::Synth {
                 engine: SynthEngineType::B3Organ,
-                effect: synth.effect.effect,
+                effect: synth.effect_type,
                 effect_on: synth.effect_power,
-                knob_params: synth.engine.get_params(),
-                gui_params: synth.engine.get_gui_params(),
+                knob_params: synth.get_engine().get_params(),
+                gui_params: synth.get_engine().get_gui_params(),
             },
             Screen::Synth(SynthEngineType::SubSynth) => StepperSynthState::Synth {
                 engine: SynthEngineType::SubSynth,
-                effect: synth.effect.effect,
+                effect: synth.effect_type,
                 effect_on: synth.effect_power,
-                knob_params: synth.engine.get_params(),
-                gui_params: synth.engine.get_gui_params(),
+                knob_params: synth.get_engine().get_params(),
+                gui_params: synth.get_engine().get_gui_params(),
             },
             Screen::Effect(EffectType::Reverb) => StepperSynthState::Effect {
                 effect: EffectType::Reverb,
                 effect_on: synth.effect_power,
-                params: synth.effect.get_params(),
+                params: synth.get_effect().get_params(),
             },
             Screen::Effect(EffectType::Chorus) => StepperSynthState::Effect {
                 effect: EffectType::Chorus,
                 effect_on: synth.effect_power,
-                params: synth.effect.get_params(),
+                params: synth.get_effect().get_params(),
             },
-            Screen::Effect(EffectType::Delay) => StepperSynthState::Effect {
-                effect: EffectType::Delay,
-                effect_on: synth.effect_power,
-                params: synth.effect.get_params(),
+            // Screen::Effect(EffectType::Delay) => StepperSynthState::Effect {
+            //     effect: EffectType::Delay,
+            //     effect_on: synth.effect_power,
+            //     params: synth.effect.get_params(),
+            // },
+            Screen::Stepper(sequence) => StepperSynthState::MidiStepper {
+                playing: synth.midi_sequencer.state.playing,
+                recording: synth.midi_sequencer.state.recording,
+                sequence: synth.midi_sequencer.get_sequence(sequence),
             },
         }
     }
@@ -302,14 +304,14 @@ impl StepperSynth {
         let mut synth = self.synth.lock().unwrap();
 
         match param {
-            GuiParam::A => synth.engine.gui_param_1(value),
-            GuiParam::B => synth.engine.gui_param_2(value),
-            GuiParam::C => synth.engine.gui_param_3(value),
-            GuiParam::D => synth.engine.gui_param_4(value),
-            GuiParam::E => synth.engine.gui_param_5(value),
-            GuiParam::F => synth.engine.gui_param_6(value),
-            GuiParam::G => synth.engine.gui_param_7(value),
-            GuiParam::H => synth.engine.gui_param_8(value),
+            GuiParam::A => synth.get_engine().gui_param_1(value),
+            GuiParam::B => synth.get_engine().gui_param_2(value),
+            GuiParam::C => synth.get_engine().gui_param_3(value),
+            GuiParam::D => synth.get_engine().gui_param_4(value),
+            GuiParam::E => synth.get_engine().gui_param_5(value),
+            GuiParam::F => synth.get_engine().gui_param_6(value),
+            GuiParam::G => synth.get_engine().gui_param_7(value),
+            GuiParam::H => synth.get_engine().gui_param_8(value),
         };
     }
 
@@ -318,22 +320,50 @@ impl StepperSynth {
         let mut synth = self.synth.lock().unwrap();
 
         match (param, self.screen) {
-            (Knob::One, Screen::Synth(_)) => synth.engine.knob_1(value),
-            (Knob::Two, Screen::Synth(_)) => synth.engine.knob_2(value),
-            (Knob::Three, Screen::Synth(_)) => synth.engine.knob_3(value),
-            (Knob::Four, Screen::Synth(_)) => synth.engine.knob_4(value),
-            (Knob::Five, Screen::Synth(_)) => synth.engine.knob_5(value),
-            (Knob::Six, Screen::Synth(_)) => synth.engine.knob_6(value),
-            (Knob::Seven, Screen::Synth(_)) => synth.engine.knob_7(value),
-            (Knob::Eight, Screen::Synth(_)) => synth.engine.knob_8(value),
-            (Knob::One, Screen::Effect(_)) => synth.effect.knob_1(value),
-            (Knob::Two, Screen::Effect(_)) => synth.effect.knob_2(value),
-            (Knob::Three, Screen::Effect(_)) => synth.effect.knob_3(value),
-            (Knob::Four, Screen::Effect(_)) => synth.effect.knob_4(value),
-            (Knob::Five, Screen::Effect(_)) => synth.effect.knob_5(value),
-            (Knob::Six, Screen::Effect(_)) => synth.effect.knob_6(value),
-            (Knob::Seven, Screen::Effect(_)) => synth.effect.knob_7(value),
-            (Knob::Eight, Screen::Effect(_)) => synth.effect.knob_8(value),
+            (Knob::One, Screen::Synth(_)) => synth.get_engine().knob_1(value),
+            (Knob::Two, Screen::Synth(_)) => synth.get_engine().knob_2(value),
+            (Knob::Three, Screen::Synth(_)) => synth.get_engine().knob_3(value),
+            (Knob::Four, Screen::Synth(_)) => synth.get_engine().knob_4(value),
+            (Knob::Five, Screen::Synth(_)) => synth.get_engine().knob_5(value),
+            (Knob::Six, Screen::Synth(_)) => synth.get_engine().knob_6(value),
+            (Knob::Seven, Screen::Synth(_)) => synth.get_engine().knob_7(value),
+            (Knob::Eight, Screen::Synth(_)) => synth.get_engine().knob_8(value),
+            (Knob::One, Screen::Effect(_)) => synth.get_effect().knob_1(value),
+            (Knob::Two, Screen::Effect(_)) => synth.get_effect().knob_2(value),
+            (Knob::Three, Screen::Effect(_)) => synth.get_effect().knob_3(value),
+            (Knob::Four, Screen::Effect(_)) => synth.get_effect().knob_4(value),
+            (Knob::Five, Screen::Effect(_)) => synth.get_effect().knob_5(value),
+            (Knob::Six, Screen::Effect(_)) => synth.get_effect().knob_6(value),
+            (Knob::Seven, Screen::Effect(_)) => synth.get_effect().knob_7(value),
+            (Knob::Eight, Screen::Effect(_)) => synth.get_effect().knob_8(value),
+            (_, Screen::Stepper(_)) => false,
         };
+    }
+
+    // /// increments the record head to the next step
+    // pub fn next_step(&mut self) {}
+
+    // /// sets the record head to a step
+    // pub fn set_rec_head_step(&mut self, step: usize) {}
+
+    pub fn start_recording(&mut self) {
+        let mut synth = self.synth.lock().unwrap();
+
+        synth.midi_sequencer.state.playing = false;
+        synth.midi_sequencer.state.recording = true;
+    }
+
+    pub fn stop_seq(&mut self) {
+        let mut synth = self.synth.lock().unwrap();
+
+        synth.midi_sequencer.state.playing = false;
+        synth.midi_sequencer.state.recording = false;
+    }
+
+    pub fn start_playing(&mut self) {
+        let mut synth = self.synth.lock().unwrap();
+
+        synth.midi_sequencer.state.playing = true;
+        synth.midi_sequencer.state.recording = false;
     }
 }

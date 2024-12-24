@@ -7,8 +7,6 @@ use enum_dispatch::enum_dispatch;
 use fern::colors::{Color, ColoredLevelConfig};
 use fxhash::FxHashMap;
 use log::*;
-use midi_control::ControlEvent;
-use midi_control::KeyEvent;
 use midi_control::MidiMessage;
 use midir::MidiInput;
 use midir::{Ignore, PortInfoError};
@@ -23,6 +21,7 @@ use std::sync::{Arc, Mutex};
 use synth_engines::synth::OscType;
 use synth_engines::Param;
 use synth_engines::Synth;
+use synth_engines::SynthModule;
 
 pub type HashMap<Key, Val> = FxHashMap<Key, Val>;
 
@@ -30,15 +29,20 @@ pub const SAMPLE_RATE: u32 = 48_000;
 
 pub mod effects;
 pub mod pygame_coms;
+pub mod sequencer;
 pub mod synth_engines;
 
-#[enum_dispatch(EffectsModule)]
+pub trait MidiControlled {
+    fn midi_input(&mut self, message: &MidiMessage);
+}
+
+#[enum_dispatch(EffectsModule, SynthModule)]
 pub trait SampleGen {
     fn get_sample(&mut self) -> f32;
 }
 
 #[allow(unused_variables)]
-#[enum_dispatch(EffectsModule)]
+#[enum_dispatch(EffectsModule, SynthModule)]
 pub trait KnobCtrl {
     // parameters edited by the MIDI controllers built in knobs
     fn knob_1(&mut self, value: f32) -> bool {
@@ -112,7 +116,7 @@ fn run_midi(
     synth: Arc<Mutex<Synth>>,
     updated: Arc<Mutex<bool>>,
     exit: Arc<AtomicBool>,
-    effect_midi: Arc<AtomicBool>,
+    // effect_midi: Arc<AtomicBool>,
 ) -> Result<()> {
     let mut registered_ports = HashMap::default();
 
@@ -143,7 +147,7 @@ fn run_midi(
             let synth = synth.clone();
             // let tx = tx.clone();
             let updated = updated.clone();
-            let effect = effect_midi.clone();
+            // let effect = effect_midi.clone();
 
             registered_ports.insert(
                 port_name,
@@ -158,70 +162,8 @@ fn run_midi(
                         };
 
                         // do midi stuff
-                        match message {
-                            MidiMessage::Invalid => {
-                                error!("system recieved an invalid MIDI message.");
-                            }
-                            MidiMessage::NoteOn(_, KeyEvent { key, value }) => {
-                                debug!("playing note: {key}");
-                                synth.lock().unwrap().engine.play(key, value)
-                            }
-                            MidiMessage::NoteOff(_, KeyEvent { key, value: _ }) => {
-                                synth.lock().unwrap().engine.stop(key)
-                            }
-                            MidiMessage::PitchBend(_, lsb, msb) => {
-                                let bend =
-                                    i16::from_le_bytes([lsb, msb]) as f32 / (32_000.0 * 0.5) - 1.0;
-
-                                if bend > 0.026 || bend < -0.026 {
-                                    synth.lock().unwrap().engine.bend(bend);
-                                    send();
-                                } else {
-                                    synth.lock().unwrap().engine.unbend();
-                                    // send(SynthParam::PitchBend(0.0));
-                                    send();
-                                }
-                            }
-                            MidiMessage::ControlChange(_, ControlEvent { control, value }) => {
-                                let value = value as f32 / 127.0;
-
-                                if match control {
-                                    70 if !effect.load(Ordering::Relaxed) => {
-                                        synth.lock().unwrap().engine.knob_1(value)
-                                    }
-                                    71 if !effect.load(Ordering::Relaxed) => {
-                                        synth.lock().unwrap().engine.knob_2(value)
-                                    }
-                                    72 if !effect.load(Ordering::Relaxed) => {
-                                        synth.lock().unwrap().engine.knob_3(value)
-                                    }
-                                    73 if !effect.load(Ordering::Relaxed) => {
-                                        synth.lock().unwrap().engine.knob_4(value)
-                                    }
-                                    70 if effect.load(Ordering::Relaxed) => {
-                                        synth.lock().unwrap().effect.knob_1(value)
-                                    }
-                                    71 if effect.load(Ordering::Relaxed) => {
-                                        synth.lock().unwrap().effect.knob_2(value)
-                                    }
-                                    72 if effect.load(Ordering::Relaxed) => {
-                                        synth.lock().unwrap().effect.knob_3(value)
-                                    }
-                                    73 if effect.load(Ordering::Relaxed) => {
-                                        synth.lock().unwrap().effect.knob_4(value)
-                                    }
-                                    74 => synth.lock().unwrap().engine.knob_5(value),
-                                    75 => synth.lock().unwrap().engine.knob_6(value),
-                                    76 => synth.lock().unwrap().engine.knob_7(value),
-                                    77 => synth.lock().unwrap().engine.knob_8(value),
-                                    1 => synth.lock().unwrap().engine.volume_swell(value),
-                                    _ => false,
-                                } {
-                                    send()
-                                }
-                            }
-                            _ => {}
-                        }
+                        synth.lock().unwrap().midi_input(&message);
+                        send();
                     },
                     (),
                 ),
