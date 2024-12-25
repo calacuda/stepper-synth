@@ -1,15 +1,16 @@
+use fxhash::FxHashSet;
 use midi_control::{ControlEvent, KeyEvent, MidiMessage, MidiNote};
 use pyo3::prelude::*;
 use std::ops::{Index, IndexMut};
 
 use crate::MidiControlled;
 
-pub type MidiMessages = Vec<(u8, StepCmd)>;
+pub type MidiMessages = FxHashSet<(u8, StepCmd)>;
 pub type MidiControlCode = u8;
 pub type MidiInt = u8;
 
 #[pyclass(module = "stepper_synth_backend", get_all)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Hash)]
 pub enum StepCmd {
     Play {
         note: MidiNote,
@@ -26,10 +27,10 @@ pub enum StepCmd {
 }
 
 #[pyclass(module = "stepper_synth_backend", get_all)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Step {
-    on_enter: MidiMessages,
-    on_exit: MidiMessages,
+    pub on_enter: MidiMessages,
+    pub on_exit: MidiMessages,
 }
 
 #[pyclass(module = "stepper_synth_backend", get_all)]
@@ -41,9 +42,14 @@ pub struct Sequence {
 
 impl Default for Sequence {
     fn default() -> Self {
+        let steps: Vec<Step> = (0..16).map(|_| Step::default()).collect();
+        // steps[0]
+        //     .on_enter
+        //     .insert((0, StepCmd::Play { note: 60, vel: 50 }));
+
         Self {
             human_name: None,
-            steps: Vec::with_capacity(16),
+            steps,
         }
     }
 }
@@ -129,7 +135,17 @@ impl SequencerIntake {
             state: StepperState::default(),
         }
     }
-    //
+
+    pub fn get_step(&self, play: bool) -> Step {
+        let i = if play {
+            self.play_head.clone()
+        } else {
+            self.rec_head.clone()
+        };
+
+        self.sequences[i].clone()
+    }
+
     // pub fn next_sequence(&mut self) {
     //     let i = self.sequence_i;
     //     let len = self.sequences.len();
@@ -143,6 +159,14 @@ impl SequencerIntake {
     //
     //     self.sequence_i = ((i as i64 - 1) % len as i64) as usize;
     // }
+
+    pub fn get_name(&self) -> String {
+        if let Some(name) = self.sequences[self.play_head.sequence].human_name.clone() {
+            name
+        } else {
+            format!("{}", self.play_head.sequence)
+        }
+    }
 
     pub fn new_sequence(&mut self) {
         self.sequences.push(Sequence::default());
@@ -247,14 +271,16 @@ impl MidiControlled for SequencerIntake {
             }
         };
 
-        if on_enter {
-            self.sequences[self.rec_head.clone()]
-                .on_enter
-                .push((ch, msg));
+        let step = if on_enter {
+            &mut self.sequences[self.rec_head.clone()].on_enter
         } else {
-            self.sequences[self.rec_head.clone()]
-                .on_exit
-                .push((ch, msg));
+            &mut self.sequences[self.rec_head.clone()].on_exit
+        };
+
+        if !step.contains(&(ch, msg.clone())) {
+            step.insert((ch, msg));
+        } else {
+            step.remove(&(ch, msg));
         }
     }
 }

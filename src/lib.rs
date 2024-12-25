@@ -15,6 +15,9 @@ use pygame_coms::StepperSynth;
 use pygame_coms::StepperSynthState;
 use pygame_coms::{GuiParam, Knob, SynthEngineType};
 use pyo3::prelude::*;
+use sequencer::Sequence;
+use sequencer::Step;
+use sequencer::StepCmd;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
@@ -267,6 +270,9 @@ fn stepper_synth_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<StepperSynthState>()?;
     // m.add_class::<>()?;
     m.add_class::<Param>()?;
+    m.add_class::<Step>()?;
+    m.add_class::<StepCmd>()?;
+    m.add_class::<Sequence>()?;
 
     Ok(())
 }

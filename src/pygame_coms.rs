@@ -1,7 +1,7 @@
 use crate::{
     effects::{Effect, EffectType},
     logger_init, run_midi,
-    sequencer::Sequence,
+    sequencer::{Sequence, Step},
     synth_engines::{Synth, SynthEngine},
     HashMap, KnobCtrl, SampleGen, SAMPLE_RATE,
 };
@@ -108,8 +108,10 @@ pub enum StepperSynthState {
         params: HashMap<String, f32>,
     },
     MidiStepper {
+        name: String,
         playing: bool,
         recording: bool,
+        step: Step,
         sequence: Sequence,
     },
     // MidiSeq(),
@@ -143,14 +145,6 @@ impl StepperSynth {
             // let effect_midi = effect_midi.clone();
 
             spawn(move || {
-                // let res = ;
-
-                // if let Err(reason) = logger_init() {
-                //     eprintln!("failed to initiate logger because {reason}");
-                // } else {
-                //     debug!("logger initiated");
-                // }
-
                 let params = OutputDeviceParameters {
                     channels_count: 1,
                     sample_rate: SAMPLE_RATE as usize,
@@ -281,6 +275,10 @@ impl StepperSynth {
             Screen::Stepper(sequence) => StepperSynthState::MidiStepper {
                 playing: synth.midi_sequencer.state.playing,
                 recording: synth.midi_sequencer.state.recording,
+                name: synth.midi_sequencer.get_name(),
+                step: synth
+                    .midi_sequencer
+                    .get_step(synth.midi_sequencer.state.playing),
                 sequence: synth.midi_sequencer.get_sequence(sequence),
             },
         }
@@ -294,7 +292,6 @@ impl StepperSynth {
 
     pub fn set_effect(&mut self, effect: EffectType) {
         if self.synth.lock().unwrap().set_effect(effect) {
-            // (*self.updated.lock().unwrap()) = true;
             self.set_updated();
         }
     }

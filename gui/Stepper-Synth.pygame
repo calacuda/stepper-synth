@@ -6,6 +6,7 @@ from stepper_synth_backend import StepperSynth, SynthEngineType, StepperSynthSta
 from pathlib import Path
 from logging import DEBUG, INFO
 # from stepper_synth.effect_menu import draw_effect_menu, effect_menu_controles, reset_effect_menu
+from stepper_synth.stepper import draw_stepper
 from stepper_synth.reverb_menu import draw_reverb_menu, reverb_controls
 from stepper_synth.engine_menu import draw_engine_menu, reset_engine_menu, engine_menu_controles
 from stepper_synth.config import *
@@ -205,9 +206,11 @@ def draw(synth_state):
             controls_args = [pygame, loc_controller, synth, synth_state]
         case StepperSynthState.Effect(effect=EffectType.Chorus):
             log.warning("Chorus screen not yet programmed")
+        case StepperSynthState.MidiStepper():
+            draw_stepper(pygame, screen, fonts, synth_state)
 
-    # TODO: draw volume & battery
-    # draw engine menu
+            # TODO: draw volume & battery
+            # draw engine menu
     if SYNTH_MENU:
         draw_engine_menu(pygame, screen, fonts)
         (synth, engine_changed) = engine_menu_controles(synth, controller)
@@ -229,7 +232,7 @@ def proccess_cmd():
 
     # new_state = ipc.get_Stat()
 
-    if synth.updated():
+    if synth.updated() or isinstance(state, StepperSynthState.MidiStepper):
         # print("got new state")
         new_state = synth.get_state()
         draw(new_state)
@@ -261,6 +264,7 @@ def stop_synth():
 if __name__ == "__main__":
     # ipc.send(PythonCmd.ChangeSynthEngine(SynthEngineType.SubSynth))
     # synth.set_screen(Screen.Effect(EffectType.Reverb))
+    synth.set_screen(Screen.Stepper(0))
 
     log.info("starting main loop.")
 

@@ -1,5 +1,3 @@
-# from gui.stepper_synth.sub_synth_sc import draw_dial
-import pygame
 from .controls import Buttons, buttons
 from stepper_synth_backend import GuiParam, Knob, StepperSynthState, StepperSynth
 from .config import *
