@@ -86,7 +86,7 @@ impl SynthEngineType {
 pub enum Screen {
     Synth(SynthEngineType),
     Effect(EffectType),
-    Stepper(usize),
+    Stepper(i64),
     // Sequencer(),
     // MidiStepper(),
     // MidiSeq(),
@@ -111,8 +111,11 @@ pub enum StepperSynthState {
         name: String,
         playing: bool,
         recording: bool,
+        cursor: usize,
+        tempo: u16,
         step: Step,
         sequence: Sequence,
+        seq_n: usize,
     },
     // MidiSeq(),
 }
@@ -227,7 +230,13 @@ impl StepperSynth {
                 // self.effect_midi.store(false, Ordering::Relaxed)
                 self.synth.lock().unwrap().target_effects = false;
             }
-            Screen::Stepper(_) => {} // Screen::Sequencer() => {}
+            Screen::Stepper(seq) => {
+                self.synth
+                    .lock()
+                    .unwrap()
+                    .midi_sequencer
+                    .set_rec_head_seq(seq);
+            } // Screen::Sequencer() => {}
         }
 
         // info!("screen engine/effect set");
@@ -272,14 +281,15 @@ impl StepperSynth {
             //     effect_on: synth.effect_power,
             //     params: synth.effect.get_params(),
             // },
-            Screen::Stepper(sequence) => StepperSynthState::MidiStepper {
+            Screen::Stepper(_sequence) => StepperSynthState::MidiStepper {
                 playing: synth.midi_sequencer.state.playing,
                 recording: synth.midi_sequencer.state.recording,
                 name: synth.midi_sequencer.get_name(),
-                step: synth
-                    .midi_sequencer
-                    .get_step(synth.midi_sequencer.state.playing),
-                sequence: synth.midi_sequencer.get_sequence(sequence),
+                tempo: synth.midi_sequencer.bpm,
+                step: synth.midi_sequencer.get_step(false),
+                cursor: synth.midi_sequencer.get_cursor(false),
+                sequence: synth.midi_sequencer.get_sequence(),
+                seq_n: synth.midi_sequencer.rec_head.get_sequence(),
             },
         }
     }
@@ -344,6 +354,7 @@ impl StepperSynth {
     // pub fn set_rec_head_step(&mut self, step: usize) {}
 
     pub fn start_recording(&mut self) {
+        self.set_updated();
         let mut synth = self.synth.lock().unwrap();
 
         synth.midi_sequencer.state.playing = false;
@@ -351,6 +362,7 @@ impl StepperSynth {
     }
 
     pub fn stop_seq(&mut self) {
+        self.set_updated();
         let mut synth = self.synth.lock().unwrap();
 
         synth.midi_sequencer.state.playing = false;
@@ -358,9 +370,26 @@ impl StepperSynth {
     }
 
     pub fn start_playing(&mut self) {
+        self.set_updated();
         let mut synth = self.synth.lock().unwrap();
 
         synth.midi_sequencer.state.playing = true;
         synth.midi_sequencer.state.recording = false;
+    }
+
+    pub fn prev_sequence(&mut self) {
+        self.synth.lock().unwrap().midi_sequencer.prev_sequence();
+        self.set_updated();
+
+        // match self.screen.clone() {
+        //     Screen::Stepper(s) => {
+        //         Screen::Stepper(self.synth.lock().unwrap().midi_sequencer.rec_head.);
+        //     }
+        // }
+    }
+
+    pub fn next_sequence(&mut self) {
+        self.synth.lock().unwrap().midi_sequencer.next_sequence();
+        self.set_updated()
     }
 }

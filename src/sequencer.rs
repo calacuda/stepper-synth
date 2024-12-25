@@ -1,7 +1,11 @@
 use fxhash::FxHashSet;
+use log::{debug, info};
 use midi_control::{ControlEvent, KeyEvent, MidiMessage, MidiNote};
 use pyo3::prelude::*;
-use std::ops::{Index, IndexMut};
+use std::{
+    ops::{Index, IndexMut},
+    u16,
+};
 
 use crate::MidiControlled;
 
@@ -37,7 +41,7 @@ pub struct Step {
 #[derive(Debug, Clone)]
 pub struct Sequence {
     pub human_name: Option<String>,
-    steps: Vec<Step>,
+    pub steps: Vec<Step>,
 }
 
 impl Default for Sequence {
@@ -78,6 +82,12 @@ impl Default for SequenceIndex {
     }
 }
 
+impl SequenceIndex {
+    pub fn get_sequence(&self) -> usize {
+        self.sequence
+    }
+}
+
 impl Index<SequenceIndex> for Vec<Sequence> {
     type Output = Step;
 
@@ -103,13 +113,13 @@ impl IndexMut<SequenceIndex> for Vec<Sequence> {
 }
 
 impl SequenceIndex {
-    fn next_sequence(&mut self) {
+    pub fn next_sequence(&mut self) {
         self.sequence += 1;
         self.step = 0;
         // self.on_enter = true;
     }
 
-    fn prev_sequence(&mut self) {
+    pub fn prev_sequence(&mut self) {
         self.sequence -= 1;
         self.step = 0;
         // self.on_enter = true;
@@ -123,16 +133,23 @@ pub struct SequencerIntake {
     pub rec_head: SequenceIndex,
     pub play_head: SequenceIndex,
     pub state: StepperState,
+    pub bpm: u16,
 }
 
 impl SequencerIntake {
     pub fn new() -> Self {
         Self {
-            sequences: vec![Sequence::default()],
+            sequences: vec![
+                Sequence::default(),
+                Sequence::default(),
+                Sequence::default(),
+                Sequence::default(),
+            ],
             // sequence_i: 0,
             rec_head: SequenceIndex::default(),
             play_head: SequenceIndex::default(),
             state: StepperState::default(),
+            bpm: 120,
         }
     }
 
@@ -146,29 +163,50 @@ impl SequencerIntake {
         self.sequences[i].clone()
     }
 
-    // pub fn next_sequence(&mut self) {
-    //     let i = self.sequence_i;
-    //     let len = self.sequences.len();
-    //
-    //     self.sequence_i = ((i as i64 + 1) % len as i64) as usize;
-    // }
-    //
-    // pub fn prev_sequence(&mut self) {
-    //     let i = self.sequence_i;
-    //     let len = self.sequences.len();
-    //
-    //     self.sequence_i = ((i as i64 - 1) % len as i64) as usize;
-    // }
+    pub fn get_cursor(&self, play: bool) -> usize {
+        let i = if play {
+            self.play_head.clone()
+        } else {
+            self.rec_head.clone()
+        };
+
+        // self.sequences[i].clone()
+        i.step
+    }
+
+    pub fn next_sequence(&mut self) {
+        let len = self.sequences.len();
+
+        // info!("rec head sequence = {}", self.play_head.sequence);
+        self.rec_head.sequence = ((self.rec_head.sequence as i64 + 1) % (len as i64)) as usize;
+        // info!(
+        //     "rec head sequence = {}, len = {}",
+        //     self.play_head.sequence, len
+        // );
+        // }
+    }
+
+    pub fn prev_sequence(&mut self) {
+        let len = self.sequences.len();
+
+        if self.rec_head.sequence == 0 {
+            self.rec_head.sequence = len - 1;
+        } else {
+            self.rec_head.sequence -= 1;
+        }
+        // info!("rec head sequence = {}, {len}", self.play_head.sequence);
+    }
 
     pub fn get_name(&self) -> String {
-        if let Some(name) = self.sequences[self.play_head.sequence].human_name.clone() {
+        if let Some(name) = self.sequences[self.rec_head.sequence].human_name.clone() {
             name
         } else {
-            format!("{}", self.play_head.sequence)
+            format!("{}", self.rec_head.sequence)
         }
     }
 
     pub fn new_sequence(&mut self) {
+        info!("adding new sequence");
         self.sequences.push(Sequence::default());
     }
 
@@ -193,8 +231,13 @@ impl SequencerIntake {
             .collect();
     }
 
-    pub fn get_sequence(&self, i: usize) -> Sequence {
-        self.sequences[i].clone()
+    pub fn get_sequence(&self) -> Sequence {
+        // self.sequences[i].clone()
+        self.sequences[self.rec_head.sequence].clone()
+    }
+
+    pub fn set_rec_head_seq(&mut self, seq: i64) {
+        self.rec_head.sequence = (seq % self.sequences.len() as i64) as usize;
     }
 }
 
