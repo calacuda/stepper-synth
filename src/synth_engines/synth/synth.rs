@@ -47,7 +47,7 @@ impl Synth {
             // osc_type: Arc::new([(OscType::Tri, 1.0)]),
             volume: 1.0,
             mix: 0.5,
-            osc_sync: true,
+            osc_sync: false,
         }
     }
 

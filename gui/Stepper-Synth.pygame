@@ -213,8 +213,9 @@ def draw(synth_state):
             controls_f = stepper_controls
             controls_args = [pygame, loc_controller, synth, synth_state]
 
-            # TODO: draw volume & battery
-            # draw engine menu
+    # TODO: draw volume & battery
+    # draw engine menu
+
     if SYNTH_MENU:
         draw_engine_menu(pygame, screen, fonts)
         (synth, engine_changed) = engine_menu_controles(synth, controller)

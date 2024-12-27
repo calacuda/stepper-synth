@@ -4,7 +4,7 @@ from .config import *
 from .utils import *
 
 engines = [SynthEngineType.B3Organ,
-           SynthEngineType.SubSynth, EffectType.Reverb, EffectType.Chorus]
+           SynthEngineType.SubSynth, EffectType.Reverb, EffectType.Chorus, 0]
 INDEX = 0
 
 
@@ -77,6 +77,9 @@ def engine_menu_controles(synth: StepperSynth, controls: Buttons):
                 synth.set_screen(Screen.Synth(new_screen))
             case EffectType.Reverb | EffectType.Chorus:
                 synth.set_screen(Screen.Effect(new_screen))
+
+        if isinstance(new_screen, int):
+            synth.set_screen(Screen.Stepper(new_screen))
 
         return (synth, True)
 

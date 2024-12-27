@@ -41,6 +41,7 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [ ] config file
 - [ ] maybe a CLI (emphasis on maybe)
 - [ ] midi sequencer
+- [ ] mod matrix
 
 ## Currently Working On
 
@@ -49,5 +50,5 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 ## TODOs
 
 - [ ] enable 1-4 toggles for effects
-- [ ] enable midi recording and playback via sequencer.
+- [ ] enable midi playback via sequencer.
 
