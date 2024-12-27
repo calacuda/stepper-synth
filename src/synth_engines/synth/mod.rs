@@ -16,11 +16,6 @@ trait SynthOscilatorBackend: Debug + SampleGen {
     fn sync_reset(&mut self);
 }
 
-// pub trait OscBackend {
-//     fn get_sample(&mut self) -> f32;
-//
-// }
-
 #[derive(Debug, Clone)]
 pub enum SynthBackend {
     Sin(WavetableOscillator),

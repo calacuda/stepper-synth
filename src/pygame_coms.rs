@@ -1,7 +1,7 @@
 use crate::{
     effects::{Effect, EffectType},
     logger_init, run_midi,
-    sequencer::{Sequence, Step},
+    sequencer::{Sequence, SequencerIntake, Step},
     synth_engines::{Synth, SynthEngine},
     HashMap, KnobCtrl, SampleGen, SAMPLE_RATE,
 };
@@ -123,11 +123,12 @@ pub enum StepperSynthState {
 #[pyclass(module = "stepper_synth_backend")]
 #[derive(Debug)]
 pub struct StepperSynth {
-    synth: Arc<Mutex<Synth>>,
+    // synth: Arc<Mutex<Synth>>,
     updated: Arc<Mutex<bool>>,
     screen: Screen,
     _handle: JoinHandle<()>,
     exit: Arc<AtomicBool>,
+    midi_sequencer: Arc<Mutex<SequencerIntake>>,
 }
 
 #[pymethods]
@@ -135,14 +136,16 @@ impl StepperSynth {
     #[new]
     pub fn new() -> Self {
         // build synth in arc mutex
-        let synth = Arc::new(Mutex::new(Synth::new()));
+        let synth = Synth::new();
+        let sequencer = Arc::new(Mutex::new(SequencerIntake::new(synth)));
 
         let updated = Arc::new(Mutex::new(true));
         let exit = Arc::new(AtomicBool::new(false));
         // let effect_midi = Arc::new(AtomicBool::new(false));
 
         let handle = {
-            let s = synth.clone();
+            let seq = sequencer.clone();
+            // let synth = synth.clone();
             let updated = updated.clone();
             let exit = exit.clone();
             // let effect_midi = effect_midi.clone();
@@ -154,25 +157,27 @@ impl StepperSynth {
                     // channel_sample_count: 2048,
                     channel_sample_count: 1024,
                 };
-                let device = {
-                    let s = s.clone();
+                let device = run_output_device(params, {
+                    let seq = seq.clone();
 
-                    run_output_device(params, move |data| {
+                    move |data| {
                         for samples in data.chunks_mut(params.channels_count) {
-                            let value = s.lock().expect("couldn't lock synth").get_sample();
+                            let value = seq.lock().expect("couldn't lock synth").synth.get_sample();
 
                             for sample in samples {
                                 *sample = value;
                             }
                         }
-                    })
-                };
+                    }
+                });
 
                 if let Err(e) = device {
                     error!("strating audio playback caused error: {e}");
                 }
 
-                if let Err(e) = run_midi(s, updated, exit) {
+                // let seq = sequencer.clone();
+
+                if let Err(e) = run_midi(seq, updated, exit) {
                     error!("{e}");
                 }
             })
@@ -185,10 +190,11 @@ impl StepperSynth {
         info!("Synth is ready to make sound");
 
         Self {
-            synth,
+            // synth,
             updated,
             screen: Screen::Synth(SynthEngineType::B3Organ),
             _handle: handle,
+            midi_sequencer: sequencer,
             exit,
             // effect_midi,
         }
@@ -205,8 +211,8 @@ impl StepperSynth {
 
     pub fn toggle_effect_power(&mut self) {
         {
-            let mut synth = self.synth.lock().unwrap();
-            synth.effect_power = !synth.effect_power;
+            let mut seq = self.midi_sequencer.lock().unwrap();
+            seq.synth.effect_power = !seq.synth.effect_power;
         }
         self.set_updated();
     }
@@ -223,19 +229,15 @@ impl StepperSynth {
             Screen::Effect(effect) => {
                 self.set_effect(effect);
                 // self.effect_midi.store(true, Ordering::Relaxed)
-                self.synth.lock().unwrap().target_effects = true;
+                self.midi_sequencer.lock().unwrap().synth.target_effects = true;
             }
             Screen::Synth(engine) => {
                 self.set_engine(engine);
                 // self.effect_midi.store(false, Ordering::Relaxed)
-                self.synth.lock().unwrap().target_effects = false;
+                self.midi_sequencer.lock().unwrap().synth.target_effects = false;
             }
             Screen::Stepper(seq) => {
-                self.synth
-                    .lock()
-                    .unwrap()
-                    .midi_sequencer
-                    .set_rec_head_seq(seq);
+                self.midi_sequencer.lock().unwrap().set_rec_head_seq(seq);
             } // Screen::Sequencer() => {}
         }
 
@@ -249,32 +251,32 @@ impl StepperSynth {
         (*self.updated.lock().unwrap()) = false;
         // info!("after set");
 
-        let mut synth = self.synth.lock().unwrap();
+        let mut seq = self.midi_sequencer.lock().unwrap();
 
         match self.screen {
             Screen::Synth(SynthEngineType::B3Organ) => StepperSynthState::Synth {
                 engine: SynthEngineType::B3Organ,
-                effect: synth.effect_type,
-                effect_on: synth.effect_power,
-                knob_params: synth.get_engine().get_params(),
-                gui_params: synth.get_engine().get_gui_params(),
+                effect: seq.synth.effect_type,
+                effect_on: seq.synth.effect_power,
+                knob_params: seq.synth.get_engine().get_params(),
+                gui_params: seq.synth.get_engine().get_gui_params(),
             },
             Screen::Synth(SynthEngineType::SubSynth) => StepperSynthState::Synth {
                 engine: SynthEngineType::SubSynth,
-                effect: synth.effect_type,
-                effect_on: synth.effect_power,
-                knob_params: synth.get_engine().get_params(),
-                gui_params: synth.get_engine().get_gui_params(),
+                effect: seq.synth.effect_type,
+                effect_on: seq.synth.effect_power,
+                knob_params: seq.synth.get_engine().get_params(),
+                gui_params: seq.synth.get_engine().get_gui_params(),
             },
             Screen::Effect(EffectType::Reverb) => StepperSynthState::Effect {
                 effect: EffectType::Reverb,
-                effect_on: synth.effect_power,
-                params: synth.get_effect().get_params(),
+                effect_on: seq.synth.effect_power,
+                params: seq.synth.get_effect().get_params(),
             },
             Screen::Effect(EffectType::Chorus) => StepperSynthState::Effect {
                 effect: EffectType::Chorus,
-                effect_on: synth.effect_power,
-                params: synth.get_effect().get_params(),
+                effect_on: seq.synth.effect_power,
+                params: seq.synth.get_effect().get_params(),
             },
             // Screen::Effect(EffectType::Delay) => StepperSynthState::Effect {
             //     effect: EffectType::Delay,
@@ -282,49 +284,50 @@ impl StepperSynth {
             //     params: synth.effect.get_params(),
             // },
             Screen::Stepper(_sequence) => StepperSynthState::MidiStepper {
-                playing: synth.midi_sequencer.state.playing,
-                recording: synth.midi_sequencer.state.recording,
-                name: synth.midi_sequencer.get_name(),
-                tempo: synth.midi_sequencer.bpm,
-                step: synth.midi_sequencer.get_step(false),
-                cursor: synth.midi_sequencer.get_cursor(false),
-                sequence: synth.midi_sequencer.get_sequence(),
-                seq_n: synth.midi_sequencer.rec_head.get_sequence(),
+                playing: seq.state.playing,
+                recording: seq.state.recording,
+                name: seq.get_name(),
+                tempo: seq.bpm,
+                step: seq.get_step(false),
+                cursor: seq.get_cursor(false),
+                sequence: seq.get_sequence(),
+                seq_n: seq.rec_head.get_sequence(),
             },
         }
     }
 
     pub fn set_engine(&mut self, engine: SynthEngineType) {
-        if self.synth.lock().unwrap().set_engine(engine) {
+        if self.midi_sequencer.lock().unwrap().synth.set_engine(engine) {
             self.set_updated();
         }
     }
 
     pub fn set_effect(&mut self, effect: EffectType) {
-        if self.synth.lock().unwrap().set_effect(effect) {
+        if self.midi_sequencer.lock().unwrap().synth.set_effect(effect) {
             self.set_updated();
         }
     }
 
     pub fn set_gui_param(&mut self, param: GuiParam, value: f32) {
         self.set_updated();
-        let mut synth = self.synth.lock().unwrap();
+        let mut seq = self.midi_sequencer.lock().unwrap();
 
         match param {
-            GuiParam::A => synth.get_engine().gui_param_1(value),
-            GuiParam::B => synth.get_engine().gui_param_2(value),
-            GuiParam::C => synth.get_engine().gui_param_3(value),
-            GuiParam::D => synth.get_engine().gui_param_4(value),
-            GuiParam::E => synth.get_engine().gui_param_5(value),
-            GuiParam::F => synth.get_engine().gui_param_6(value),
-            GuiParam::G => synth.get_engine().gui_param_7(value),
-            GuiParam::H => synth.get_engine().gui_param_8(value),
+            GuiParam::A => seq.synth.get_engine().gui_param_1(value),
+            GuiParam::B => seq.synth.get_engine().gui_param_2(value),
+            GuiParam::C => seq.synth.get_engine().gui_param_3(value),
+            GuiParam::D => seq.synth.get_engine().gui_param_4(value),
+            GuiParam::E => seq.synth.get_engine().gui_param_5(value),
+            GuiParam::F => seq.synth.get_engine().gui_param_6(value),
+            GuiParam::G => seq.synth.get_engine().gui_param_7(value),
+            GuiParam::H => seq.synth.get_engine().gui_param_8(value),
         };
     }
 
     pub fn set_knob_param(&mut self, param: Knob, value: f32) {
         self.set_updated();
-        let mut synth = self.synth.lock().unwrap();
+        let mut seq = self.midi_sequencer.lock().unwrap();
+        let synth = &mut seq.synth;
 
         match (param, self.screen) {
             (Knob::One, Screen::Synth(_)) => synth.get_engine().knob_1(value),
@@ -355,30 +358,27 @@ impl StepperSynth {
 
     pub fn start_recording(&mut self) {
         self.set_updated();
-        let mut synth = self.synth.lock().unwrap();
 
-        synth.midi_sequencer.state.playing = false;
-        synth.midi_sequencer.state.recording = true;
+        self.midi_sequencer.lock().unwrap().state.playing = false;
+        self.midi_sequencer.lock().unwrap().state.recording = true;
     }
 
     pub fn stop_seq(&mut self) {
         self.set_updated();
-        let mut synth = self.synth.lock().unwrap();
 
-        synth.midi_sequencer.state.playing = false;
-        synth.midi_sequencer.state.recording = false;
+        self.midi_sequencer.lock().unwrap().state.playing = false;
+        self.midi_sequencer.lock().unwrap().state.recording = false;
     }
 
     pub fn start_playing(&mut self) {
         self.set_updated();
-        let mut synth = self.synth.lock().unwrap();
 
-        synth.midi_sequencer.state.playing = true;
-        synth.midi_sequencer.state.recording = false;
+        self.midi_sequencer.lock().unwrap().state.playing = true;
+        self.midi_sequencer.lock().unwrap().state.recording = false;
     }
 
     pub fn prev_sequence(&mut self) {
-        self.synth.lock().unwrap().midi_sequencer.prev_sequence();
+        self.midi_sequencer.lock().unwrap().prev_sequence();
         self.set_updated();
 
         // match self.screen.clone() {
@@ -389,7 +389,7 @@ impl StepperSynth {
     }
 
     pub fn next_sequence(&mut self) {
-        self.synth.lock().unwrap().midi_sequencer.next_sequence();
+        self.midi_sequencer.lock().unwrap().next_sequence();
         self.set_updated()
     }
 }

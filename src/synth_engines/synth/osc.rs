@@ -1,5 +1,3 @@
-use log::warn;
-
 use super::{
     build_sine_table, saw_tooth::SawToothOsc, OscType, SynthBackend, SynthOscilatorBackend,
 };

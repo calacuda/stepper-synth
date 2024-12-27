@@ -1,10 +1,9 @@
 use super::{Effect, EffectParam};
 use crate::{
     pygame_coms::Knob,
-    synth_engines::{synth_common::lfo::default_lfo_param_tweek, Param},
+    synth_engines::{synth_common::lfo::default_lfo_param_tweek, LfoInput, Param},
     HashMap, KnobCtrl, SampleGen,
 };
-use log::info;
 use pyo3::prelude::*;
 use reverb;
 use std::fmt::Display;
@@ -63,8 +62,9 @@ pub struct Reverb {
     in_sample: f32,
     damping: f32,
     cutoff: f32,
-    lfo_sample: f32,
-    lfo_target: Option<ReverbParam>,
+    // lfo_sample: f32,
+    // lfo_target: Option<ReverbParam>,
+    lfo_input: LfoInput,
 }
 
 impl Reverb {
@@ -76,21 +76,31 @@ impl Reverb {
             in_sample: 0.0,
             damping: 0.0,
             cutoff: 1.0,
-            lfo_sample: 0.0,
-            lfo_target: None,
+            // lfo_sample: 0.0,
+            // lfo_target: None,
+            lfo_input: LfoInput::default(),
         }
     }
 
     pub fn get_sample(&mut self, in_sample: f32) -> f32 {
         let gain = if self
-            .lfo_target
-            .is_some_and(|target| target == ReverbParam::Gain)
+            .lfo_input
+            .target
+            .is_some_and(|target| target == Param::Knob(Knob::One))
         {
-            default_lfo_param_tweek(self.gain, self.lfo_sample)
+            default_lfo_param_tweek(self.gain, self.lfo_input.sample)
         } else {
             self.gain
         };
+
+        self.lfo_step();
+
         self.effect.calc_sample(in_sample, gain)
+    }
+
+    /// apply lfo to controls
+    fn lfo_step(&mut self) {
+        // TODO: Write this
     }
 
     pub fn set_gain(&mut self, gain: f32) {
@@ -151,32 +161,8 @@ impl KnobCtrl for Reverb {
         true
     }
 
-    fn lfo_control(&mut self, param: Param, lfo_sample: f32) {
-        self.lfo_sample = lfo_sample;
-        // self.lfo_target = Some(param);
-
-        self.effect = match param {
-            Param::Knob(Knob::One) => {
-                self.lfo_target = Some(ReverbParam::Gain);
-                return;
-            }
-            Param::Knob(Knob::Two) => {
-                self.lfo_target = Some(ReverbParam::Decay);
-                self.effect.decay(self.decay * self.lfo_sample).clone()
-            }
-            Param::Knob(Knob::Three) => {
-                self.lfo_target = Some(ReverbParam::Damping);
-                self.effect.damping(self.damping * self.lfo_sample).clone()
-            }
-            Param::Knob(Knob::Four) => {
-                self.lfo_target = Some(ReverbParam::Cutoff);
-                self.effect.bandwidth(self.cutoff * self.lfo_sample).clone()
-            }
-            _ => {
-                self.lfo_target = None;
-                return;
-            }
-        }
+    fn get_lfo_input(&mut self) -> &mut LfoInput {
+        &mut self.lfo_input
     }
 }
 
@@ -212,7 +198,7 @@ impl Effect for Reverb {
     //         ReverbParam::Damping => self.set_damping(to),
     //     }
     // }
-    //
+
     // fn get_param_value(&self, param: Self::Param) -> f32 {
     //     match param {
     //         ReverbParam::Gain => self.gain,
@@ -221,7 +207,7 @@ impl Effect for Reverb {
     //         ReverbParam::Damping => self.damping,
     //     }
     // }
-    //
+
     // fn lfo_nudge_param(&mut self, param: Self::Param) {
     //     self.effect = match param {
     //         ReverbParam::Gain => return,

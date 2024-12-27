@@ -1,7 +1,6 @@
 use crate::{
     effects::{Effect, EffectType, EffectsModule},
     pygame_coms::{GuiParam, Knob, SynthEngineType},
-    sequencer::{SequencerIntake, StepperState},
     HashMap, KnobCtrl, MidiControlled, SampleGen,
 };
 use enum_dispatch::enum_dispatch;
@@ -19,7 +18,7 @@ pub mod synth;
 pub mod synth_common;
 
 #[enum_dispatch]
-pub trait SynthEngine: Debug + SampleGen + KnobCtrl + Send {
+pub trait SynthEngine: Debug + SampleGen + KnobCtrl + Send + Clone {
     fn name(&self) -> String;
 
     fn play(&mut self, note: MidiNote, velocity: u8);
@@ -49,8 +48,14 @@ pub enum LfoTarget {
     Effect(Param),
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
+pub struct LfoInput {
+    pub target: Option<Param>,
+    pub sample: f32,
+}
+
 #[enum_dispatch(SynthEngine)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SynthModule {
     B3Organ(Organ),
     SubSynth(synth::synth::Synth),
@@ -65,7 +70,7 @@ impl From<SynthEngineType> for SynthModule {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Synth {
     pub lfo: LFO,
     pub engines: Box<[SynthModule]>,
@@ -77,7 +82,6 @@ pub struct Synth {
     // pub effect_power: bool,
     pub lfo_target: Option<LfoTarget>,
     pub lfo_routed: bool,
-    pub midi_sequencer: SequencerIntake,
     // pub stepper_state: StepperState,
     pub target_effects: bool,
 }
@@ -103,7 +107,6 @@ impl Synth {
             // engine: Box::new(Organ::new()),
             // engine: SynthEngines::new(),
             lfo_routed: false,
-            midi_sequencer: SequencerIntake::new(),
             // stepper_state: StepperState::default(),
             target_effects: false,
         }
@@ -142,6 +145,9 @@ impl Synth {
 
         true
     }
+
+    // pub fn route_lfo(&mut self, )
+    // TODO: mod route
 }
 
 impl SampleGen for Synth {
@@ -155,8 +161,8 @@ impl SampleGen for Synth {
             let lfo_sample = self.lfo.get_sample();
 
             match target {
-                LfoTarget::Synth(param) => self.get_engine().lfo_control(param, lfo_sample),
-                LfoTarget::Effect(param) => self.get_effect().lfo_control(param, lfo_sample),
+                LfoTarget::Synth(_) => self.get_engine().lfo_control(lfo_sample),
+                LfoTarget::Effect(_) => self.get_effect().lfo_control(lfo_sample),
             }
         }
 
@@ -174,10 +180,10 @@ impl SampleGen for Synth {
 
 impl MidiControlled for Synth {
     fn midi_input(&mut self, message: &MidiMessage) {
-        if self.midi_sequencer.state.recording {
-            self.midi_sequencer.midi_input(message);
-            // return;
-        }
+        // if self.midi_sequencer.state.recording {
+        //     self.midi_sequencer.midi_input(message);
+        //     // return;
+        // }
 
         match *message {
             MidiMessage::Invalid => {
@@ -216,21 +222,21 @@ impl MidiControlled for Synth {
                     76 => self.get_engine().knob_7(value),
                     77 => self.get_engine().knob_8(value),
                     1 => self.get_engine().volume_swell(value),
-                    117 => {
-                        self.midi_sequencer.state.playing = false;
-                        self.midi_sequencer.state.recording = false;
-                        false
-                    }
-                    118 => {
-                        self.midi_sequencer.state.playing = true;
-                        self.midi_sequencer.state.recording = false;
-                        false
-                    }
-                    119 => {
-                        self.midi_sequencer.state.playing = false;
-                        self.midi_sequencer.state.recording = true;
-                        false
-                    }
+                    // 117 => {
+                    //     self.midi_sequencer.state.playing = false;
+                    //     self.midi_sequencer.state.recording = false;
+                    //     false
+                    // }
+                    // 118 => {
+                    //     self.midi_sequencer.state.playing = true;
+                    //     self.midi_sequencer.state.recording = false;
+                    //     false
+                    // }
+                    // 119 => {
+                    //     self.midi_sequencer.state.playing = false;
+                    //     self.midi_sequencer.state.recording = true;
+                    //     false
+                    // }
                     _ => {
                         info!("CC message => {control}-{value}");
                         false

@@ -1,7 +1,6 @@
 #!/usr/bin/python
 from typing import Callable, Tuple
 import pygame
-from pygame.rect import Rect
 from stepper_synth_backend import StepperSynth, SynthEngineType, StepperSynthState, EffectType, Screen
 from pathlib import Path
 from logging import DEBUG, INFO
@@ -202,7 +201,6 @@ def draw(synth_state):
             controls_f = sub_synth_controls
             controls_args = [pygame, loc_controller, synth, synth_state]
         case StepperSynthState.Effect(effect=EffectType.Reverb):
-            # log.warning("Reverb screen not yet programmed")
             draw_reverb_menu(pygame, screen, fonts, synth_state)
             controls_f = reverb_controls
             controls_args = [pygame, loc_controller, synth, synth_state]
@@ -237,9 +235,13 @@ def proccess_cmd():
 
     # new_state = ipc.get_Stat()
 
+    # print(f"state in MidiStepper => {isinstance(
+    #     state, StepperSynthState.MidiStepper)}")
+    # print("proccess_cmd called")
     if synth.updated() or isinstance(state, StepperSynthState.MidiStepper):
         # print("got new state")
         new_state = synth.get_state()
+        # print("new_state aquired ")
         draw(new_state)
         state = new_state
     else:

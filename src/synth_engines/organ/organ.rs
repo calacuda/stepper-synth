@@ -5,11 +5,9 @@ use crate::{
         synth_common::{
             env::{ATTACK, DECAY, RELEASE, SUSTAIN},
             lfo::LFO,
-            // osc::{Oscillator, Overtone},
-            WaveTable,
-            WAVE_TABLE_SIZE,
+            WaveTable, WAVE_TABLE_SIZE,
         },
-        Param, SynthEngine,
+        LfoInput, SynthEngine,
     },
     HashMap, KnobCtrl, SampleGen,
 };
@@ -54,6 +52,9 @@ pub struct Organ {
     pub speaker_speed: f32,
     // pub chorus: Chorus,
     // pub reverb: Reverb,
+    // lfo_target: Option<Param>,
+    // lfo_input: f32,
+    lfo_target: LfoInput,
 }
 
 impl Organ {
@@ -114,6 +115,9 @@ impl Organ {
             lfo,
             volume: 1.0,
             speaker_speed,
+            // lfo_input: 0.0,
+            // lfo_target: None,
+            lfo_target: LfoInput::default(),
         }
     }
 
@@ -203,7 +207,7 @@ impl Organ {
             //     midi_note - (offset.abs() as u8)
             // };
 
-            if osc.playing == Some(midi_note) {
+            if osc.playing == Some(midi_note) && osc.env_filter.phase != RELEASE {
                 // println!("release");
                 osc.release();
                 break;
@@ -273,34 +277,6 @@ impl Organ {
         }
         // }
     }
-
-    // pub fn set_cutoff(&mut self, cutoff: f32) {
-    //     let cutoff = cutoff * 10_000.0;
-    //
-    //     // for (osc_s, _offset) in self.osc_s.iter_mut() {
-    //     //     for osc in osc_s {
-    //     for osc in self.osc_s.iter_mut() {
-    //         osc.low_pass.set_cutoff(cutoff);
-    //     }
-    //     // }
-    // }
-
-    // pub fn set_resonace(&mut self, resonace: f32) {
-    //     // for (osc_s, _offset) in self.osc_s.iter_mut() {
-    //     //     for osc in osc_s {
-    //     for osc in self.osc_s.iter_mut() {
-    //         osc.low_pass.set_resonace(resonace);
-    //     }
-    //     // }
-    // }
-
-    // pub fn set_chorus_speed(&mut self, speed: f32) {
-    //     self.chorus.set_speed(speed)
-    // }
-    //
-    // pub fn set_chorus_depth(&mut self, depth: f32) {
-    //     self.chorus.set_volume(depth)
-    // }
 
     pub fn set_leslie_speed(&mut self, speed: f32) {
         self.speaker_speed = (440.0 * speed) / 60.0;
@@ -457,9 +433,14 @@ impl KnobCtrl for Organ {
 
     fn gui_param_5(&mut self, value: f32) -> bool {
         self.set_leslie_speed(value);
-
         true
     }
 
-    fn lfo_control(&mut self, param: Param, lfo_sample: f32) {}
+    fn get_lfo_input(&mut self) -> &mut LfoInput {
+        &mut self.lfo_target
+    }
+
+    // fn lfo_control(&mut self, lfo_sample: f32) {
+    //     self.lfo_target.sample = lfo_sample;
+    // }
 }

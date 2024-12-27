@@ -1,5 +1,5 @@
 use super::{Effect, EffectParam};
-use crate::{synth_engines::Param, HashMap, KnobCtrl, SampleGen, SAMPLE_RATE};
+use crate::{synth_engines::LfoInput, HashMap, KnobCtrl, SampleGen, SAMPLE_RATE};
 use pyo3::prelude::*;
 use std::fmt::Display;
 use strum::{EnumIter, IntoEnumIterator};
@@ -47,11 +47,13 @@ impl EffectParam for ChorusParam {}
 pub struct Chorus {
     pub size: usize,
     pub buff: [f32; SAMPLE_RATE as usize],
-    pub i: usize,
+    pub instert_i: usize,
+    pub get_i: usize,
     pub step: usize,
     pub volume: f32,
     pub speed: f32,
     pub input: f32,
+    lfo_input: LfoInput,
 }
 
 impl Chorus {
@@ -59,25 +61,27 @@ impl Chorus {
         Self {
             size: SAMPLE_RATE as usize,
             buff: [0.0; SAMPLE_RATE as usize],
-            i: 0,
+            instert_i: 0,
+            get_i: 0,
             step: (SAMPLE_RATE as f32 * (0.25 * 0.5)) as usize,
             volume: 0.75,
             speed: 0.25,
             input: 0.0,
+            lfo_input: LfoInput::default(),
         }
     }
 
     pub fn get_sample(&mut self) -> f32 {
-        let chorus = self.buff[self.i] + self.input;
+        let chorus = self.buff[self.get_i] + self.input;
         // self.buff[self.i ] = echo;
-        self.buff[(self.i + self.step) % self.size] = chorus * self.volume;
+        // self.buff[(self.i + self.step) % self.size] = chorus * self.volume;
         // self.buff[self.i] = 0.0;
         // self.buff[(self.i as i64 - self.step as i64).abs() as usize % self.size] = echo;
-        self.i = (self.i + 1) % self.size;
+        self.get_i = (self.get_i + self.step) % self.size;
         // if echo == input_sample && input_sample != 0.0 {
         //     error!("[error] {}", self.i);
         // }
-        chorus
+        chorus.tanh()
     }
 
     /// sets speed, takes speed in seconds
@@ -101,22 +105,17 @@ impl SampleGen for Chorus {
 }
 
 impl KnobCtrl for Chorus {
-    fn lfo_control(&mut self, param: Param, lfo_sample: f32) {
-        // self.lfo_sample = lfo_sample;
-        //
-        // self.effect = match param {
-        //     // Param::Knob(Knob::One) => ReverbParam::Gain,
-        //     Param::Knob(Knob::Two) => self.effect.decay(self.decay * self.lfo_sample).clone(),
-        //     Param::Knob(Knob::Three) => self.effect.damping(self.damping * self.lfo_sample).clone(),
-        //     Param::Knob(Knob::Four) => self.effect.bandwidth(self.cutoff * self.lfo_sample).clone(),
-        //     _ => return,
-        // }
+    fn get_lfo_input(&mut self) -> &mut LfoInput {
+        &mut self.lfo_input
     }
 }
 
 impl Effect for Chorus {
     fn take_input(&mut self, value: f32) {
         self.input = value * self.volume;
+        self.buff[self.instert_i] = self.input;
+        self.instert_i += 1;
+        self.instert_i %= self.size;
     }
 
     fn get_param_list(&self) -> Vec<String> {
@@ -126,7 +125,7 @@ impl Effect for Chorus {
     }
 
     fn get_params(&self) -> crate::HashMap<String, f32> {
-        let mut map = HashMap::default();
+        let map = HashMap::default();
 
         // TODO: Write this
 

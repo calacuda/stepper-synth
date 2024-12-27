@@ -72,16 +72,17 @@ def engine_menu_controles(synth: StepperSynth, controls: Buttons):
         # print("new_engine", new_engine)
         # synth.set_screen(Screen.Synth(new_engine))
         # print("engine after set", synth.get_state().engine)
+        if isinstance(new_screen, int):
+            synth.set_screen(Screen.Stepper(new_screen))
+            return (synth, True)
+
         match new_screen:
             case SynthEngineType.B3Organ | SynthEngineType.SubSynth:
                 synth.set_screen(Screen.Synth(new_screen))
+                return (synth, True)
             case EffectType.Reverb | EffectType.Chorus:
                 synth.set_screen(Screen.Effect(new_screen))
-
-        if isinstance(new_screen, int):
-            synth.set_screen(Screen.Stepper(new_screen))
-
-        return (synth, True)
+                return (synth, True)
 
     return (synth, False)
 

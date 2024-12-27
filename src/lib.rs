@@ -6,6 +6,7 @@ use effects::EffectsModule;
 use enum_dispatch::enum_dispatch;
 use fern::colors::{Color, ColoredLevelConfig};
 use fxhash::FxHashMap;
+use fxhash::FxHashSet;
 use log::*;
 use midi_control::MidiMessage;
 use midir::MidiInput;
@@ -16,17 +17,20 @@ use pygame_coms::StepperSynthState;
 use pygame_coms::{GuiParam, Knob, SynthEngineType};
 use pyo3::prelude::*;
 use sequencer::Sequence;
+use sequencer::SequencerIntake;
 use sequencer::Step;
 use sequencer::StepCmd;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use synth_engines::synth::OscType;
+use synth_engines::LfoInput;
 use synth_engines::Param;
 use synth_engines::Synth;
 use synth_engines::SynthModule;
 
 pub type HashMap<Key, Val> = FxHashMap<Key, Val>;
+pub type HashSet<T> = FxHashSet<T>;
 
 pub const SAMPLE_RATE: u32 = 48_000;
 
@@ -99,7 +103,19 @@ pub trait KnobCtrl {
         false
     }
 
-    fn lfo_control(&mut self, param: Param, lfo_sample: f32);
+    fn get_lfo_input(&mut self) -> &mut LfoInput;
+
+    fn lfo_connect(&mut self, param: Param) {
+        self.get_lfo_input().target = Some(param);
+    }
+
+    fn lfo_disconnect(&mut self) {
+        self.get_lfo_input().target = None;
+    }
+
+    fn lfo_control(&mut self, lfo_sample: f32) {
+        self.get_lfo_input().sample = lfo_sample;
+    }
 }
 
 pub struct Player {
@@ -116,7 +132,7 @@ impl Iterator for Player {
 }
 
 fn run_midi(
-    synth: Arc<Mutex<Synth>>,
+    synth: Arc<Mutex<SequencerIntake>>,
     updated: Arc<Mutex<bool>>,
     exit: Arc<AtomicBool>,
     // effect_midi: Arc<AtomicBool>,

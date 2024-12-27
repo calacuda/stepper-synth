@@ -3,7 +3,7 @@ use crate::{
     pygame_coms::{GuiParam, Knob},
     synth_engines::{
         synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN},
-        Param, SynthEngine,
+        LfoInput, SynthEngine,
     },
     HashMap, KnobCtrl, SampleGen,
 };
@@ -11,7 +11,7 @@ use midi_control::MidiNote;
 
 pub const VOICES: usize = 10;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Synth {
     pub osc_s: [(Vec<SynthOscillator>, i16); 2],
     pub osc_type: [(OscType, f32); 2],
@@ -19,6 +19,7 @@ pub struct Synth {
     pub volume: f32,
     pub mix: f32,
     pub osc_sync: bool,
+    lfo_target: LfoInput,
 }
 
 impl Synth {
@@ -48,6 +49,7 @@ impl Synth {
             volume: 1.0,
             mix: 0.5,
             osc_sync: false,
+            lfo_target: LfoInput::default(),
         }
     }
 
@@ -376,5 +378,9 @@ impl KnobCtrl for Synth {
         true
     }
 
-    fn lfo_control(&mut self, param: Param, lfo_sample: f32) {}
+    fn get_lfo_input(&mut self) -> &mut LfoInput {
+        &mut self.lfo_target
+    }
+
+    // fn lfo_control(&mut self, lfo_sample: f32) {}
 }

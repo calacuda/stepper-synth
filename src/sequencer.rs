@@ -1,5 +1,5 @@
 use fxhash::FxHashSet;
-use log::{debug, info};
+use log::*;
 use midi_control::{ControlEvent, KeyEvent, MidiMessage, MidiNote};
 use pyo3::prelude::*;
 use std::{
@@ -7,7 +7,7 @@ use std::{
     u16,
 };
 
-use crate::MidiControlled;
+use crate::{synth_engines::Synth, MidiControlled};
 
 pub type MidiMessages = FxHashSet<(u8, StepCmd)>;
 pub type MidiControlCode = u8;
@@ -22,7 +22,7 @@ pub enum StepCmd {
     },
     Stop {
         note: MidiNote,
-        vel: u8,
+        // vel: u8,
     },
     CC {
         code: MidiControlCode,
@@ -129,6 +129,7 @@ impl SequenceIndex {
 #[derive(Debug, Clone)]
 pub struct SequencerIntake {
     sequences: Vec<Sequence>,
+    pub synth: Synth,
     // sequence_i: usize,
     pub rec_head: SequenceIndex,
     pub play_head: SequenceIndex,
@@ -137,7 +138,7 @@ pub struct SequencerIntake {
 }
 
 impl SequencerIntake {
-    pub fn new() -> Self {
+    pub fn new(synth: Synth) -> Self {
         Self {
             sequences: vec![
                 Sequence::default(),
@@ -150,6 +151,7 @@ impl SequencerIntake {
             play_head: SequenceIndex::default(),
             state: StepperState::default(),
             bpm: 120,
+            synth,
         }
     }
 
@@ -243,71 +245,96 @@ impl SequencerIntake {
 
 impl MidiControlled for SequencerIntake {
     fn midi_input(&mut self, message: &MidiMessage) {
+        self.synth.midi_input(message);
+
+        if !self.state.recording {
+            return;
+        } else if let MidiMessage::ControlChange(_channel, ControlEvent { control, value: _ }) =
+            message
+        {
+            match control {
+                115 => {
+                    self.rec_head.step += 1;
+                    self.rec_head.step %= self.sequences[self.rec_head.sequence].steps.len();
+                }
+                116 => {
+                    self.rec_head.step = ((self.rec_head.step as i32 - 1)
+                        % (self.sequences[self.rec_head.sequence].steps.len() as i32))
+                        as usize;
+                }
+                117 => {
+                    self.state.playing = false;
+                    self.state.recording = false;
+                }
+                118 => {
+                    self.state.playing = true;
+                    self.state.recording = false;
+                }
+                119 => {
+                    self.state.playing = false;
+                    self.state.recording = true;
+                }
+                _ => {}
+            }
+        }
+
         let (ch, msg, on_enter) = match *message {
             MidiMessage::NoteOn(channel, KeyEvent { key, value }) => {
                 let ch = channel as u8;
+                let cmd = StepCmd::Play {
+                    note: key,
+                    vel: value,
+                };
 
-                (
-                    ch,
-                    StepCmd::Play {
-                        note: key,
-                        vel: value,
-                    },
-                    true,
-                )
+                // if self.sequences[self.rec_head.clone()].on_enter.iter().filter_map(| | ) {}
+
+                (ch, cmd, true)
             }
-            MidiMessage::NoteOff(channel, KeyEvent { key, value }) => {
+            MidiMessage::NoteOff(channel, KeyEvent { key, value: _ }) => {
                 let ch = channel as u8;
 
                 (
                     ch,
                     StepCmd::Stop {
                         note: key,
-                        vel: value,
+                        // vel: value,
                     },
                     false,
                 )
             }
-            MidiMessage::PitchBend(cahnnel, lsb, msb) => return,
+            MidiMessage::PitchBend(_cahnnel, _lsb, _msb) => return,
             MidiMessage::ControlChange(_channel, ControlEvent { control, value: _ }) => {
-                // let ch = channel as u8;
-
                 match control {
                     115 => {
                         self.rec_head.step += 1;
                         self.rec_head.step %= self.sequences[self.rec_head.sequence].steps.len();
-                        return;
+                        // return;
                     }
                     116 => {
                         self.rec_head.step = ((self.rec_head.step as i32 - 1)
                             % (self.sequences[self.rec_head.sequence].steps.len() as i32))
                             as usize;
-                        return;
+                        // return;
                     }
                     117 => {
                         self.state.playing = false;
                         self.state.recording = false;
-                        return;
+                        // return;
                     }
                     118 => {
                         self.state.playing = true;
                         self.state.recording = false;
-                        return;
+                        // return;
                     }
                     119 => {
                         self.state.playing = false;
                         self.state.recording = true;
-                        return;
+                        // return;
                     }
-                    _ => return, //         _ => (
-                                 //             ch,
-                                 //             StepCmd::CC {
-                                 //                 code: control,
-                                 //                 value,
-                                 //             },
-                                 //             true,
-                                 //         ),
+                    _ => {}
                 }
+
+                return;
             }
             _ => {
                 return;
@@ -320,10 +347,44 @@ impl MidiControlled for SequencerIntake {
             &mut self.sequences[self.rec_head.clone()].on_exit
         };
 
-        if !step.contains(&(ch, msg.clone())) {
+        let step_filter_f =
+            |(rec_ch, rec_msg)| {
+                if ch == rec_ch {
+                    match (rec_msg, msg.clone()) {
+                        (
+                            StepCmd::Play { note: n1, vel: _ },
+                            StepCmd::Play { note: n2, vel: _ },
+                        ) if n1 == n2 => Some(()),
+                        (
+                            StepCmd::CC { code: c1, value: _ },
+                            StepCmd::CC { code: c2, value: _ },
+                        ) if c1 == c2 => Some(()),
+                        (StepCmd::Stop { note: n1 }, StepCmd::Stop { note: n2 }) if n1 == n2 => {
+                            Some(())
+                        }
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
+            };
+
+        let step_not_contains = step
+            .clone()
+            .into_iter()
+            .filter_map(step_filter_f)
+            .collect::<Vec<()>>()
+            .len()
+            == 0;
+
+        if step_not_contains {
             step.insert((ch, msg));
         } else {
-            step.remove(&(ch, msg));
+            // info!("rm'ing a message");
+            // info!("rm'ing a message from on_enter {on_enter}");
+            // info!("number of messages before = {}", step.len());
+            step.retain(|msg| step_filter_f(msg.clone()).is_none());
+            // info!("number of messages after = {}", step.len());
         }
     }
 }
