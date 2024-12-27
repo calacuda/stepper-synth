@@ -166,14 +166,11 @@ impl SequencerIntake {
     }
 
     pub fn get_cursor(&self, play: bool) -> usize {
-        let i = if play {
-            self.play_head.clone()
+        if play {
+            self.play_head.step
         } else {
-            self.rec_head.clone()
-        };
-
-        // self.sequences[i].clone()
-        i.step
+            self.rec_head.step
+        }
     }
 
     pub fn next_sequence(&mut self) {
@@ -247,20 +244,18 @@ impl MidiControlled for SequencerIntake {
     fn midi_input(&mut self, message: &MidiMessage) {
         self.synth.midi_input(message);
 
-        if !self.state.recording {
-            return;
-        } else if let MidiMessage::ControlChange(_channel, ControlEvent { control, value: _ }) =
-            message
-        {
+        if let MidiMessage::ControlChange(_channel, ControlEvent { control, value: _ }) = message {
             match control {
                 115 => {
-                    self.rec_head.step += 1;
-                    self.rec_head.step %= self.sequences[self.rec_head.sequence].steps.len();
+                    self.rec_head.step = if self.rec_head.step > 0 {
+                        self.rec_head.step - 1
+                    } else {
+                        self.sequences[self.rec_head.sequence].steps.len() - 1
+                    };
                 }
                 116 => {
-                    self.rec_head.step = ((self.rec_head.step as i32 - 1)
-                        % (self.sequences[self.rec_head.sequence].steps.len() as i32))
-                        as usize;
+                    self.rec_head.step += 1;
+                    self.rec_head.step %= self.sequences[self.rec_head.sequence].steps.len();
                 }
                 117 => {
                     self.state.playing = false;
@@ -276,6 +271,10 @@ impl MidiControlled for SequencerIntake {
                 }
                 _ => {}
             }
+        }
+
+        if !self.state.recording {
+            return;
         }
 
         let (ch, msg, on_enter) = match *message {
@@ -303,39 +302,41 @@ impl MidiControlled for SequencerIntake {
                 )
             }
             MidiMessage::PitchBend(_cahnnel, _lsb, _msb) => return,
-            MidiMessage::ControlChange(_channel, ControlEvent { control, value: _ }) => {
-                match control {
-                    115 => {
-                        self.rec_head.step += 1;
-                        self.rec_head.step %= self.sequences[self.rec_head.sequence].steps.len();
-                        // return;
-                    }
-                    116 => {
-                        self.rec_head.step = ((self.rec_head.step as i32 - 1)
-                            % (self.sequences[self.rec_head.sequence].steps.len() as i32))
-                            as usize;
-                        // return;
-                    }
-                    117 => {
-                        self.state.playing = false;
-                        self.state.recording = false;
-                        // return;
-                    }
-                    118 => {
-                        self.state.playing = true;
-                        self.state.recording = false;
-                        // return;
-                    }
-                    119 => {
-                        self.state.playing = false;
-                        self.state.recording = true;
-                        // return;
-                    }
-                    _ => {}
-                }
-
-                return;
-            }
+            // MidiMessage::ControlChange(_channel, ControlEvent { control, value: _ }) => {
+            //     match control {
+            //         115 => {
+            //             self.rec_head.step = ((self.rec_head.step as i32 - 1)
+            //                 % (self.sequences[self.rec_head.sequence].steps.len() as i32))
+            //                 as usize;
+            //         }
+            //         116 => {
+            //             self.rec_head.step += 1;
+            //             self.rec_head.step %= self.sequences[self.rec_head.sequence].steps.len();
+            //             info!(
+            //                 "n steps {}",
+            //                 self.sequences[self.rec_head.sequence].steps.len()
+            //             );
+            //         }
+            //         117 => {
+            //             self.state.playing = false;
+            //             self.state.recording = false;
+            //             // return;
+            //         }
+            //         118 => {
+            //             self.state.playing = true;
+            //             self.state.recording = false;
+            //             // return;
+            //         }
+            //         119 => {
+            //             self.state.playing = false;
+            //             self.state.recording = true;
+            //             // return;
+            //         }
+            //         _ => {}
+            //     }
+            //
+            //     return;
+            // }
             _ => {
                 return;
             }

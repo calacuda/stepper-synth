@@ -238,7 +238,7 @@ impl MidiControlled for Synth {
                     //     false
                     // }
                     _ => {
-                        info!("CC message => {control}-{value}");
+                        // info!("CC message => {control}-{value}");
                         false
                     }
                 };
