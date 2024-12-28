@@ -1,15 +1,23 @@
-use fxhash::FxHashSet;
+use crate::{
+    pygame_coms::SynthEngineType,
+    synth_engines::{Synth, SynthEngine},
+    HashSet, MidiControlled,
+};
 use log::*;
 use midi_control::{ControlEvent, KeyEvent, MidiMessage, MidiNote};
 use pyo3::prelude::*;
 use std::{
     ops::{Index, IndexMut},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
+    time::{Duration, Instant},
     u16,
 };
+use strum::IntoEnumIterator;
 
-use crate::{synth_engines::Synth, MidiControlled};
-
-pub type MidiMessages = FxHashSet<(u8, StepCmd)>;
+pub type MidiMessages = HashSet<(u8, StepCmd)>;
 pub type MidiControlCode = u8;
 pub type MidiInt = u8;
 
@@ -58,14 +66,14 @@ impl Default for Sequence {
     }
 }
 
-#[pyclass(module = "stepper_synth_backend", get_all)]
-#[derive(Debug, Clone, Default)]
+// #[pyclass(module = "stepper_synth_backend", get_all)]
+#[derive(Debug, Default)]
 pub struct StepperState {
     pub recording: bool,
-    pub playing: bool,
+    pub playing: AtomicBool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct SequenceIndex {
     sequence: usize,
     step: usize,
@@ -126,7 +134,7 @@ impl SequenceIndex {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct SequencerIntake {
     sequences: Vec<Sequence>,
     pub synth: Synth,
@@ -173,6 +181,16 @@ impl SequencerIntake {
         }
     }
 
+    pub fn add_step(&mut self) {
+        self.sequences[self.rec_head.sequence]
+            .steps
+            .push(Step::default());
+    }
+
+    pub fn del_step(&mut self) {
+        self.sequences[self.rec_head.sequence].steps.pop();
+    }
+
     pub fn next_sequence(&mut self) {
         let len = self.sequences.len();
 
@@ -192,6 +210,30 @@ impl SequencerIntake {
             self.rec_head.sequence = len - 1;
         } else {
             self.rec_head.sequence -= 1;
+        }
+        // info!("rec head sequence = {}, {len}", self.play_head.sequence);
+    }
+
+    pub fn next_step(&mut self) {
+        let len = self.sequences[self.rec_head.sequence].steps.len();
+
+        // info!("rec head sequence = {}", self.play_head.sequence);
+        self.rec_head.step = ((self.rec_head.step as i64 + 1) % (len as i64)) as usize;
+        // info!(
+        //     "rec head sequence = {}, len = {}",
+        //     self.play_head.sequence, len
+        // );
+        // }
+    }
+
+    pub fn prev_step(&mut self) {
+        // let len = self.sequences.len();
+        let len = self.sequences[self.rec_head.sequence].steps.len();
+
+        if self.rec_head.step == 0 {
+            self.rec_head.step = len - 1;
+        } else {
+            self.rec_head.step -= 1;
         }
         // info!("rec head sequence = {}, {len}", self.play_head.sequence);
     }
@@ -258,15 +300,16 @@ impl MidiControlled for SequencerIntake {
                     self.rec_head.step %= self.sequences[self.rec_head.sequence].steps.len();
                 }
                 117 => {
-                    self.state.playing = false;
+                    self.state.playing.store(false, Ordering::Relaxed);
                     self.state.recording = false;
                 }
                 118 => {
-                    self.state.playing = true;
+                    self.state.playing.store(true, Ordering::Relaxed);
                     self.state.recording = false;
+                    info!("setting playing to true");
                 }
                 119 => {
-                    self.state.playing = false;
+                    self.state.playing.store(false, Ordering::Relaxed);
                     self.state.recording = true;
                 }
                 _ => {}
@@ -302,41 +345,6 @@ impl MidiControlled for SequencerIntake {
                 )
             }
             MidiMessage::PitchBend(_cahnnel, _lsb, _msb) => return,
-            // MidiMessage::ControlChange(_channel, ControlEvent { control, value: _ }) => {
-            //     match control {
-            //         115 => {
-            //             self.rec_head.step = ((self.rec_head.step as i32 - 1)
-            //                 % (self.sequences[self.rec_head.sequence].steps.len() as i32))
-            //                 as usize;
-            //         }
-            //         116 => {
-            //             self.rec_head.step += 1;
-            //             self.rec_head.step %= self.sequences[self.rec_head.sequence].steps.len();
-            //             info!(
-            //                 "n steps {}",
-            //                 self.sequences[self.rec_head.sequence].steps.len()
-            //             );
-            //         }
-            //         117 => {
-            //             self.state.playing = false;
-            //             self.state.recording = false;
-            //             // return;
-            //         }
-            //         118 => {
-            //             self.state.playing = true;
-            //             self.state.recording = false;
-            //             // return;
-            //         }
-            //         119 => {
-            //             self.state.playing = false;
-            //             self.state.recording = true;
-            //             // return;
-            //         }
-            //         _ => {}
-            //     }
-            //
-            //     return;
-            // }
             _ => {
                 return;
             }
@@ -390,4 +398,63 @@ impl MidiControlled for SequencerIntake {
     }
 }
 
-// pub fn ch_to_u8(ch: Channel) -> u8 {}
+pub fn play_sequence(seq: Arc<Mutex<SequencerIntake>>) {
+    let mut beat_time = Duration::from_secs_f64(60.0 / seq.lock().unwrap().bpm as f64);
+    // let mut last_on_exit = HashSet::default();
+    let synth_types: Vec<SynthEngineType> = SynthEngineType::iter().collect();
+
+    let send_midi = |synth: &mut Synth, midi_s: MidiMessages| {
+        for midi in midi_s {
+            let instrument = if midi.0 == 0 {
+                synth.get_engine()
+            } else if let Some(synth_type) = synth_types.get((midi.0 - 1) as usize) {
+                synth.engines.index_mut(*synth_type as usize)
+            } else {
+                continue;
+            };
+
+            match midi.1 {
+                StepCmd::Play { note, vel } => instrument.play(note, vel),
+                StepCmd::Stop { note } => instrument.stop(note),
+                StepCmd::CC { code: _, value: _ } => {}
+            }
+        }
+    };
+
+    let play_step = |last_on_exit: MidiMessages| {
+        // info!("beat");
+        let mut seq = seq.lock().unwrap();
+        // info!("after sequence lock");
+        let step = seq.sequences[seq.play_head].clone();
+        send_midi(&mut seq.synth, last_on_exit);
+
+        send_midi(&mut seq.synth, step.on_enter);
+        step.on_exit.clone()
+    };
+    let inc_step = || {
+        // info!("beat");
+        let mut seq = seq.lock().unwrap();
+        seq.play_head.step += 1;
+        seq.play_head.step %= seq.sequences[seq.play_head.sequence].steps.len();
+    };
+
+    let mut last_on_exit = play_step(HashSet::default());
+    let mut last_play = Instant::now();
+
+    while seq
+        .clone()
+        .lock()
+        .unwrap()
+        .state
+        .playing
+        .load(Ordering::Relaxed)
+    {
+        if last_play.elapsed() >= beat_time {
+            inc_step();
+            last_on_exit = play_step(last_on_exit);
+
+            beat_time = Duration::from_secs_f64(60.0 / seq.lock().unwrap().bpm as f64);
+            last_play = Instant::now();
+        }
+    }
+}

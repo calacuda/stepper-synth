@@ -45,10 +45,10 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 
 ## Currently Working On
 
-- enable and diable osc sync from ui
+- enable editing step number and tempo in stepper ui 
 
 ## TODOs
 
 - [ ] enable 1-4 toggles for effects
-- [ ] enable midi playback via sequencer.
+- [x] enable midi recording and playback via sequencer.
 

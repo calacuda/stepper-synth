@@ -271,7 +271,7 @@ def stop_synth():
 if __name__ == "__main__":
     # ipc.send(PythonCmd.ChangeSynthEngine(SynthEngineType.SubSynth))
     # synth.set_screen(Screen.Effect(EffectType.Reverb))
-    synth.set_screen(Screen.Stepper(0))
+    # synth.set_screen(Screen.Stepper(0))
 
     log.info("starting main loop.")
 

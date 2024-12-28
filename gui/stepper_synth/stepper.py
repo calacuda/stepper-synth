@@ -27,6 +27,9 @@ KEYS = [
 ]
 
 
+INDEX = 0
+
+
 def draw_octave(pygame, screen, state: StepperSynthState, top: float, width: float, offset: float, octave_n: int, playing):
     key_width = width / 7
     half_width = (key_width) * 0.5
@@ -87,7 +90,7 @@ def draw_piano(pygame, screen, state: StepperSynthState, top, playing):
 
 def draw_step(pygame, screen, fonts, top: float, bottom: float, width: float, step_n: int, cursor: int):
     half_width = width / 2
-    x = LINE_WIDTH * 4 + half_width + width * step_n
+    x = LINE_WIDTH * 4 + half_width + width * (step_n % 16)
     y = (bottom - top) / 2 + top
     # print(f"step {step_n} centered at point, ({x}, {y})")
 
@@ -107,7 +110,7 @@ def draw_step(pygame, screen, fonts, top: float, bottom: float, width: float, st
     rect.center = (x, y)
     pygame.draw.rect(screen, BACKGROUND_COLOR, rect)
 
-    text = f"{step_n}"
+    text = f"{step_n + 1}"
     font = fonts[3]
 
     if step_n == cursor:
@@ -128,7 +131,9 @@ def draw_steps(pygame, screen, fonts, state: StepperSynthState, bottom, top, seq
     # draw_step(pygame, screen, state, top, width, 0, state.cursor)
     # print(len(sequence))
 
-    for i in range(state.cursor, len(sequence) + state.cursor):
+    for i in range(state.cursor, state.cursor + (16 - state.cursor % 16)):
+        if i == len(sequence):
+            break
         draw_step(pygame, screen, fonts, top, bottom, width, i, state.cursor)
 
 
@@ -138,12 +143,30 @@ def mk_text(font, text, color=TEXT_COLOR_1):
     return (display, text_rect)
 
 
-def do_draw_label(pygame, screen, fonts, top: float, bottom: float, l: float, r: float, label: str, value: str):
+def draw_label_box(pygame, screen, top, bottom, x, y):
+    rad = LINE_WIDTH * 5
+
+    rect = pygame.Rect(0, 0, SCREEN_WIDTH / 3.0, (bottom - top) / 2)
+    rect.center = (x, y)
+    pygame.draw.rect(screen, RED, rect,
+                     border_top_left_radius=rad, border_bottom_left_radius=rad, border_top_right_radius=rad, border_bottom_right_radius=rad)
+    rect = pygame.Rect(0, 0, SCREEN_WIDTH / 3.0 -
+                       LINE_WIDTH * 2, (bottom - top) / 2 - LINE_WIDTH * 2)
+    rect.center = (x, y)
+    rad -= LINE_WIDTH
+    pygame.draw.rect(screen, BACKGROUND_COLOR, rect,
+                     border_top_left_radius=rad, border_bottom_left_radius=rad, border_top_right_radius=rad, border_bottom_right_radius=rad)
+
+
+def do_draw_label(pygame, screen, fonts, top: float, bottom: float, l: float, r: float, label: str, value: str, selected: bool):
     x = (r - l) / 2 + l
     y = (bottom - top) / 2 + top
     font = fonts[2]
 
     # text = "Sequence"
+    if selected:
+        draw_label_box(pygame, screen, top, bottom, x, y)
+
     display, text_rect = mk_text(font, label)
     text_rect.centerx = x + text_rect.width * 0.06
     text_rect.bottom = y - LINE_WIDTH
@@ -164,16 +187,16 @@ def draw_labels(pygame, screen, fonts, state: StepperSynthState, bottom: float, 
     l, r = l_r[0]
     # draw_name(pygame, screen, fonts, top, bottom, l, r, state.name)
     do_draw_label(pygame, screen, fonts, top, bottom,
-                  l, r, "Sequence", state.name)
+                  l, r, "Sequence", state.name, INDEX == 0)
     l, r = l_r[1]
     # draw_tempo(pygame, screen, fonts, top, bottom, l, r, state.tempo)
     do_draw_label(pygame, screen, fonts, top,
-                  bottom, l, r, "Tempo", f"{state.tempo}")
+                  bottom, l, r, "Tempo", f"{state.tempo}", INDEX == 1)
     l, r = l_r[2]
     # draw_step_total(pygame, screen, fonts, top,
     #                 bottom, l, r, len(state.sequence.steps))
     do_draw_label(pygame, screen, fonts, top,
-                  bottom, l, r, "Steps", f"{len(state.sequence.steps)}")
+                  bottom, l, r, "Steps", f"{len(state.sequence.steps)}", INDEX == 2)
 
 
 def draw_button(pygame, screen, font, l: float, r: float, top: float, height: float, label: str, selected: bool, text_color=[TEXT_COLOR_1, GREEN], border_color=[GREEN, TEXT_COLOR_2]):
@@ -257,9 +280,9 @@ def draw_stepper(pygame, screen, fonts, state: StepperSynthState):
     draw_buttons(pygame, screen, fonts, state, bottom_row_h, 0.0)
 
 
-def stepper_controls(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState):
-    if not select_mod_pressed(controller):
-        return
+def main_stepper_controls(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState):
+    if (not select_mod_pressed(controller)) or (controller.is_pressed(buttons.get("a"))):
+        return synth
 
     up = buttons.get("up")
     down = buttons.get("down")
@@ -273,10 +296,51 @@ def stepper_controls(pygame, controller: Buttons, synth: StepperSynth, state: St
     elif (controller.just_released(up) or controller.just_released(down)) and (state.playing or state.recording):
         synth.stop_seq()
     elif controller.just_released(left):
-        synth.prev_sequence()
+        synth.prev_step()
         # synth.set_screen(Screen.Stepper(state.seq_n - 1))
     elif controller.just_released(right):
-        synth.next_sequence()
+        synth.next_step()
         # synth.set_screen(Screen.Stepper(state.seq_n + 1))
 
+    return synth
+
+
+def secondary_stepper_controls(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState):
+    if (not select_mod_pressed(controller)) or (not controller.is_pressed(buttons.get("a"))):
+        return synth
+
+    left = buttons.get("left")
+    right = buttons.get("right")
+    right_f_s = [synth.next_sequence, synth.tempo_up, synth.add_step]
+    left_f_s = [synth.prev_sequence, synth.tempo_down, synth.del_step]
+
+    if controller.just_released(left):
+        left_f_s[INDEX]()
+    elif controller.just_released(right):
+        right_f_s[INDEX]()
+
+    return synth
+
+
+def move_cursor(controller: Buttons):
+    global INDEX
+
+    if (select_mod_pressed(controller)) or (not controller.is_pressed(buttons.get("a"))):
+        return
+
+    left = buttons.get("left")
+    right = buttons.get("right")
+
+    if controller.just_released(left):
+        INDEX -= 1
+        INDEX %= 3
+    elif controller.just_released(right):
+        INDEX += 1
+        INDEX %= 3
+
+
+def stepper_controls(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState):
+    synth = main_stepper_controls(pygame, controller, synth, state)
+    move_cursor(controller)
+    synth = secondary_stepper_controls(pygame, controller, synth, state)
     return synth

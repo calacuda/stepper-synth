@@ -1,7 +1,7 @@
 use crate::{
     effects::{Effect, EffectType},
     logger_init, run_midi,
-    sequencer::{Sequence, SequencerIntake, Step},
+    sequencer::{play_sequence, Sequence, SequencerIntake, Step},
     synth_engines::{Synth, SynthEngine},
     HashMap, KnobCtrl, SampleGen, SAMPLE_RATE,
 };
@@ -13,7 +13,8 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
     },
-    thread::{spawn, JoinHandle},
+    thread::{sleep, spawn, JoinHandle},
+    time::Duration,
 };
 use strum::EnumIter;
 use tinyaudio::prelude::*;
@@ -127,6 +128,7 @@ pub struct StepperSynth {
     updated: Arc<Mutex<bool>>,
     screen: Screen,
     _handle: JoinHandle<()>,
+    _midi_thread: JoinHandle<()>,
     exit: Arc<AtomicBool>,
     midi_sequencer: Arc<Mutex<SequencerIntake>>,
 }
@@ -183,6 +185,25 @@ impl StepperSynth {
             })
         };
 
+        let thread = {
+            let seq = sequencer.clone();
+
+            spawn(move || loop {
+                while !seq
+                    .clone()
+                    .lock()
+                    .unwrap()
+                    .state
+                    .playing
+                    .load(Ordering::Relaxed)
+                {
+                    sleep(Duration::from_secs_f64(0.001));
+                }
+
+                play_sequence(seq.clone());
+            })
+        };
+
         if let Err(reason) = logger_init() {
             eprintln!("failed to initiate logger because {reason}");
         }
@@ -194,6 +215,7 @@ impl StepperSynth {
             updated,
             screen: Screen::Synth(SynthEngineType::B3Organ),
             _handle: handle,
+            _midi_thread: thread,
             midi_sequencer: sequencer,
             exit,
             // effect_midi,
@@ -284,7 +306,7 @@ impl StepperSynth {
             //     params: synth.effect.get_params(),
             // },
             Screen::Stepper(_sequence) => StepperSynthState::MidiStepper {
-                playing: seq.state.playing,
+                playing: seq.state.playing.load(Ordering::Relaxed),
                 recording: seq.state.recording,
                 name: seq.get_name(),
                 tempo: seq.bpm,
@@ -359,21 +381,36 @@ impl StepperSynth {
     pub fn start_recording(&mut self) {
         self.set_updated();
 
-        self.midi_sequencer.lock().unwrap().state.playing = false;
+        self.midi_sequencer
+            .lock()
+            .unwrap()
+            .state
+            .playing
+            .store(false, Ordering::Relaxed);
         self.midi_sequencer.lock().unwrap().state.recording = true;
     }
 
     pub fn stop_seq(&mut self) {
         self.set_updated();
 
-        self.midi_sequencer.lock().unwrap().state.playing = false;
+        self.midi_sequencer
+            .lock()
+            .unwrap()
+            .state
+            .playing
+            .store(false, Ordering::Relaxed);
         self.midi_sequencer.lock().unwrap().state.recording = false;
     }
 
     pub fn start_playing(&mut self) {
         self.set_updated();
 
-        self.midi_sequencer.lock().unwrap().state.playing = true;
+        self.midi_sequencer
+            .lock()
+            .unwrap()
+            .state
+            .playing
+            .store(true, Ordering::Relaxed);
         self.midi_sequencer.lock().unwrap().state.recording = false;
     }
 
@@ -391,5 +428,51 @@ impl StepperSynth {
     pub fn next_sequence(&mut self) {
         self.midi_sequencer.lock().unwrap().next_sequence();
         self.set_updated()
+    }
+
+    pub fn next_step(&mut self) {
+        self.midi_sequencer.lock().unwrap().next_step();
+        self.set_updated()
+    }
+
+    pub fn prev_step(&mut self) {
+        self.midi_sequencer.lock().unwrap().prev_step();
+        self.set_updated()
+    }
+
+    pub fn tempo_up(&mut self) {
+        self.set_updated();
+        let mut seq = self.midi_sequencer.lock().unwrap();
+
+        seq.bpm = (seq.bpm + 1) % u16::MAX;
+
+        if seq.bpm == 0 {
+            seq.bpm = 1;
+        }
+    }
+
+    pub fn tempo_down(&mut self) {
+        self.set_updated();
+        let mut seq = self.midi_sequencer.lock().unwrap();
+
+        if seq.bpm > 0 {
+            seq.bpm = (seq.bpm - 1) % u16::MAX;
+        }
+
+        if seq.bpm == 0 {
+            seq.bpm = 1;
+        }
+    }
+
+    pub fn add_step(&mut self) {
+        self.set_updated();
+        let mut seq = self.midi_sequencer.lock().unwrap();
+        seq.add_step();
+    }
+
+    pub fn del_step(&mut self) {
+        self.set_updated();
+        let mut seq = self.midi_sequencer.lock().unwrap();
+        seq.del_step();
     }
 }
