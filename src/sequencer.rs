@@ -402,8 +402,9 @@ pub fn play_sequence(seq: Arc<Mutex<SequencerIntake>>) {
     let mut beat_time = Duration::from_secs_f64(60.0 / seq.lock().unwrap().bpm as f64);
     // let mut last_on_exit = HashSet::default();
     let synth_types: Vec<SynthEngineType> = SynthEngineType::iter().collect();
+    let mut playing: HashSet<(u8, u8)> = HashSet::default();
 
-    let send_midi = |synth: &mut Synth, midi_s: MidiMessages| {
+    let mut send_midi = |synth: &mut Synth, midi_s: MidiMessages| {
         for midi in midi_s {
             let instrument = if midi.0 == 0 {
                 synth.get_engine()
@@ -414,14 +415,24 @@ pub fn play_sequence(seq: Arc<Mutex<SequencerIntake>>) {
             };
 
             match midi.1 {
-                StepCmd::Play { note, vel } => instrument.play(note, vel),
-                StepCmd::Stop { note } => instrument.stop(note),
+                StepCmd::Play { note, vel } => {
+                    playing.insert((midi.0, note));
+
+                    instrument.play(note, vel)
+                }
+                StepCmd::Stop { note } => {
+                    // info!("before length => {}", playing.len());
+                    playing.remove(&(midi.0, note));
+                    // info!("after length  => {}", playing.len());
+
+                    instrument.stop(note)
+                }
                 StepCmd::CC { code: _, value: _ } => {}
             }
         }
     };
 
-    let play_step = |last_on_exit: MidiMessages| {
+    let mut play_step = |last_on_exit: MidiMessages| {
         // info!("beat");
         let mut seq = seq.lock().unwrap();
         // info!("after sequence lock");
@@ -456,5 +467,24 @@ pub fn play_sequence(seq: Arc<Mutex<SequencerIntake>>) {
             beat_time = Duration::from_secs_f64(60.0 / seq.lock().unwrap().bpm as f64);
             last_play = Instant::now();
         }
+    }
+
+    {
+        let mut seq = seq.lock().unwrap();
+        seq.play_head.step = 0;
+        // let messages: MidiMessages = playing
+        //     .into_iter()
+        //     .map(|(ch, note)| (ch, StepCmd::Stop { note }))
+        //     .collect();
+        // send_midi(&mut seq.synth, messages);
+        playing.into_iter().for_each(|(ch, note)| {
+            let synth = &mut seq.synth;
+
+            if ch == 0 {
+                synth.get_engine().stop(note);
+            } else if let Some(synth_type) = synth_types.get((ch - 1) as usize) {
+                synth.engines.index_mut(*synth_type as usize).stop(note);
+            }
+        })
     }
 }
