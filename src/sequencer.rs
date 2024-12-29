@@ -421,9 +421,7 @@ pub fn play_sequence(seq: Arc<Mutex<SequencerIntake>>) {
                     instrument.play(note, vel)
                 }
                 StepCmd::Stop { note } => {
-                    // info!("before length => {}", playing.len());
                     playing.remove(&(midi.0, note));
-                    // info!("after length  => {}", playing.len());
 
                     instrument.stop(note)
                 }
@@ -469,22 +467,15 @@ pub fn play_sequence(seq: Arc<Mutex<SequencerIntake>>) {
         }
     }
 
-    {
-        let mut seq = seq.lock().unwrap();
-        seq.play_head.step = 0;
-        // let messages: MidiMessages = playing
-        //     .into_iter()
-        //     .map(|(ch, note)| (ch, StepCmd::Stop { note }))
-        //     .collect();
-        // send_midi(&mut seq.synth, messages);
-        playing.into_iter().for_each(|(ch, note)| {
-            let synth = &mut seq.synth;
+    let mut seq = seq.lock().unwrap();
+    seq.play_head.step = 0;
+    playing.into_iter().for_each(|(ch, note)| {
+        let synth = &mut seq.synth;
 
-            if ch == 0 {
-                synth.get_engine().stop(note);
-            } else if let Some(synth_type) = synth_types.get((ch - 1) as usize) {
-                synth.engines.index_mut(*synth_type as usize).stop(note);
-            }
-        })
-    }
+        if ch == 0 {
+            synth.get_engine().stop(note);
+        } else if let Some(synth_type) = synth_types.get((ch - 1) as usize) {
+            synth.engines.index_mut(*synth_type as usize).stop(note);
+        }
+    })
 }
