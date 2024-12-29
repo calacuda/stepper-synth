@@ -39,7 +39,7 @@ impl Synth {
             osc_type: [
                 // (OscType::Sin, 1.0),
                 (OscType::Saw, 1.0),
-                (OscType::Sin, 1.0),
+                (OscType::Saw, 1.0),
                 // (OscType::Saw, 1.0),
                 // (OscType::Tri, 0.75),
                 // (OscType::Sqr, 1.0),

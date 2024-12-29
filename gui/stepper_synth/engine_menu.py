@@ -4,7 +4,7 @@ from .config import *
 from .utils import *
 
 engines = [SynthEngineType.B3Organ,
-           SynthEngineType.SubSynth, EffectType.Reverb, EffectType.Chorus, 0]
+           SynthEngineType.SubSynth, EffectType.Reverb, EffectType.Chorus, "Stepper"]
 INDEX = 0
 
 
@@ -46,10 +46,12 @@ def draw_engine_menu(pygame, screen, fonts):
     offset = SCREEN_HEIGHT / 8 + LINE_WIDTH + line_height / 2
     # x = SCREEN_WIDTH - wdith / 2
 
-    for (i, engine) in enumerate(engines):
-        y = i * line_height + offset
+    for (i, engine) in enumerate(engines[INDEX // 4:(INDEX // 4) + 4]):
+        engine = engines[i + INDEX // 4]
+
+        y = (i % 4) * line_height + offset
         # print(engine, synth_state.engine, engine == synth_state.engine)
-        prefix = "> " if i == INDEX else ""
+        prefix = "> " if i + INDEX // 4 == INDEX else ""
         text = fonts[0].render(f'{prefix}{engine}', True, TEXT_COLOR_1)
         text_rect = text.get_rect()
         text_rect.centery = y
@@ -72,9 +74,9 @@ def engine_menu_controles(synth: StepperSynth, controls: Buttons):
         # print("new_engine", new_engine)
         # synth.set_screen(Screen.Synth(new_engine))
         # print("engine after set", synth.get_state().engine)
-        if isinstance(new_screen, int):
-            synth.set_screen(Screen.Stepper(new_screen))
-            return (synth, True)
+        # if isinstance(new_screen, Screen.Stepper):
+        #     synth.set_screen(new_screen(0))
+        #     return (synth, True)
 
         match new_screen:
             case SynthEngineType.B3Organ | SynthEngineType.SubSynth:
@@ -82,6 +84,9 @@ def engine_menu_controles(synth: StepperSynth, controls: Buttons):
                 return (synth, True)
             case EffectType.Reverb | EffectType.Chorus:
                 synth.set_screen(Screen.Effect(new_screen))
+                return (synth, True)
+            case "Stepper":
+                synth.set_screen(Screen.Stepper(0))
                 return (synth, True)
 
     return (synth, False)

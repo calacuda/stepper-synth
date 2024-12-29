@@ -42,6 +42,7 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [ ] maybe a CLI (emphasis on maybe)
 - [ ] midi sequencer
 - [ ] mod matrix
+- [ ] wurlitzer engine
 
 ## Currently Working On
 

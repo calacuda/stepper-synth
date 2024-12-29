@@ -59,6 +59,7 @@ pub struct LfoInput {
 pub enum SynthModule {
     B3Organ(Organ),
     SubSynth(synth::synth::Synth),
+    // Wurli()
 }
 
 impl From<SynthEngineType> for SynthModule {
@@ -166,7 +167,29 @@ impl SampleGen for Synth {
             }
         }
 
-        let sample = self.get_engine().get_sample();
+        // let n_engines = self.engines.len();
+        let mut n_samples = 1;
+        // let mut sample = 0.0; // self.get_engine().get_sample() * 1.8;
+
+        let mut samples: Vec<f32> = self
+            .engines
+            .iter_mut()
+            .map(|engine| {
+                let samp = engine.get_sample();
+
+                if samp != 0.0 {
+                    n_samples += 1;
+                }
+
+                samp
+            })
+            .collect();
+        samples[self.engine_type as usize] = samples[self.engine_type as usize] * 2.0;
+
+        // let mut sample = samples.into_iter().sum();
+
+        let bias = 1.0 / (n_samples as f32);
+        let sample = samples.into_iter().sum::<f32>() * 0.8 * bias;
 
         if !self.effect_power {
             return sample;
