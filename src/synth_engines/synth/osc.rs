@@ -13,7 +13,7 @@ pub struct WavetableOscillator {
     sample_rate: f32,
     index: f32,
     index_increment: f32,
-    wave_table: WaveTable,
+    pub wave_table: WaveTable,
     direction: bool,
 }
 

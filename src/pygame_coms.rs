@@ -50,6 +50,7 @@ pub enum Knob {
 pub enum SynthEngineType {
     SubSynth,
     B3Organ,
+    Wurlitzer,
     // DrumSynth,
     // SamplerSynth,
     // WaveTableSynth,
@@ -60,6 +61,7 @@ impl Into<usize> for SynthEngineType {
         match self {
             Self::B3Organ => 0,
             Self::SubSynth => 1,
+            Self::Wurlitzer => 2,
         }
     }
 }
@@ -69,6 +71,7 @@ impl Display for SynthEngineType {
         match self {
             Self::SubSynth => write!(f, "Subtract"),
             Self::B3Organ => write!(f, "Organ"),
+            Self::Wurlitzer => write!(f, "Wurlitzer"),
             // Self::SamplerSynth => write!(f, "Sampler"),
             // Self::WaveTableSynth => write!(f, "WaveTbl"),
         }
@@ -276,15 +279,22 @@ impl StepperSynth {
         let mut seq = self.midi_sequencer.lock().unwrap();
 
         match self.screen {
-            Screen::Synth(SynthEngineType::B3Organ) => StepperSynthState::Synth {
-                engine: SynthEngineType::B3Organ,
-                effect: seq.synth.effect_type,
-                effect_on: seq.synth.effect_power,
-                knob_params: seq.synth.get_engine().get_params(),
-                gui_params: seq.synth.get_engine().get_gui_params(),
-            },
-            Screen::Synth(SynthEngineType::SubSynth) => StepperSynthState::Synth {
-                engine: SynthEngineType::SubSynth,
+            // Screen::Synth(SynthEngineType::B3Organ) => StepperSynthState::Synth {
+            //     engine: SynthEngineType::B3Organ,
+            //     effect: seq.synth.effect_type,
+            //     effect_on: seq.synth.effect_power,
+            //     knob_params: seq.synth.get_engine().get_params(),
+            //     gui_params: seq.synth.get_engine().get_gui_params(),
+            // },
+            // Screen::Synth(SynthEngineType::SubSynth) => StepperSynthState::Synth {
+            //     engine: SynthEngineType::SubSynth,
+            //     effect: seq.synth.effect_type,
+            //     effect_on: seq.synth.effect_power,
+            //     knob_params: seq.synth.get_engine().get_params(),
+            //     gui_params: seq.synth.get_engine().get_gui_params(),
+            // },
+            Screen::Synth(engine_type) => StepperSynthState::Synth {
+                engine: engine_type,
                 effect: seq.synth.effect_type,
                 effect_on: seq.synth.effect_power,
                 knob_params: seq.synth.get_engine().get_params(),

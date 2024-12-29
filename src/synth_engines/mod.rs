@@ -12,10 +12,12 @@ use pyo3::prelude::*;
 use std::{fmt::Debug, ops::IndexMut};
 use strum::IntoEnumIterator;
 use synth_common::lfo::LFO;
+use wurlitzer::WurlitzerEngine;
 
 pub mod organ;
 pub mod synth;
 pub mod synth_common;
+pub mod wurlitzer;
 
 #[enum_dispatch]
 pub trait SynthEngine: Debug + SampleGen + KnobCtrl + Send + Clone {
@@ -59,7 +61,7 @@ pub struct LfoInput {
 pub enum SynthModule {
     B3Organ(Organ),
     SubSynth(synth::synth::Synth),
-    // Wurli()
+    Wurli(WurlitzerEngine),
 }
 
 impl From<SynthEngineType> for SynthModule {
@@ -67,6 +69,7 @@ impl From<SynthEngineType> for SynthModule {
         match value {
             SynthEngineType::B3Organ => Self::B3Organ(Organ::new()),
             SynthEngineType::SubSynth => Self::SubSynth(synth::synth::Synth::new()),
+            SynthEngineType::Wurlitzer => Self::Wurli(WurlitzerEngine::new()),
         }
     }
 }
@@ -103,7 +106,7 @@ impl Synth {
             effect_type: EffectType::Reverb,
             effect_power: false,
             lfo_target: None,
-            engine_type: SynthEngineType::B3Organ,
+            engine_type: SynthEngineType::Wurlitzer,
             engines,
             // engine: Box::new(Organ::new()),
             // engine: SynthEngines::new(),
@@ -114,6 +117,8 @@ impl Synth {
     }
 
     pub fn get_engine(&mut self) -> &mut SynthModule {
+        // info!("{} => {}", self.engine_type, self.engine_type as usize);
+
         self.engines.index_mut(self.engine_type as usize)
     }
 
@@ -178,6 +183,7 @@ impl SampleGen for Synth {
                 let samp = engine.get_sample();
 
                 if samp != 0.0 {
+                    // info!("{engine:?}");
                     n_samples += 1;
                 }
 

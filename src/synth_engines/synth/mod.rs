@@ -1,12 +1,11 @@
+use super::synth_common::{WaveTable, WAVE_TABLE_SIZE};
 use crate::SampleGen;
 use osc::WavetableOscillator;
 use pyo3::prelude::*;
 use saw_tooth::SawToothOsc;
 use std::fmt::Debug;
 
-use super::synth_common::{WaveTable, WAVE_TABLE_SIZE};
-
-mod osc;
+pub mod osc;
 mod saw_tooth;
 pub mod synth;
 
