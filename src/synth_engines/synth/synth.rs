@@ -7,7 +7,6 @@ use crate::{
     },
     HashMap, KnobCtrl, SampleGen,
 };
-use log::info;
 use midi_control::MidiNote;
 
 pub const VOICES: usize = 10;

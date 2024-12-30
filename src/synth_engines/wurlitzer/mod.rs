@@ -33,9 +33,7 @@ impl WurlitzerEngine {
 
         for osc in self.osc_s.iter_mut() {
             if osc.playing.is_none() && !osc.vol_env.pressed() {
-                let vel = 10.0_f32.powf((velocity as f32 / (u8::MAX as f32 * 0.5)).log10());
-
-                // let vel = 10.0_f32.powf(vel);
+                let vel = velocity as f32 / (u8::MAX as f32 * 0.5);
                 osc.press(midi_note, vel);
                 osc.playing = Some(midi_note);
 
