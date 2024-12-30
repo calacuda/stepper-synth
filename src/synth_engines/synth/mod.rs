@@ -5,6 +5,8 @@ use pyo3::prelude::*;
 use saw_tooth::SawToothOsc;
 use std::fmt::Debug;
 
+pub const N_OVERTONES_SAW: usize = 16;
+
 pub mod osc;
 mod saw_tooth;
 pub mod synth;

@@ -6,7 +6,7 @@ use crate::{
     SampleGen, SAMPLE_RATE,
 };
 
-pub const N_OVERTONES: usize = 10;
+pub const N_OVERTONES: usize = 16;
 
 #[derive(Clone, Debug)]
 pub struct WavetableOscillator {
@@ -56,7 +56,7 @@ impl WavetableOscillator {
             self.index %= WAVE_TABLE_SIZE as f32;
         }
 
-        sample
+        sample * 0.9
     }
 
     fn lerp(&self, wave_table: &[f32]) -> f32 {

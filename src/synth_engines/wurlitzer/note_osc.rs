@@ -54,17 +54,19 @@ impl WurliNoteOsc {
         };
         let vol_env = {
             let mut env = ADSR::new();
-            env.set_atk(0.01);
+            env.set_atk(0.02);
             env.set_sus(0.125);
             env.set_decay(10.0);
+            env.set_release(0.02);
 
             env
         };
         let param_env = {
             let mut env = ADSR::new();
-            env.set_atk(0.01);
+            env.set_atk(0.02);
             env.set_sus(0.125);
             env.set_decay(7.0);
+            env.set_release(0.02);
 
             env
         };
@@ -80,7 +82,7 @@ impl WurliNoteOsc {
             osc_1,
             osc_2,
             trem_lfo,
-            trem_lfo_depth: 0.25,
+            trem_lfo_depth: 0.5,
             vol_env,
             param_env,
             formant,
@@ -112,6 +114,10 @@ impl WurliNoteOsc {
         // 2_f32.powf(exp)
 
         2.0_f32.powf(exp)
+    }
+
+    pub fn set_trem_depth(&mut self, depth: f32) {
+        self.trem_lfo_depth = depth;
     }
 
     pub fn release(&mut self) {
@@ -152,10 +158,12 @@ impl SampleGen for WurliNoteOsc {
         let p_env = self.param_env.get_samnple();
         let mix = p_env - p_env * KEY_FRAME_MOD * self.vel;
         let trem_lfo = self.trem_lfo.get_sample() * self.trem_lfo_depth * self.vel;
-        let vol = self.vol_env.get_samnple();
+        let mut vol = self.vol_env.get_samnple();
 
         if vol == 0.0 {
             self.playing = None;
+        } else {
+            vol *= self.vel;
         }
 
         harmonic_1 *= mix;

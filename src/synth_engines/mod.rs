@@ -106,7 +106,7 @@ impl Synth {
             effect_type: EffectType::Reverb,
             effect_power: false,
             lfo_target: None,
-            engine_type: SynthEngineType::Wurlitzer,
+            engine_type: SynthEngineType::B3Organ,
             engines,
             // engine: Box::new(Organ::new()),
             // engine: SynthEngines::new(),

@@ -1,4 +1,4 @@
-use super::{osc::N_OVERTONES, SynthOscilatorBackend};
+use super::{SynthOscilatorBackend, N_OVERTONES_SAW};
 use crate::{SampleGen, SAMPLE_RATE};
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -24,8 +24,8 @@ impl SampleGen for STOsc {
 impl SynthOscilatorBackend for STOsc {
     fn set_frequency(&mut self, frequency: f32) {
         let n_peeks = frequency as f64 * 2.0;
-        self.inc = 1.0 / (SAMPLE_RATE as f64 / n_peeks);
-        self.value = 1.0;
+        self.inc = 2.0 / (SAMPLE_RATE as f64 / n_peeks);
+        self.value = -1.0;
     }
 
     fn sync_reset(&mut self) {
@@ -37,7 +37,7 @@ impl SynthOscilatorBackend for STOsc {
 
 #[derive(Debug, Clone)]
 pub struct SawToothOsc {
-    osc_s: [STOsc; N_OVERTONES],
+    osc_s: [STOsc; N_OVERTONES_SAW],
 }
 
 impl SawToothOsc {
@@ -46,7 +46,7 @@ impl SawToothOsc {
         osc.value = 1.0;
 
         Self {
-            osc_s: [osc; N_OVERTONES],
+            osc_s: [osc; N_OVERTONES_SAW],
         }
     }
 }
@@ -59,7 +59,8 @@ impl SampleGen for SawToothOsc {
             sample += osc.get_sample();
         }
 
-        sample / (N_OVERTONES as f32 * 0.5)
+        // sample / (N_OVERTONES_SAW as f32 * 0.25)
+        sample * 0.96
     }
 }
 

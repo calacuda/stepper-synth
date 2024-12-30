@@ -7,6 +7,7 @@ use crate::{
     },
     HashMap, KnobCtrl, SampleGen,
 };
+use log::info;
 use midi_control::MidiNote;
 
 pub const VOICES: usize = 10;
@@ -28,7 +29,7 @@ impl Synth {
         let osc_2: Vec<SynthOscillator> = (0..VOICES)
             .map(|_| {
                 let mut osc = SynthOscillator::new();
-                osc.set_osc_type(OscType::Sin);
+                osc.set_osc_type(OscType::Saw);
                 osc
             })
             .collect();
@@ -46,7 +47,7 @@ impl Synth {
             ],
             // overtones,
             // osc_type: Arc::new([(OscType::Tri, 1.0)]),
-            volume: 1.0,
+            volume: 0.75,
             mix: 0.5,
             osc_sync: false,
             lfo_target: LfoInput::default(),
@@ -118,7 +119,7 @@ impl Synth {
 
         for (osc_s, _offset) in self.osc_s.iter_mut() {
             for osc in osc_s {
-                if osc.playing == Some(midi_note) && osc.env_filter.phase != RELEASE {
+                if osc.playing == Some(midi_note) && osc.env_filter.pressed() {
                     return;
                 }
             }
@@ -358,7 +359,8 @@ impl KnobCtrl for Synth {
     }
 
     fn gui_param_2(&mut self, value: f32) -> bool {
-        self.osc_type[1].0 = OscType::from(value as usize);
+        let osc_type = OscType::from(value as usize);
+        self.osc_type[1].0 = osc_type;
 
         for osc in self.osc_s[1].0.iter_mut() {
             osc.set_osc_type(self.osc_type[1].0)

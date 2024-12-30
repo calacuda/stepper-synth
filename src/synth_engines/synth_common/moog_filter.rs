@@ -142,7 +142,7 @@ impl LowPass {
         // } else {
         //     self.note
         // };
-        let delta = self.note * 10.0;
+        let delta = self.note * 12.0;
         let nudge = delta * env * self.cutoff;
         let cutoff = (self.note) + nudge;
 

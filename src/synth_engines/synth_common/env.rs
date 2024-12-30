@@ -1,5 +1,5 @@
 use crate::SAMPLE_RATE;
-use log::*;
+// use log::*;
 
 pub static UNPRESSED: usize = 0;
 pub static ATTACK: usize = 1;
@@ -84,8 +84,8 @@ impl ADSR {
         self.base_params[RELEASE] = release;
         self.tweek_env_by[RELEASE] = Self::calc_release(release, self.base_params[SUSTAIN]);
 
-        debug!("release: {release}, sustain: {}", self.base_params[SUSTAIN]);
-        debug!("release_tweak_by: {}", self.tweek_env_by[RELEASE]);
+        // debug!("release: {release}, sustain: {}", self.base_params[SUSTAIN]);
+        // debug!("release_tweak_by: {}", self.tweek_env_by[RELEASE]);
     }
 
     /// used to generate an env sample
@@ -115,7 +115,10 @@ impl ADSR {
     /// Release the key if pressed
     pub fn release(&mut self) {
         self.phase = RELEASE;
-        self.env = self.base_params[SUSTAIN];
+        // self.env = self.base_params[SUSTAIN];
+        self.tweek_env_by[RELEASE] = Self::calc_release(self.base_params[RELEASE], 1.0 - self.env);
+
+        // info!("key released. base release time {}");
     }
 
     /// returns true if the env filter is not released

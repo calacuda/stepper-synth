@@ -335,7 +335,9 @@ def adjust_value(pygame, controller: Buttons, synth: StepperSynth, synth_state: 
             # print("setting 0 or 1")
             mod_amt = -1 if left_pressed else 1
             set_to = set_max(synth_state.gui_params.get(param) + mod_amt, 4.0)
-        if INDEX[INDEX[4]] == 1:
+            print(f"setting oscilator to osc-type {set_to}")
+            print(f"gui_param => {param}")
+        elif INDEX[INDEX[4]] == 1:
             # print("setting 0 or 1")
             mod_amt = -1 if left_pressed else 1
             set_to = set_max(synth_state.gui_params.get(param) + mod_amt, 12.0)

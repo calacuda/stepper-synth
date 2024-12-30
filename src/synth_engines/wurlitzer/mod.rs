@@ -26,14 +26,17 @@ impl WurlitzerEngine {
         // info!("wurlitzer play note {midi_note}");
 
         for osc in self.osc_s.iter_mut() {
-            if osc.playing == Some(midi_note) && osc.vol_env.phase != RELEASE {
+            if osc.playing == Some(midi_note) && osc.vol_env.pressed() {
                 return;
             }
         }
 
         for osc in self.osc_s.iter_mut() {
-            if osc.playing.is_none() {
-                osc.press(midi_note, velocity as f32 / (u8::MAX as f32 * 0.5));
+            if osc.playing.is_none() && !osc.vol_env.pressed() {
+                let vel = 10.0_f32.powf((velocity as f32 / (u8::MAX as f32 * 0.5)).log10());
+
+                // let vel = 10.0_f32.powf(vel);
+                osc.press(midi_note, vel);
                 osc.playing = Some(midi_note);
 
                 break;
@@ -48,6 +51,12 @@ impl WurlitzerEngine {
                 break;
             }
         }
+    }
+
+    fn set_trem_depth(&mut self, depth: f32) {
+        self.osc_s
+            .iter_mut()
+            .for_each(|osc| osc.set_trem_depth(depth))
     }
 
     pub fn bend_all(&mut self, bend: f32) {
@@ -69,19 +78,20 @@ impl WurlitzerEngine {
 
 impl SampleGen for WurlitzerEngine {
     fn get_sample(&mut self) -> f32 {
-        let mut n_samples = 1;
-        let mut sample = 0.0;
+        // let mut n_samples = 1;
+        // let mut sample = 0.0;
 
-        // self.osc_s.iter_mut().map(|osc| osc.get_sample());
-        // samples.sum::<f32>() / samples.len() as f32
-        for osc in self.osc_s.iter_mut() {
-            if osc.playing.is_some() {
-                n_samples += 1;
-                sample += osc.get_sample();
-            }
-        }
+        let samples = self.osc_s.iter_mut().map(|osc| osc.get_sample());
+        let sample: f32 = samples.sum();
+        // for osc in self.osc_s.iter_mut() {
+        //     if osc.playing.is_some() {
+        //         // n_samples += 1;
+        //         sample += osc.get_sample() * 0.75;
+        //     }
+        // }
 
-        sample / n_samples as f32
+        // sample * 0.75
+        (sample * 0.5).tanh()
     }
 }
 
@@ -91,7 +101,7 @@ impl KnobCtrl for WurlitzerEngine {
     }
 
     fn knob_1(&mut self, value: f32) -> bool {
-        // self.set_trem_depth(value);
+        self.set_trem_depth(value);
         false
     }
 }
