@@ -98,11 +98,6 @@ impl OscType {
 pub fn build_sine_table(overtones: &[f64]) -> WaveTable {
     let mut wave_table = [0.0; WAVE_TABLE_SIZE];
 
-    // let n_overtones = overtones
-    //     .iter()
-    //     .filter(|tone| tone.volume > 0.0)
-    //     .collect::<Vec<_>>()
-    //     .len();
     let n_overtones = overtones.len();
 
     let bias = 1.0 / (n_overtones as f32 * 0.5);
