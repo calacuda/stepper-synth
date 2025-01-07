@@ -315,16 +315,23 @@ impl StepperSynth {
             //     effect_on: synth.effect_power,
             //     params: synth.effect.get_params(),
             // },
-            Screen::Stepper(_sequence) => StepperSynthState::MidiStepper {
-                playing: seq.state.playing.load(Ordering::Relaxed),
-                recording: seq.state.recording,
-                name: seq.get_name(),
-                tempo: seq.bpm,
-                step: seq.get_step(false),
-                cursor: seq.get_cursor(false),
-                sequence: seq.get_sequence(),
-                seq_n: seq.rec_head.get_sequence(),
-            },
+            Screen::Stepper(sequence) => {
+                // if !seq.state.recording {
+                // seq.rec_head.set
+                // }
+                seq.set_sequence(sequence.abs() as usize);
+
+                StepperSynthState::MidiStepper {
+                    playing: seq.state.playing.load(Ordering::Relaxed),
+                    recording: seq.state.recording,
+                    name: seq.get_name(),
+                    tempo: seq.bpm,
+                    step: seq.get_step(false),
+                    cursor: seq.get_cursor(false),
+                    sequence: seq.get_sequence(),
+                    seq_n: seq.rec_head.get_sequence(),
+                }
+            }
         }
     }
 
@@ -391,12 +398,12 @@ impl StepperSynth {
     pub fn start_recording(&mut self) {
         self.set_updated();
 
-        self.midi_sequencer
-            .lock()
-            .unwrap()
-            .state
-            .playing
-            .store(false, Ordering::Relaxed);
+        // self.midi_sequencer
+        //     .lock()
+        //     .unwrap()
+        //     .state
+        //     .playing
+        //     .store(false, Ordering::Relaxed);
         self.midi_sequencer.lock().unwrap().state.recording = true;
     }
 

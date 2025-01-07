@@ -94,6 +94,22 @@ impl SequenceIndex {
     pub fn get_sequence(&self) -> usize {
         self.sequence
     }
+
+    fn set_sequence(&mut self, sequence: usize) {
+        self.sequence = sequence
+    }
+
+    pub fn next_sequence(&mut self) {
+        self.sequence += 1;
+        self.step = 0;
+        // self.on_enter = true;
+    }
+
+    pub fn prev_sequence(&mut self) {
+        self.sequence -= 1;
+        self.step = 0;
+        // self.on_enter = true;
+    }
 }
 
 impl Index<SequenceIndex> for Vec<Sequence> {
@@ -117,20 +133,6 @@ impl IndexMut<SequenceIndex> for Vec<Sequence> {
         //     &mut self[index.sequence].steps[index.step].on_exit
         // }
         &mut self[index.sequence].steps[index.step]
-    }
-}
-
-impl SequenceIndex {
-    pub fn next_sequence(&mut self) {
-        self.sequence += 1;
-        self.step = 0;
-        // self.on_enter = true;
-    }
-
-    pub fn prev_sequence(&mut self) {
-        self.sequence -= 1;
-        self.step = 0;
-        // self.on_enter = true;
     }
 }
 
@@ -279,6 +281,14 @@ impl SequencerIntake {
 
     pub fn set_rec_head_seq(&mut self, seq: i64) {
         self.rec_head.sequence = (seq % self.sequences.len() as i64) as usize;
+    }
+
+    pub fn set_sequence(&mut self, sequence: usize) {
+        if sequence < self.sequences.len() {
+            self.rec_head.set_sequence(sequence);
+        } else {
+            error!("atempted to set record head to {sequence}, but that sequence doesn't exist.");
+        }
     }
 }
 
