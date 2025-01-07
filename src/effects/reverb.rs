@@ -4,12 +4,16 @@ use crate::{
     synth_engines::{synth_common::lfo::default_lfo_param_tweek, LfoInput, Param},
     HashMap, KnobCtrl, SampleGen,
 };
+#[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 use reverb;
 use std::fmt::Display;
 use strum::{EnumIter, IntoEnumIterator};
 
-#[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)]
+#[cfg_attr(
+    feature = "pyo3",
+    pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)
+)]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
 pub enum ReverbParam {
     Gain,
@@ -18,6 +22,7 @@ pub enum ReverbParam {
     Cutoff,
 }
 
+#[cfg(feature = "pyo3")]
 #[pymethods]
 impl ReverbParam {
     fn __str__(&self) -> PyResult<String> {

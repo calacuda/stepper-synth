@@ -1,6 +1,7 @@
 use super::synth_common::{WaveTable, WAVE_TABLE_SIZE};
 use crate::SampleGen;
 use osc::WavetableOscillator;
+#[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 use saw_tooth::SawToothOsc;
 use std::fmt::Debug;
@@ -57,7 +58,10 @@ impl SynthOscilatorBackend for SynthBackend {
     }
 }
 
-#[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int)]
+#[cfg_attr(
+    feature = "pyo3",
+    pyclass(module = "stepper_synth_backend", get_all, eq, eq_int)
+)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum OscType {
     Sin,
@@ -78,6 +82,7 @@ impl From<usize> for OscType {
     }
 }
 
+#[cfg(feature = "pyo3")]
 #[pymethods]
 impl OscType {
     #[new]

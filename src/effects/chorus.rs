@@ -1,10 +1,14 @@
 use super::{Effect, EffectParam};
 use crate::{synth_engines::LfoInput, HashMap, KnobCtrl, SampleGen, SAMPLE_RATE};
+#[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 use std::fmt::Display;
 use strum::{EnumIter, IntoEnumIterator};
 
-#[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)]
+#[cfg_attr(
+    feature = "pyo3",
+    pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)
+)]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
 pub enum ChorusParam {
     Volume,
@@ -34,6 +38,7 @@ impl TryFrom<f32> for ChorusParam {
     }
 }
 
+#[cfg(feature = "pyo3")]
 #[pymethods]
 impl ChorusParam {
     fn __str__(&self) -> PyResult<String> {

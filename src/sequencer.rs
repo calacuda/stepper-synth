@@ -5,6 +5,7 @@ use crate::{
 };
 use log::*;
 use midi_control::{ControlEvent, KeyEvent, MidiMessage, MidiNote};
+#[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 use std::{
     ops::{Index, IndexMut},
@@ -21,7 +22,7 @@ pub type MidiMessages = HashSet<(u8, StepCmd)>;
 pub type MidiControlCode = u8;
 pub type MidiInt = u8;
 
-#[pyclass(module = "stepper_synth_backend", get_all)]
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
 #[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Hash)]
 pub enum StepCmd {
     Play {
@@ -38,14 +39,14 @@ pub enum StepCmd {
     },
 }
 
-#[pyclass(module = "stepper_synth_backend", get_all)]
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
 #[derive(Debug, Clone, Default)]
 pub struct Step {
     pub on_enter: MidiMessages,
     pub on_exit: MidiMessages,
 }
 
-#[pyclass(module = "stepper_synth_backend", get_all)]
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
 #[derive(Debug, Clone)]
 pub struct Sequence {
     pub human_name: Option<String>,

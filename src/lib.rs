@@ -15,6 +15,7 @@ use pygame_coms::Screen;
 use pygame_coms::StepperSynth;
 use pygame_coms::StepperSynthState;
 use pygame_coms::{GuiParam, Knob, SynthEngineType};
+#[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 use sequencer::Sequence;
 use sequencer::SequencerIntake;
@@ -234,34 +235,40 @@ fn logger_init() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "pyo3")]
 #[pyfunction]
 fn log_trace(msg: String) {
     // println!("{msg}");
     trace!("{msg}")
 }
 
+#[cfg(feature = "pyo3")]
 #[pyfunction]
 fn log_debug(msg: String) {
     debug!("{msg}")
 }
 
+#[cfg(feature = "pyo3")]
 #[pyfunction]
 fn log_info(msg: String) {
     // println!("{msg}");
     info!("{msg}")
 }
 
+#[cfg(feature = "pyo3")]
 #[pyfunction]
 fn log_warn(msg: String) {
     warn!("{msg}")
 }
 
+#[cfg(feature = "pyo3")]
 #[pyfunction]
 fn log_error(msg: String) {
     error!("{msg}")
 }
 
 /// A Python module implemented in Rust.
+#[cfg(feature = "pyo3")]
 #[pymodule]
 fn stepper_synth_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // m.add_function(wrap_pyfunction!(start_audio, m)?)?;

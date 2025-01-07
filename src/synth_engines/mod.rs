@@ -8,6 +8,7 @@ use log::*;
 use midi_control::MidiNote;
 use midi_control::{ControlEvent, KeyEvent, MidiMessage};
 use organ::organ::Organ;
+#[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 use std::{fmt::Debug, ops::IndexMut};
 use strum::IntoEnumIterator;
@@ -36,14 +37,20 @@ pub trait SynthEngine: Debug + SampleGen + KnobCtrl + Send + Clone {
     // fn sustain_peddal(&mut self);
 }
 
-#[pyclass(module = "stepper_synth_backend", get_all, eq)]
+#[cfg_attr(
+    feature = "pyo3",
+    pyclass(module = "stepper_synth_backend", get_all, eq)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Param {
     Knob(Knob),
     Gui(GuiParam),
 }
 
-#[pyclass(module = "stepper_synth_backend", get_all, eq)]
+#[cfg_attr(
+    feature = "pyo3",
+    pyclass(module = "stepper_synth_backend", get_all, eq)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum LfoTarget {
     Synth(Param),

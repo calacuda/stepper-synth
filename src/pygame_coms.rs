@@ -6,6 +6,7 @@ use crate::{
     HashMap, KnobCtrl, SampleGen, SAMPLE_RATE,
 };
 use log::*;
+#[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 use std::{
     fmt::Display,
@@ -19,7 +20,10 @@ use std::{
 use strum::EnumIter;
 use tinyaudio::prelude::*;
 
-#[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)]
+#[cfg_attr(
+    feature = "pyo3",
+    pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum GuiParam {
     A,
@@ -32,7 +36,10 @@ pub enum GuiParam {
     H,
 }
 
-#[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)]
+#[cfg_attr(
+    feature = "pyo3",
+    pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum Knob {
     One,
@@ -45,7 +52,10 @@ pub enum Knob {
     Eight,
 }
 
-#[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int)]
+#[cfg_attr(
+    feature = "pyo3",
+    pyclass(module = "stepper_synth_backend", get_all, eq, eq_int)
+)]
 #[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Hash, EnumIter)]
 pub enum SynthEngineType {
     SubSynth,
@@ -78,14 +88,15 @@ impl Display for SynthEngineType {
     }
 }
 
-#[pymethods]
+#[cfg(feature = "pyo3")]
+#[cfg_attr(feature = "pyo3", pymethods)]
 impl SynthEngineType {
     fn __str__(&self) -> PyResult<String> {
         Ok(format!("{self}"))
     }
 }
 
-#[pyclass(module = "stepper_synth_backend", get_all)]
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
 #[derive(Debug, Clone, Copy)]
 pub enum Screen {
     Synth(SynthEngineType),
@@ -96,7 +107,7 @@ pub enum Screen {
     // MidiSeq(),
 }
 
-#[pyclass(module = "stepper_synth_backend", get_all)]
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
 #[derive(Debug, Clone)]
 pub enum StepperSynthState {
     Synth {
@@ -124,7 +135,7 @@ pub enum StepperSynthState {
     // MidiSeq(),
 }
 
-#[pyclass(module = "stepper_synth_backend")]
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend"))]
 #[derive(Debug)]
 pub struct StepperSynth {
     // synth: Arc<Mutex<Synth>>,
@@ -135,10 +146,7 @@ pub struct StepperSynth {
     exit: Arc<AtomicBool>,
     midi_sequencer: Arc<Mutex<SequencerIntake>>,
 }
-
-#[pymethods]
 impl StepperSynth {
-    #[new]
     pub fn new() -> Self {
         // build synth in arc mutex
         let synth = Synth::new();
@@ -223,6 +231,15 @@ impl StepperSynth {
             exit,
             // effect_midi,
         }
+    }
+}
+
+#[cfg_attr(feature = "pyo3", pymethods)]
+impl StepperSynth {
+    #[cfg(feature = "pyo3")]
+    #[new]
+    pub fn new_py() -> Self {
+        Self::new()
     }
 
     pub fn exit(&mut self) {

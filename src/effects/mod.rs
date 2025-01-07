@@ -1,7 +1,8 @@
 use crate::{HashMap, KnobCtrl, SampleGen};
 use chorus::Chorus;
 use enum_dispatch::enum_dispatch;
-use pyo3::{prelude::*, PyClass};
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
 use reverb::Reverb;
 use std::fmt::{Debug, Display};
 use strum::EnumIter;
@@ -9,7 +10,10 @@ use strum::EnumIter;
 pub mod chorus;
 pub mod reverb;
 
-#[pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)]
+#[cfg_attr(
+    feature = "pyo3",
+    pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)
+)]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
 pub enum EffectType {
     Reverb,
@@ -37,14 +41,15 @@ impl Display for EffectType {
     }
 }
 
-#[pymethods]
+#[cfg(feature = "pyo3")]
+#[cfg_attr(feature = "pyo3", pymethods)]
 impl EffectType {
     fn __str__(&self) -> PyResult<String> {
         Ok(format!("{self}"))
     }
 }
 
-pub trait EffectParam: Debug + Clone + Display + TryFrom<f32> + PyClass {}
+pub trait EffectParam: Debug + Clone + Display + TryFrom<f32> {}
 
 #[enum_dispatch(EffectsModule)]
 pub trait Effect: Debug + SampleGen + Send + KnobCtrl {
