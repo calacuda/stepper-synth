@@ -1,5 +1,5 @@
 [package]
-name = "stepper-synth"
+name = "stepper_synth"
 version = "0.1.0"
 edition = "2021"
 

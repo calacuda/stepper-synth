@@ -146,6 +146,7 @@ pub struct StepperSynth {
     exit: Arc<AtomicBool>,
     midi_sequencer: Arc<Mutex<SequencerIntake>>,
 }
+
 impl StepperSynth {
     pub fn new() -> Self {
         // build synth in arc mutex
