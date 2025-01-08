@@ -8,6 +8,7 @@ use crate::{
 use log::*;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
     sync::{
@@ -24,7 +25,7 @@ use tinyaudio::prelude::*;
     feature = "pyo3",
     pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)
 )]
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash, Serialize, Deserialize)]
 pub enum GuiParam {
     A,
     B,
@@ -40,7 +41,7 @@ pub enum GuiParam {
     feature = "pyo3",
     pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)
 )]
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash, Serialize, Deserialize)]
 pub enum Knob {
     One,
     Two,
@@ -56,7 +57,9 @@ pub enum Knob {
     feature = "pyo3",
     pyclass(module = "stepper_synth_backend", get_all, eq, eq_int)
 )]
-#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Hash, EnumIter)]
+#[derive(
+    Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Hash, EnumIter, Serialize, Deserialize,
+)]
 pub enum SynthEngineType {
     SubSynth,
     B3Organ,
@@ -108,7 +111,7 @@ pub enum Screen {
 }
 
 #[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum StepperSynthState {
     Synth {
         engine: SynthEngineType,

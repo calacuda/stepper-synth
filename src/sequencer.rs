@@ -7,6 +7,7 @@ use log::*;
 use midi_control::{ControlEvent, KeyEvent, MidiMessage, MidiNote};
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::{
     ops::{Index, IndexMut},
     sync::{
@@ -23,7 +24,7 @@ pub type MidiControlCode = u8;
 pub type MidiInt = u8;
 
 #[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
-#[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Hash, Serialize, Deserialize)]
 pub enum StepCmd {
     Play {
         note: MidiNote,
@@ -40,14 +41,14 @@ pub enum StepCmd {
 }
 
 #[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Step {
     pub on_enter: MidiMessages,
     pub on_exit: MidiMessages,
 }
 
 #[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sequence {
     pub human_name: Option<String>,
     pub steps: Vec<Step>,

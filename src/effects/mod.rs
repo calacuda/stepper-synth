@@ -4,6 +4,7 @@ use enum_dispatch::enum_dispatch;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 use reverb::Reverb;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use strum::EnumIter;
 
@@ -14,7 +15,9 @@ pub mod reverb;
     feature = "pyo3",
     pyclass(module = "stepper_synth_backend", get_all, eq, eq_int, hash, frozen)
 )]
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
+#[derive(
+    Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, EnumIter, Serialize, Deserialize,
+)]
 pub enum EffectType {
     Reverb,
     Chorus,
