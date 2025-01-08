@@ -289,6 +289,10 @@ impl StepperSynth {
         self.set_updated();
     }
 
+    pub fn get_screen(&self) -> Screen {
+        self.screen
+    }
+
     pub fn get_state(&self) -> StepperSynthState {
         // info!("get_state called");
         (*self.updated.lock().unwrap()) = false;
