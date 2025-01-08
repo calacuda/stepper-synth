@@ -110,6 +110,15 @@ pub enum Screen {
     // MidiSeq(),
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SynthEngineState {
+    pub engine: SynthEngineType,
+    pub effect: EffectType,
+    pub effect_on: bool,
+    pub knob_params: HashMap<Knob, f32>,
+    pub gui_params: HashMap<GuiParam, f32>,
+}
+
 #[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum StepperSynthState {
@@ -234,6 +243,18 @@ impl StepperSynth {
             midi_sequencer: sequencer,
             exit,
             // effect_midi,
+        }
+    }
+
+    pub fn get_engine_state(&self) -> SynthEngineState {
+        let mut seq = self.midi_sequencer.lock().unwrap();
+
+        SynthEngineState {
+            engine: seq.synth.engine_type,
+            effect: seq.synth.effect_type,
+            effect_on: seq.synth.effect_power,
+            knob_params: seq.synth.get_engine().get_params(),
+            gui_params: seq.synth.get_engine().get_gui_params(),
         }
     }
 }
