@@ -110,7 +110,7 @@ pub enum Screen {
     // MidiSeq(),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SynthEngineState {
     pub engine: SynthEngineType,
     pub effect: EffectType,
