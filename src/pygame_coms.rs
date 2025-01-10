@@ -156,7 +156,7 @@ pub struct StepperSynth {
     _handle: JoinHandle<()>,
     _midi_thread: JoinHandle<()>,
     exit: Arc<AtomicBool>,
-    midi_sequencer: Arc<Mutex<SequencerIntake>>,
+    pub midi_sequencer: Arc<Mutex<SequencerIntake>>,
 }
 
 impl StepperSynth {
