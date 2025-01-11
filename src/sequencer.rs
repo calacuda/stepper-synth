@@ -141,6 +141,7 @@ impl IndexMut<SequenceIndex> for Vec<Sequence> {
 #[derive(Debug)]
 pub struct SequencerIntake {
     sequences: Vec<Sequence>,
+    #[cfg(feature = "pyo3")]
     pub synth: Synth,
     // sequence_i: usize,
     pub rec_head: SequenceIndex,
@@ -150,6 +151,7 @@ pub struct SequencerIntake {
 }
 
 impl SequencerIntake {
+    #[cfg(feature = "pyo3")]
     pub fn new(synth: Synth) -> Self {
         Self {
             sequences: vec![
@@ -164,6 +166,23 @@ impl SequencerIntake {
             state: StepperState::default(),
             bpm: 120,
             synth,
+        }
+    }
+
+    #[cfg(not(feature = "pyo3"))]
+    pub fn new() -> Self {
+        Self {
+            sequences: vec![
+                Sequence::default(),
+                Sequence::default(),
+                Sequence::default(),
+                Sequence::default(),
+            ],
+            // sequence_i: 0,
+            rec_head: SequenceIndex::default(),
+            play_head: SequenceIndex::default(),
+            state: StepperState::default(),
+            bpm: 120,
         }
     }
 
@@ -294,6 +313,7 @@ impl SequencerIntake {
     }
 }
 
+#[cfg(feature = "pyo3")]
 impl MidiControlled for SequencerIntake {
     fn midi_input(&mut self, message: &MidiMessage) {
         self.synth.midi_input(message);
@@ -410,6 +430,7 @@ impl MidiControlled for SequencerIntake {
     }
 }
 
+#[cfg(feature = "pyo3")]
 pub fn play_sequence(seq: Arc<Mutex<SequencerIntake>>) {
     let mut beat_time = Duration::from_secs_f64(60.0 / seq.lock().unwrap().bpm as f64);
     // let mut last_on_exit = HashSet::default();

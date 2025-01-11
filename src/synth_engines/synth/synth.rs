@@ -288,8 +288,6 @@ impl SynthEngine for Synth {
         );
         map.insert(Knob::Five, self.osc_s[0].0[0].low_pass.cutoff);
         map.insert(Knob::Six, self.osc_s[0].0[0].low_pass.resonance);
-        // map.insert(Knob::Seven, self.overtones[6].volume as f32);
-        // map.insert(Knob::Eight, self.overtones[7].volume as f32);
 
         map
     }

@@ -1,10 +1,12 @@
 use crate::{
     effects::{Effect, EffectType},
-    logger_init, run_midi,
-    sequencer::{play_sequence, Sequence, SequencerIntake, Step},
+    logger_init,
+    sequencer::{Sequence, SequencerIntake, Step},
     synth_engines::{Synth, SynthEngine},
     HashMap, KnobCtrl, SampleGen, SAMPLE_RATE,
 };
+#[cfg(feature = "pyo3")]
+use crate::{run_midi, sequencer::play_sequence};
 use log::*;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
@@ -147,6 +149,7 @@ pub enum StepperSynthState {
     // MidiSeq(),
 }
 
+#[cfg(feature = "pyo3")]
 #[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend"))]
 #[derive(Debug)]
 pub struct StepperSynth {
@@ -159,6 +162,7 @@ pub struct StepperSynth {
     pub midi_sequencer: Arc<Mutex<SequencerIntake>>,
 }
 
+#[cfg(feature = "pyo3")]
 impl StepperSynth {
     pub fn new() -> Self {
         // build synth in arc mutex
@@ -259,6 +263,7 @@ impl StepperSynth {
     }
 }
 
+#[cfg(feature = "pyo3")]
 #[cfg_attr(feature = "pyo3", pymethods)]
 impl StepperSynth {
     #[cfg(feature = "pyo3")]

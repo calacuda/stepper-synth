@@ -12,6 +12,7 @@ use midi_control::MidiMessage;
 use midir::MidiInput;
 use midir::{Ignore, PortInfoError};
 use pygame_coms::Screen;
+#[cfg(feature = "pyo3")]
 use pygame_coms::StepperSynth;
 use pygame_coms::StepperSynthState;
 use pygame_coms::{GuiParam, Knob, SynthEngineType};
@@ -132,6 +133,7 @@ impl Iterator for Player {
     }
 }
 
+#[cfg(feature = "pyo3")]
 fn run_midi(
     synth: Arc<Mutex<SequencerIntake>>,
     updated: Arc<Mutex<bool>>,
