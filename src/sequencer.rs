@@ -178,7 +178,6 @@ impl SequencerIntake {
                 Sequence::default(),
                 Sequence::default(),
             ],
-            // sequence_i: 0,
             rec_head: SequenceIndex::default(),
             play_head: SequenceIndex::default(),
             state: StepperState::default(),
@@ -313,9 +312,9 @@ impl SequencerIntake {
     }
 }
 
-#[cfg(feature = "pyo3")]
 impl MidiControlled for SequencerIntake {
     fn midi_input(&mut self, message: &MidiMessage) {
+        #[cfg(feature = "pyo3")]
         self.synth.midi_input(message);
 
         if let MidiMessage::ControlChange(_channel, ControlEvent { control, value: _ }) = message {
