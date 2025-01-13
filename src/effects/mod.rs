@@ -61,6 +61,7 @@ pub trait Effect: Debug + SampleGen + Send + KnobCtrl {
     fn take_input(&mut self, value: f32);
     fn get_param_list(&self) -> Vec<String>;
     fn get_params(&self) -> HashMap<String, f32>;
+    fn set_param(&mut self, param: &str, to: f32);
 }
 
 #[enum_dispatch]

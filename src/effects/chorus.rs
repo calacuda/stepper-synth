@@ -136,4 +136,8 @@ impl Effect for Chorus {
 
         map
     }
+
+    fn set_param(&mut self, param: &str, to: f32) {
+        // TODO: Write this
+    }
 }

@@ -7,7 +7,7 @@ use crate::{
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 use reverb;
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 use strum::{EnumIter, IntoEnumIterator};
 
 #[cfg_attr(
@@ -58,6 +58,20 @@ impl Display for ReverbParam {
 }
 
 impl EffectParam for ReverbParam {}
+
+impl FromStr for ReverbParam {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "gain" => Ok(Self::Gain),
+            "decay" => Ok(Self::Decay),
+            "damping" => Ok(Self::Damping),
+            "cutoff" => Ok(Self::Cutoff),
+            _ => Err(format!("unknown reverb param {s}")),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Reverb {
@@ -193,6 +207,19 @@ impl Effect for Reverb {
         map.insert("Cutoff".into(), self.cutoff);
 
         map
+    }
+
+    fn set_param(&mut self, param: &str, to: f32) {
+        let Ok(param) = ReverbParam::from_str(param) else {
+            return;
+        };
+
+        match param {
+            ReverbParam::Gain => self.set_gain(to),
+            ReverbParam::Decay => self.set_decay(to),
+            ReverbParam::Cutoff => self.set_cutoff(to),
+            ReverbParam::Damping => self.set_damping(to),
+        }
     }
 
     // fn set_param(&mut self, param: Self::Param, to: f32) {
