@@ -13,11 +13,13 @@ use pyo3::prelude::*;
 use std::{fmt::Debug, ops::IndexMut};
 use strum::IntoEnumIterator;
 use synth_common::lfo::LFO;
+use wave_table::WaveTableEngine;
 use wurlitzer::WurlitzerEngine;
 
 pub mod organ;
 pub mod synth;
 pub mod synth_common;
+pub mod wave_table;
 pub mod wurlitzer;
 
 #[enum_dispatch]
@@ -69,6 +71,7 @@ pub enum SynthModule {
     B3Organ(Organ),
     SubSynth(synth::synth::Synth),
     Wurli(WurlitzerEngine),
+    WaveTable(WaveTableEngine),
 }
 
 impl From<SynthEngineType> for SynthModule {
@@ -77,6 +80,7 @@ impl From<SynthEngineType> for SynthModule {
             SynthEngineType::B3Organ => Self::B3Organ(Organ::new()),
             SynthEngineType::SubSynth => Self::SubSynth(synth::synth::Synth::new()),
             SynthEngineType::Wurlitzer => Self::Wurli(WurlitzerEngine::new()),
+            SynthEngineType::WaveTable => Self::WaveTable(WaveTableEngine::new()),
         }
     }
 }
@@ -105,6 +109,8 @@ impl Synth {
         let effects = EffectType::iter()
             .map(|effect_type| effect_type.into())
             .collect();
+        // let engine_type = SynthEngineType::B3Organ;
+        let engine_type = SynthEngineType::WaveTable;
 
         Self {
             lfo: LFO::new(),
@@ -113,7 +119,7 @@ impl Synth {
             effect_type: EffectType::Reverb,
             effect_power: false,
             lfo_target: None,
-            engine_type: SynthEngineType::B3Organ,
+            engine_type,
             engines,
             // engine: Box::new(Organ::new()),
             // engine: SynthEngines::new(),

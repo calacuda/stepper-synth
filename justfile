@@ -1,7 +1,7 @@
-default:
+_:
   just -l
 
-new-window NAME CMD:
+_new-window NAME CMD:
   tmux new-w -t midi-stepper -n "{{NAME}}"
   tmux send-keys -t midi-stepper:"{{NAME}}" ". ./.venv/bin/activate" ENTER
   tmux send-keys -t midi-stepper:"{{NAME}}" "{{CMD}}" ENTER
@@ -9,12 +9,15 @@ new-window NAME CMD:
 tmux:
   tmux new -ds midi-stepper -n "README"
   tmux send-keys -t midi-stepper:README 'nv ./README.md "+set wrap"' ENTER
-  @just new-window "GUI" "nv ./gui/Stepper-Synth.pygame +'setfiletype python'"
-  @just new-window "Edit" ""
-  @just new-window "Run" ""
-  @just new-window "Git" "git status"
-  @just new-window "Misc" ""
+  @just _new-window "GUI" "nv ./gui/Stepper-Synth.pygame +'setfiletype python'"
+  @just _new-window "Edit" ""
+  @just _new-window "Run" ""
+  @just _new-window "Git" "git status"
+  @just _new-window "Misc" ""
   tmux a -t midi-stepper
+
+check:
+  cargo check
 
 install-lib:
   pip uninstall -y stepper-synth-backend && maturin develop

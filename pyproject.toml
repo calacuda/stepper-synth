@@ -5,7 +5,9 @@ build-backend = "maturin"
 [project]
 name = "stepper-synth-backend"
 # requires-python = ">=3.8"
-requires-python = ">=3.11"
+# requires-python = ">=3.11"
+requires-python = ">=3.11, != 3.12"
+# requires-python = [ "3.11", "3.13" ]
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",

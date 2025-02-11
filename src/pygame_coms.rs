@@ -66,9 +66,9 @@ pub enum SynthEngineType {
     SubSynth,
     B3Organ,
     Wurlitzer,
+    WaveTable,
     // DrumSynth,
     // SamplerSynth,
-    // WaveTableSynth,
 }
 
 impl Into<usize> for SynthEngineType {
@@ -77,6 +77,7 @@ impl Into<usize> for SynthEngineType {
             Self::B3Organ => 0,
             Self::SubSynth => 1,
             Self::Wurlitzer => 2,
+            Self::WaveTable => 3,
         }
     }
 }
@@ -87,8 +88,8 @@ impl Display for SynthEngineType {
             Self::SubSynth => write!(f, "Subtract"),
             Self::B3Organ => write!(f, "Organ"),
             Self::Wurlitzer => write!(f, "Wurlitzer"),
+            Self::WaveTable => write!(f, "WaveTable"),
             // Self::SamplerSynth => write!(f, "Sampler"),
-            // Self::WaveTableSynth => write!(f, "WaveTbl"),
         }
     }
 }
@@ -202,7 +203,7 @@ impl StepperSynth {
                 });
 
                 if let Err(e) = device {
-                    error!("strating audio playback caused error: {e}");
+                    error!("starting audio playback caused error: {e}");
                 }
 
                 // let seq = sequencer.clone();

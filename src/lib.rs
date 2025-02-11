@@ -213,7 +213,7 @@ fn logger_init() -> Result<()> {
                 message
             ))
         })
-        .chain(fern::log_file("stepper-synth.log")?)
+        // .chain(fern::log_file("stepper-synth.log")?)
         // .filter(|metadata| metadata..starts_with("stepper"))
         .chain(std::io::stderr())
         .apply()?;
@@ -227,7 +227,7 @@ fn logger_init() -> Result<()> {
                 message
             ))
         })
-        .chain(fern::log_file("stepper-synth.log")?)
+        // .chain(fern::log_file("stepper-synth.log")?)
         // .filter(|metadata| metadata.target().starts_with("stepper"))
         .chain(std::io::stderr())
         .apply()?;

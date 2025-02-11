@@ -52,7 +52,7 @@ impl EffectParam for ChorusParam {}
 pub struct Chorus {
     pub size: usize,
     pub buff: [f32; SAMPLE_RATE as usize],
-    pub instert_i: usize,
+    pub insert_i: usize,
     pub get_i: usize,
     pub step: usize,
     pub volume: f32,
@@ -66,7 +66,7 @@ impl Chorus {
         Self {
             size: SAMPLE_RATE as usize,
             buff: [0.0; SAMPLE_RATE as usize],
-            instert_i: 0,
+            insert_i: 0,
             get_i: 0,
             step: (SAMPLE_RATE as f32 * (0.25 * 0.5)) as usize,
             volume: 0.75,
@@ -118,9 +118,9 @@ impl KnobCtrl for Chorus {
 impl Effect for Chorus {
     fn take_input(&mut self, value: f32) {
         self.input = value * self.volume;
-        self.buff[self.instert_i] = self.input;
-        self.instert_i += 1;
-        self.instert_i %= self.size;
+        self.buff[self.insert_i] = self.input;
+        self.insert_i += 1;
+        self.insert_i %= self.size;
     }
 
     fn get_param_list(&self) -> Vec<String> {
@@ -137,7 +137,7 @@ impl Effect for Chorus {
         map
     }
 
-    fn set_param(&mut self, param: &str, to: f32) {
+    fn set_param(&mut self, _param: &str, _to: f32) {
         // TODO: Write this
     }
 }
