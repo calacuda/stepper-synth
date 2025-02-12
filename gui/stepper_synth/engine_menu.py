@@ -3,8 +3,15 @@ from stepper_synth_backend import GuiParam, Knob, SynthEngineType, StepperSynth,
 from .config import *
 from .utils import *
 
-engines = [SynthEngineType.B3Organ,
-           SynthEngineType.SubSynth, SynthEngineType.Wurlitzer, EffectType.Reverb, EffectType.Chorus, "Stepper"]
+engines = [
+    SynthEngineType.B3Organ,
+    SynthEngineType.SubSynth,
+    SynthEngineType.Wurlitzer,
+    SynthEngineType.WaveTable,
+    EffectType.Reverb,
+    EffectType.Chorus,
+    "Stepper",
+]
 INDEX = 0
 
 
@@ -46,12 +53,35 @@ def draw_engine_menu(pygame, screen, fonts):
     offset = SCREEN_HEIGHT / 8 + LINE_WIDTH + line_height / 2
     # x = SCREEN_WIDTH - wdith / 2
 
-    for (i, engine) in enumerate(engines[INDEX // 4:(INDEX // 4) + 4]):
-        engine = engines[i + INDEX // 4]
+    start_i = INDEX // 4  # + INDEX % 4
+    # end_i = start_i + 4
+
+    # if (4 + (4 * start_i) + INDEX % 4) >= len(engines):
+    #     start_i -= 4
+
+    # print(f"{INDEX} => {len(engines[start_i:end_i])}")
+    # print(f"{start_i} => {end_i}")
+
+    # i_offset = len(engines) - (INDEX % 4) - \
+    #     4 if INDEX >= (len(engines) - 5) else 0
+
+    for i in range(4):
+        e_i = i + (4 * start_i) + INDEX % 4  # - i_offset
+
+        # print(e_i, 4 - ((len(engines) - 4) - (4 * start_i)), INDEX)
+
+        if INDEX >= (len(engines) - 4):
+            e_i -= abs(len(engines) - 4 - INDEX)
+            # print(e_i)
+
+        # if e_i < len(engines):
+        # break
+
+        engine = engines[e_i]
 
         y = (i % 4) * line_height + offset
         # print(engine, synth_state.engine, engine == synth_state.engine)
-        prefix = "> " if i + INDEX // 4 == INDEX else ""
+        prefix = "> " if e_i == INDEX else ""
         text = fonts[0].render(f'{prefix}{engine}', True, TEXT_COLOR_1)
         text_rect = text.get_rect()
         text_rect.centery = y
@@ -59,7 +89,7 @@ def draw_engine_menu(pygame, screen, fonts):
         screen.blit(text, text_rect)
 
 
-def engine_menu_controles(synth: StepperSynth, controls: Buttons):
+def engine_menu_controls(synth: StepperSynth, controls: Buttons):
     global INDEX
 
     if controls.just_released(buttons.get("up")):
@@ -79,7 +109,7 @@ def engine_menu_controles(synth: StepperSynth, controls: Buttons):
         #     return (synth, True)
 
         match new_screen:
-            case SynthEngineType.B3Organ | SynthEngineType.SubSynth | SynthEngineType.Wurlitzer:
+            case SynthEngineType.B3Organ | SynthEngineType.SubSynth | SynthEngineType.Wurlitzer | SynthEngineType.WaveTable:
                 synth.set_screen(Screen.Synth(new_screen))
                 return (synth, True)
             case EffectType.Reverb | EffectType.Chorus:

@@ -4,10 +4,9 @@ import pygame
 from stepper_synth_backend import StepperSynth, SynthEngineType, StepperSynthState, EffectType, Screen
 from pathlib import Path
 from logging import DEBUG, INFO
-# from stepper_synth.effect_menu import draw_effect_menu, effect_menu_controles, reset_effect_menu
 from stepper_synth.stepper import draw_stepper, stepper_controls
 from stepper_synth.reverb_menu import draw_reverb_menu, reverb_controls
-from stepper_synth.engine_menu import draw_engine_menu, reset_engine_menu, engine_menu_controles
+from stepper_synth.engine_menu import draw_engine_menu, reset_engine_menu, engine_menu_controls
 from stepper_synth.config import *
 from stepper_synth.organ_screen import draw_organ, organ_controls
 from stepper_synth.sub_synth_screen import draw_sub_synth, sub_synth_controls
@@ -200,12 +199,16 @@ def draw(synth_state):
             draw_sub_synth(pygame, screen, fonts, synth_state)
             controls_f = sub_synth_controls
             controls_args = [pygame, loc_controller, synth, synth_state]
+        case StepperSynthState.Synth(engine=SynthEngineType.WaveTable):
+            # log.warning("WaveTable screen not yet programmed")
+            pass
         case StepperSynthState.Effect(effect=EffectType.Reverb):
             draw_reverb_menu(pygame, screen, fonts, synth_state)
             controls_f = reverb_controls
             controls_args = [pygame, loc_controller, synth, synth_state]
         case StepperSynthState.Effect(effect=EffectType.Chorus):
-            log.warning("Chorus screen not yet programmed")
+            # log.warning("Chorus screen not yet programmed")
+            pass
         case StepperSynthState.MidiStepper():
             draw_stepper(pygame, screen, fonts, synth_state)
             controls_f = stepper_controls
@@ -216,7 +219,7 @@ def draw(synth_state):
 
     if SYNTH_MENU:
         draw_engine_menu(pygame, screen, fonts)
-        (synth, engine_changed) = engine_menu_controles(synth, controller)
+        (synth, engine_changed) = engine_menu_controls(synth, controller)
         SYNTH_MENU = engine_changed is None or not engine_changed
     # elif EFFECT_MENU:
     #     draw_effect_menu(pygame, screen, fonts)

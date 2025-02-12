@@ -147,6 +147,7 @@ pub enum StepperSynthState {
         sequence: Sequence,
         seq_n: usize,
     },
+    // WaveTable {},
     // MidiSeq(),
 }
 
