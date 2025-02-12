@@ -13,6 +13,7 @@ use pyo3::prelude::*;
 use std::{fmt::Debug, ops::IndexMut};
 use strum::IntoEnumIterator;
 use synth_common::lfo::LFO;
+// use synth_common::lfo::LFO;
 use wave_table::WaveTableEngine;
 use wurlitzer::WurlitzerEngine;
 
@@ -229,7 +230,7 @@ impl MidiControlled for Synth {
 
         match *message {
             MidiMessage::Invalid => {
-                error!("system recieved an invalid MIDI message.");
+                error!("system received an invalid MIDI message.");
             }
             MidiMessage::NoteOn(_, KeyEvent { key, value }) => {
                 debug!("playing note: {key}");

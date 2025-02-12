@@ -204,7 +204,7 @@ fn logger_init() -> Result<()> {
         .error(Color::Red);
 
     #[cfg(debug_assertions)]
-    fern::Dispatch::new()
+    let dis = fern::Dispatch::new()
         .format(move |out, message, record| {
             out.finish(format_args!(
                 "[{} {}] {}",
@@ -213,13 +213,13 @@ fn logger_init() -> Result<()> {
                 message
             ))
         })
-        // .chain(fern::log_file("stepper-synth.log")?)
-        // .filter(|metadata| metadata..starts_with("stepper"))
-        .chain(std::io::stderr())
-        .apply()?;
+        .chain(std::io::stderr());
+    // .filter(|metadata| metadata..starts_with("stepper"))
+    // .chain(fern::log_file("stepper-synth.log")?);
+    // .apply()?;
 
     #[cfg(not(debug_assertions))]
-    fern::Dispatch::new()
+    let dis = fern::Dispatch::new()
         .format(move |out, message, record| {
             out.finish(format_args!(
                 "[{}] {}",
@@ -227,10 +227,15 @@ fn logger_init() -> Result<()> {
                 message
             ))
         })
-        // .chain(fern::log_file("stepper-synth.log")?)
-        // .filter(|metadata| metadata.target().starts_with("stepper"))
-        .chain(std::io::stderr())
-        .apply()?;
+        .chain(std::io::stderr());
+    // .chain(fern::log_file("stepper-synth.log")?);
+    // .filter(|metadata| metadata.target().starts_with("stepper"))
+    // .apply()?;
+
+    #[cfg(target_arch = "aarch64")]
+    let dis = dis.chain(fern::log_file("stepper-synth.log")?);
+
+    dis.apply()?;
 
     info!("logger started");
 
