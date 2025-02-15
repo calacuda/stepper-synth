@@ -36,11 +36,11 @@ def getter_float(amts, up):
 
 def getter_offset(amts, up):
     if up:
-        amt = amts[X_INDEX] + 1
+        amt = amts[X_INDEX] + 1.0
     else:
-        amt = amts[X_INDEX] - 1
+        amt = amts[X_INDEX] - 1.0
 
-    return set_max(amt, 127, min=-127)
+    return int(set_max(float(amt), 126.0, min=-126.0))
 
 
 def do_nothing(amts, up):
@@ -95,7 +95,7 @@ def adjust_value(pygame, controller: Buttons, synth: StepperSynth, state: Steppe
     else:
         return synth
 
-    print(f"set_to = {set_to}")
+    # print(f"set_to = {set_to}")
 
     TIMER = pygame.time.get_ticks()
     synth.wt_param_setter(CONTROLS[X_INDEX](OSC_INDEX, set_to))

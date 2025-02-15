@@ -136,7 +136,7 @@ pub struct OscState {
     wave_table: Vec<f32>,
     on: bool,
     detune: f32,
-    offset: u8,
+    offset: i8,
     target: String,
 }
 
@@ -152,7 +152,7 @@ impl From<WaveTableEngine> for Vec<OscState> {
                 wave_table: osc.wave_table.to_vec(),
                 on,
                 detune: osc.detune,
-                offset: osc.offset as u8,
+                offset: osc.offset as i8,
                 target: match osc.target {
                     OscTarget::Filter1 => "Filter 1".into(),
                     OscTarget::Filter2 => "Filter 2".into(),
@@ -278,7 +278,7 @@ pub enum WTSynthParam {
     OscWaveTable { n: usize, wave_table: Vec<f32> },
     OscOn { n: usize, on: bool },
     OscDetune { n: usize, detune: f32 },
-    OscOffset { n: usize, offset: i8 },
+    OscOffset { n: usize, offset: i16 },
     OscTarget { n: usize, target: i8 },
     LowPassCutoff { n: usize, cutoff: f32 },
     LowPassRes { n: usize, res: f32 },
@@ -749,11 +749,16 @@ impl StepperSynth {
                 //     .for_each(|v| v.lock().unwrap().oscs[n].0.wave_table = wave_table);
                 // TODO: make happen
             }
-            WTSynthParam::OscOffset { n, offset } => wt_synth
-                .synth
-                .voices
-                .iter()
-                .for_each(|v| v.lock().unwrap().oscs[n].0.offset = offset.into()),
+            WTSynthParam::OscOffset { n, offset } => {
+                // let offset = offset as i16;
+                // info!("offset {offset}");
+
+                wt_synth
+                    .synth
+                    .voices
+                    .iter()
+                    .for_each(|v| v.lock().unwrap().oscs[n].0.offset = offset);
+            }
             WTSynthParam::OscTarget { n: _, target: _ } => {
                 // wt_synth
                 // .synth
