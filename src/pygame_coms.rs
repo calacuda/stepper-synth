@@ -2,7 +2,7 @@ use crate::{
     effects::{Effect, EffectType},
     logger_init,
     sequencer::{Sequence, SequencerIntake, Step},
-    synth_engines::{Synth, SynthEngine},
+    synth_engines::{wave_table::WaveTableEngine, Synth, SynthEngine, SynthModule},
     HashMap, KnobCtrl, SampleGen, SAMPLE_RATE,
 };
 #[cfg(feature = "pyo3")]
@@ -22,6 +22,7 @@ use std::{
 };
 use strum::EnumIter;
 use tinyaudio::prelude::*;
+use wavetable_synth::synth_engines::synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN};
 
 #[cfg_attr(
     feature = "pyo3",
@@ -108,11 +109,13 @@ pub enum Screen {
     Synth(SynthEngineType),
     Effect(EffectType),
     Stepper(i64),
+    WaveTableSynth(),
     // Sequencer(),
     // MidiStepper(),
     // MidiSeq(),
 }
 
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SynthEngineState {
     pub engine: SynthEngineType,
@@ -120,6 +123,106 @@ pub struct SynthEngineState {
     pub effect_on: bool,
     pub knob_params: HashMap<Knob, f32>,
     pub gui_params: HashMap<GuiParam, f32>,
+}
+
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OscState {
+    volume: f32,
+    wave_table: Vec<f32>,
+    on: bool,
+    detune: f32,
+    offset: u8,
+}
+
+impl From<WaveTableEngine> for Vec<OscState> {
+    fn from(value: WaveTableEngine) -> Self {
+        value.synth.voices[0]
+            .lock()
+            .unwrap()
+            .oscs
+            .clone()
+            .map(|(osc, on)| OscState {
+                volume: osc.level,
+                wave_table: osc.wave_table.to_vec(),
+                on,
+                detune: osc.detune,
+                offset: osc.offset as u8,
+            })
+            .to_vec()
+    }
+}
+
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LowPassState {
+    cutoff: f32,
+    res: f32,
+    keytracking: bool,
+    mix: f32,
+}
+
+impl From<WaveTableEngine> for Vec<LowPassState> {
+    fn from(value: WaveTableEngine) -> Self {
+        value.synth.voices[0]
+            .lock()
+            .unwrap()
+            .filters
+            .clone()
+            .map(|lp| LowPassState {
+                cutoff: lp.cutoff,
+                res: lp.resonance,
+                keytracking: lp.key_track,
+                mix: lp.mix,
+            })
+            .to_vec()
+    }
+}
+
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ADSRState {
+    atk: f32,
+    dcy: f32,
+    sus: f32,
+    rel: f32,
+}
+
+impl From<WaveTableEngine> for Vec<ADSRState> {
+    fn from(value: WaveTableEngine) -> Self {
+        value.synth.voices[0]
+            .lock()
+            .unwrap()
+            .envs
+            .clone()
+            .map(|env| ADSRState {
+                atk: env.base_params[ATTACK],
+                dcy: env.base_params[DECAY],
+                sus: env.base_params[SUSTAIN],
+                rel: env.base_params[RELEASE],
+            })
+            .to_vec()
+    }
+}
+
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LfoState {
+    speed: f32,
+}
+
+impl From<WaveTableEngine> for Vec<LfoState> {
+    fn from(value: WaveTableEngine) -> Self {
+        value.synth.voices[0]
+            .lock()
+            .unwrap()
+            .lfos
+            .clone()
+            .map(|lfo| LfoState {
+                speed: 1.0 / lfo.freq,
+            })
+            .to_vec()
+    }
 }
 
 #[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
@@ -147,7 +250,12 @@ pub enum StepperSynthState {
         sequence: Sequence,
         seq_n: usize,
     },
-    // WaveTable {},
+    WaveTable {
+        osc: Vec<OscState>,
+        filter: Vec<LowPassState>,
+        adsr: Vec<ADSRState>,
+        lfo: Vec<LfoState>,
+    },
     // MidiSeq(),
 }
 
@@ -313,6 +421,11 @@ impl StepperSynth {
             Screen::Stepper(seq) => {
                 self.midi_sequencer.lock().unwrap().set_rec_head_seq(seq);
             } // Screen::Sequencer() => {}
+            Screen::WaveTableSynth() => {
+                self.set_engine(SynthEngineType::WaveTable);
+                // self.effect_midi.store(false, Ordering::Relaxed)
+                self.midi_sequencer.lock().unwrap().synth.target_effects = false;
+            }
         }
 
         // info!("screen engine/effect set");
@@ -324,7 +437,7 @@ impl StepperSynth {
         self.screen
     }
 
-    pub fn get_state(&self) -> StepperSynthState {
+    pub fn get_state(&self) -> Option<StepperSynthState> {
         // info!("get_state called");
         (*self.updated.lock().unwrap()) = false;
         // info!("after set");
@@ -346,23 +459,23 @@ impl StepperSynth {
             //     knob_params: seq.synth.get_engine().get_params(),
             //     gui_params: seq.synth.get_engine().get_gui_params(),
             // },
-            Screen::Synth(engine_type) => StepperSynthState::Synth {
+            Screen::Synth(engine_type) => Some(StepperSynthState::Synth {
                 engine: engine_type,
                 effect: seq.synth.effect_type,
                 effect_on: seq.synth.effect_power,
                 knob_params: seq.synth.get_engine().get_params(),
                 gui_params: seq.synth.get_engine().get_gui_params(),
-            },
-            Screen::Effect(EffectType::Reverb) => StepperSynthState::Effect {
+            }),
+            Screen::Effect(EffectType::Reverb) => Some(StepperSynthState::Effect {
                 effect: EffectType::Reverb,
                 effect_on: seq.synth.effect_power,
                 params: seq.synth.get_effect().get_params(),
-            },
-            Screen::Effect(EffectType::Chorus) => StepperSynthState::Effect {
+            }),
+            Screen::Effect(EffectType::Chorus) => Some(StepperSynthState::Effect {
                 effect: EffectType::Chorus,
                 effect_on: seq.synth.effect_power,
                 params: seq.synth.get_effect().get_params(),
-            },
+            }),
             // Screen::Effect(EffectType::Delay) => StepperSynthState::Effect {
             //     effect: EffectType::Delay,
             //     effect_on: synth.effect_power,
@@ -374,7 +487,7 @@ impl StepperSynth {
                 // }
                 seq.set_sequence(sequence.abs() as usize);
 
-                StepperSynthState::MidiStepper {
+                Some(StepperSynthState::MidiStepper {
                     playing: seq.state.playing.load(Ordering::Relaxed),
                     recording: seq.state.recording,
                     name: seq.get_name(),
@@ -383,7 +496,26 @@ impl StepperSynth {
                     cursor: seq.get_cursor(false),
                     sequence: seq.get_sequence(),
                     seq_n: seq.rec_head.get_sequence(),
-                }
+                })
+            }
+            Screen::WaveTableSynth() => {
+                let synth = seq.synth.get_engine();
+
+                let SynthModule::WaveTable(wt) = synth else {
+                    return None;
+                };
+
+                let osc: Vec<OscState> = Vec::from(wt.clone());
+                let adsr: Vec<ADSRState> = Vec::from(wt.clone());
+                let filter: Vec<LowPassState> = Vec::from(wt.clone());
+                let lfo: Vec<LfoState> = Vec::from(wt.clone());
+
+                Some(StepperSynthState::WaveTable {
+                    osc,
+                    adsr,
+                    filter,
+                    lfo,
+                })
             }
         }
     }
@@ -439,6 +571,7 @@ impl StepperSynth {
             (Knob::Seven, Screen::Effect(_)) => synth.get_effect().knob_7(value),
             (Knob::Eight, Screen::Effect(_)) => synth.get_effect().knob_8(value),
             (_, Screen::Stepper(_)) => false,
+            _ => false,
         };
     }
 

@@ -278,7 +278,8 @@ fn log_error(msg: String) {
 #[cfg(feature = "pyo3")]
 #[pymodule]
 fn stepper_synth_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    // m.add_function(wrap_pyfunction!(start_audio, m)?)?;
+    use pygame_coms::{ADSRState, LfoState, LowPassState, OscState, SynthEngineState};
+
     m.add_function(wrap_pyfunction!(log_trace, m)?)?;
     m.add_function(wrap_pyfunction!(log_debug, m)?)?;
     m.add_function(wrap_pyfunction!(log_info, m)?)?;
@@ -298,11 +299,16 @@ fn stepper_synth_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Screen>()?;
     m.add_class::<StepperSynth>()?;
     m.add_class::<StepperSynthState>()?;
-    // m.add_class::<>()?;
     m.add_class::<Param>()?;
     m.add_class::<Step>()?;
     m.add_class::<StepCmd>()?;
     m.add_class::<Sequence>()?;
+    m.add_class::<SynthEngineState>()?;
+    m.add_class::<OscState>()?;
+    m.add_class::<LowPassState>()?;
+    m.add_class::<ADSRState>()?;
+    m.add_class::<LfoState>()?;
+    // m.add_class::<>()?;
 
     Ok(())
 }

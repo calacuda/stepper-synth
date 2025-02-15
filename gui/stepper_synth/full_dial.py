@@ -23,8 +23,8 @@ def scale_by(point, scale, center):
     return (x, y)
 
 
-def draw_dial(pygame, screen, x, y, value, selected):
-    diameter = SCREEN_WIDTH / 8
+def draw_dial(pygame, screen, x, y, value, selected, diameter=SCREEN_WIDTH / 8):
+    # diameter =
     radias = diameter / 2
     center = (x, y)
 

@@ -109,7 +109,7 @@ def engine_menu_controls(synth: StepperSynth, controls: Buttons):
         #     return (synth, True)
 
         match new_screen:
-            case SynthEngineType.B3Organ | SynthEngineType.SubSynth | SynthEngineType.Wurlitzer | SynthEngineType.WaveTable:
+            case SynthEngineType.B3Organ | SynthEngineType.SubSynth | SynthEngineType.Wurlitzer:
                 synth.set_screen(Screen.Synth(new_screen))
                 return (synth, True)
             case EffectType.Reverb | EffectType.Chorus:
@@ -117,6 +117,9 @@ def engine_menu_controls(synth: StepperSynth, controls: Buttons):
                 return (synth, True)
             case "Stepper":
                 synth.set_screen(Screen.Stepper(0))
+                return (synth, True)
+            case SynthEngineType.WaveTable:
+                synth.set_screen(Screen.WaveTableSynth())
                 return (synth, True)
 
     return (synth, False)

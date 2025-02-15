@@ -1,18 +1,19 @@
 #!/usr/bin/python
+from dataclasses import dataclass
+from stepper_synth.logger import get_logger
+from stepper_synth.controls import buttons, Buttons
+from stepper_synth.sub_synth_screen import draw_sub_synth, sub_synth_controls
+from stepper_synth.organ_screen import draw_organ, organ_controls
+from stepper_synth.config import *
+from stepper_synth.engine_menu import draw_engine_menu, reset_engine_menu, engine_menu_controls
 from typing import Callable, Tuple
 import pygame
 from stepper_synth_backend import StepperSynth, SynthEngineType, StepperSynthState, EffectType, Screen
 from pathlib import Path
 from logging import DEBUG, INFO
+from stepper_synth.wt import draw_wave_table, wave_table_controls
 from stepper_synth.stepper import draw_stepper, stepper_controls
 from stepper_synth.reverb_menu import draw_reverb_menu, reverb_controls
-from stepper_synth.engine_menu import draw_engine_menu, reset_engine_menu, engine_menu_controls
-from stepper_synth.config import *
-from stepper_synth.organ_screen import draw_organ, organ_controls
-from stepper_synth.sub_synth_screen import draw_sub_synth, sub_synth_controls
-from stepper_synth.controls import buttons, Buttons
-from stepper_synth.logger import get_logger
-from dataclasses import dataclass
 
 
 THIS_DIR = Path(__file__)
@@ -25,11 +26,12 @@ controller_found = False
 joy = None
 screen = pygame.display.set_mode(SCREEN_SIZE)
 pygame.font.init()
-fonts = [pygame.font.Font(f'{THIS_DIR}/Anonymous-Pro.ttf', 45),
-         pygame.font.Font(f'{THIS_DIR}/Anonymous-Pro.ttf', 30),
-         pygame.font.Font(f'{THIS_DIR}/Anonymous-Pro.ttf', 75),
-         pygame.font.Font(f'{THIS_DIR}/Anonymous-Pro.ttf', 20),
-         ]
+fonts = [
+    pygame.font.Font(f'{THIS_DIR}/Anonymous-Pro.ttf', 45),  # 0
+    pygame.font.Font(f'{THIS_DIR}/Anonymous-Pro.ttf', 30),  # 1
+    pygame.font.Font(f'{THIS_DIR}/Anonymous-Pro.ttf', 75),  # 2
+    pygame.font.Font(f'{THIS_DIR}/Anonymous-Pro.ttf', 20),  # 3
+]
 clock = pygame.time.Clock()
 done = False
 log = get_logger("Stepper-Synth", DEBUG)
@@ -199,9 +201,9 @@ def draw(synth_state):
             draw_sub_synth(pygame, screen, fonts, synth_state)
             controls_f = sub_synth_controls
             controls_args = [pygame, loc_controller, synth, synth_state]
-        case StepperSynthState.Synth(engine=SynthEngineType.WaveTable):
-            # log.warning("WaveTable screen not yet programmed")
-            pass
+        # case StepperSynthState.Synth(engine=SynthEngineType.WaveTable):
+        #     # log.warning("WaveTable screen not yet programmed")
+        #     pass
         case StepperSynthState.Effect(effect=EffectType.Reverb):
             draw_reverb_menu(pygame, screen, fonts, synth_state)
             controls_f = reverb_controls
@@ -212,6 +214,10 @@ def draw(synth_state):
         case StepperSynthState.MidiStepper():
             draw_stepper(pygame, screen, fonts, synth_state)
             controls_f = stepper_controls
+            controls_args = [pygame, loc_controller, synth, synth_state]
+        case StepperSynthState.WaveTable():
+            draw_wave_table(pygame, screen, fonts, synth_state)
+            controls_f = wave_table_controls
             controls_args = [pygame, loc_controller, synth, synth_state]
 
     # TODO: draw volume & battery
@@ -276,8 +282,8 @@ if __name__ == "__main__":
     # synth.set_screen(Screen.Effect(EffectType.Reverb))
     # synth.set_screen(Screen.Synth(SynthEngineType.SubSynth))
     # synth.set_screen(Screen.Synth(SynthEngineType.Wurlitzer))
-    synth.set_screen(Screen.Synth(SynthEngineType.WaveTable))
-    synth.set_screen(Screen.Stepper(0))
+    synth.set_screen(Screen.WaveTableSynth())
+    # synth.set_screen(Screen.Stepper(0))
 
     log.info("starting main loop.")
 

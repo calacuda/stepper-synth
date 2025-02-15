@@ -110,8 +110,8 @@ impl Synth {
         let effects = EffectType::iter()
             .map(|effect_type| effect_type.into())
             .collect();
-        // let engine_type = SynthEngineType::B3Organ;
-        let engine_type = SynthEngineType::WaveTable;
+        let engine_type = SynthEngineType::B3Organ;
+        // let engine_type = SynthEngineType::WaveTable;
 
         Self {
             lfo: LFO::new(),
@@ -146,6 +146,10 @@ impl Synth {
             return false;
         }
 
+        // if engine == SynthEngineType::WaveTable {
+        //     self.effect_power = false;
+        // }
+
         self.engine_type = engine;
         true
     }
@@ -162,6 +166,10 @@ impl Synth {
 
     pub fn effect_toggle(&mut self) -> bool {
         self.effect_power = !self.effect_power;
+
+        // if self.engine_type == SynthEngineType::WaveTable {
+        // self.effect_power = false;
+        // }
 
         true
     }
@@ -186,32 +194,33 @@ impl SampleGen for Synth {
             }
         }
 
-        // let n_engines = self.engines.len();
-        let mut n_samples = 1;
-        // let mut sample = 0.0; // self.get_engine().get_sample() * 1.8;
+        // // let n_engines = self.engines.len();
+        // let mut n_samples = 1;
+        // // let mut sample = 0.0; // self.get_engine().get_sample() * 1.8;
+        //
+        // let mut samples: Vec<f32> = self
+        //     .engines
+        //     .iter_mut()
+        //     .map(|engine| {
+        //         let samp = engine.get_sample();
+        //
+        //         if samp != 0.0 {
+        //             // info!("{engine:?}");
+        //             n_samples += 1;
+        //         }
+        //
+        //         samp
+        //     })
+        //     .collect();
+        // samples[self.engine_type as usize] = samples[self.engine_type as usize] * 2.0;
+        //
+        // // let mut sample = samples.into_iter().sum();
+        //
+        // let bias = 1.0 / (n_samples as f32);
+        // let sample = samples.into_iter().sum::<f32>() * 0.8 * bias;
+        let sample = self.engines[self.engine_type as usize].get_sample();
 
-        let mut samples: Vec<f32> = self
-            .engines
-            .iter_mut()
-            .map(|engine| {
-                let samp = engine.get_sample();
-
-                if samp != 0.0 {
-                    // info!("{engine:?}");
-                    n_samples += 1;
-                }
-
-                samp
-            })
-            .collect();
-        samples[self.engine_type as usize] = samples[self.engine_type as usize] * 2.0;
-
-        // let mut sample = samples.into_iter().sum();
-
-        let bias = 1.0 / (n_samples as f32);
-        let sample = samples.into_iter().sum::<f32>() * 0.8 * bias;
-
-        if !self.effect_power {
+        if !self.effect_power || self.engine_type == SynthEngineType::WaveTable {
             return sample;
         }
 

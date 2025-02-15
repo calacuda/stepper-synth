@@ -12,14 +12,25 @@ use super::{LfoInput, SynthEngine};
 
 #[derive(Debug, Clone)]
 pub struct WaveTableEngine {
-    synth: App,
+    pub synth: App,
     lfo_target: LfoInput,
 }
 
 impl WaveTableEngine {
     pub fn new() -> Self {
+        let synth = App::default();
+
+        synth.voices.iter().for_each(|voice| {
+            voice
+                .lock()
+                .unwrap()
+                .oscs
+                .iter_mut()
+                .for_each(|(osc, _on)| osc.level = 0.8)
+        });
+
         Self {
-            synth: App::default(),
+            synth,
             lfo_target: LfoInput::default(),
         }
     }
