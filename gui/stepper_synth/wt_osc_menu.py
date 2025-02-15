@@ -86,6 +86,26 @@ def draw_detune(pygame, screen, fonts, osc_info, top, bottom, left, right, sel):
               fonts[1], (x, y), TEXT_COLOR_2)
 
 
+def draw_wt(pygame, screen, fonts, osc_info, top, bottom, left, right, sel):
+    wt = osc_info.wave_table
+    offset = LINE_WIDTH
+    m_y = (top + bottom) / 2
+
+    pygame.draw.line(screen, LAVENDER, (left + offset, m_y),
+                     (right, m_y), int(LINE_WIDTH / 2))
+    offset *= 2
+    line_color = RED if sel else PEACH
+    graph_width = right - left - offset * 2
+    x_dist = graph_width / len(wt)
+    graph_h = (bottom - top) / 6
+
+    points = [(x_dist * i + left + offset, m_y - s * graph_h)
+              for (i, s) in enumerate(wt)]
+
+    pygame.draw.lines(screen, line_color, False,
+                      points, width=int(LINE_WIDTH / 2))
+
+
 def draw_osc(pygame, screen, fonts, synth: StepperSynthState, osc_i, top, bottom, middle_y):
     osc_info = synth.osc[osc_i]
     osc_selected = OSC_INDEX == osc_i
@@ -117,6 +137,12 @@ def draw_osc(pygame, screen, fonts, synth: StepperSynthState, osc_i, top, bottom
                 detune_left, detune_right, detune_sel)
 
     # Wave table visualizer
+    wt_left = detune_right
+    wt_right = SCREEN_WIDTH - SCREEN_HEIGHT / 3
+    wt_sel = osc_selected and X_INDEX == 3
+
+    draw_wt(pygame, screen, fonts, osc_info, top,
+            bottom, wt_left, wt_right, wt_sel)
 
 
 def draw_osc_menu(pygame, screen, fonts, synth: StepperSynthState):
