@@ -13,7 +13,8 @@ CONTROLS = [
     "osc-offset",
     "osc-detune",
     "osc-wave-table",
-    "osc-power"
+    "osc-power",
+    "osc-target"
 ]
 
 
@@ -23,7 +24,7 @@ def draw_volume_dial(pygame, screen, fonts, osc_info, x, y, selected):
     draw_dial(pygame, screen, x, y, volume, selected,
               diameter=SCREEN_WIDTH / 3 / 3 * 0.75)
 
-    draw_text(screen, f"{int(osc_info.volume * 100)} %",
+    draw_text(screen, f"{int(osc_info.volume * 100)}%",
               fonts[1], (x, y), TEXT_COLOR_2)
 
 
@@ -82,7 +83,7 @@ def draw_detune(pygame, screen, fonts, osc_info, top, bottom, left, right, sel):
     draw_dial(pygame, screen, x, y, detune, sel,
               diameter=SCREEN_WIDTH / 3 / 3 * 0.75)
 
-    draw_text(screen, f"{int(detune * 100)} %",
+    draw_text(screen, f"{int(detune * 100)}%",
               fonts[1], (x, y), TEXT_COLOR_2)
 
 
@@ -101,10 +102,36 @@ def draw_wt(pygame, screen, fonts, osc_info, top, bottom, left, right, sel):
 
     points = [(x_dist * i + left + offset, m_y - s * graph_h)
               for (i, s) in enumerate(wt)]
+    points.append((x_dist * len(wt) + left + offset, points[0][1]))
 
     pygame.draw.lines(screen, line_color, False,
                       points, width=int(LINE_WIDTH / 2))
     # TODO: add a wave table name display.
+
+
+def draw_power(pygame, screen, osc_info, top, bottom, left, right, sel):
+    on = osc_info.on
+    m_x = (left + right) / 2
+    m_y = (top + bottom) / 2
+    outer_r = (bottom - top) / 8
+    inner_r = outer_r - LINE_WIDTH * 2
+    outline = TEXT_COLOR_2 if not sel else RED
+    inner = GREEN if on else TEXT_COLOR_2
+
+    pygame.draw.circle(screen, outline, (m_x, m_y), outer_r)
+    pygame.draw.circle(screen, inner, (m_x, m_y), inner_r)
+
+
+def draw_osc_target(screen, fonts, osc_info, top, bottom, left, right, sel):
+    m_x = (left + right) / 2
+    m_y = (top + bottom) / 2
+    m_y += (bottom - top) / 4
+    text = osc_info.target
+    font = fonts[1]
+    where = (m_x, m_y)
+    color = TEXT_COLOR_1 if not sel else RED
+
+    draw_text(screen, text, font, where, color)
 
 
 def draw_osc(pygame, screen, fonts, synth: StepperSynthState, osc_i, top, bottom, middle_y):
@@ -144,6 +171,21 @@ def draw_osc(pygame, screen, fonts, synth: StepperSynthState, osc_i, top, bottom
 
     draw_wt(pygame, screen, fonts, osc_info, top,
             bottom, wt_left, wt_right, wt_sel)
+
+    # osc power button
+    power_left = wt_right
+    power_right = SCREEN_WIDTH
+    power_sel = osc_selected and X_INDEX == 4
+
+    draw_power(pygame, screen, osc_info, top,
+               bottom, power_left, power_right, power_sel)
+
+    # osc target
+    osc_target_sel = osc_selected and X_INDEX == 5
+
+    draw_osc_target(screen, fonts, osc_info, top,
+                    bottom, power_left, power_right,
+                    osc_target_sel)
 
 
 def draw_osc_menu(pygame, screen, fonts, synth: StepperSynthState):

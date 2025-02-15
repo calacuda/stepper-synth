@@ -22,7 +22,10 @@ use std::{
 };
 use strum::EnumIter;
 use tinyaudio::prelude::*;
-use wavetable_synth::synth_engines::synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN};
+use wavetable_synth::synth_engines::{
+    synth::osc::OscTarget,
+    synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN},
+};
 
 #[cfg_attr(
     feature = "pyo3",
@@ -133,6 +136,7 @@ pub struct OscState {
     on: bool,
     detune: f32,
     offset: u8,
+    target: String,
 }
 
 impl From<WaveTableEngine> for Vec<OscState> {
@@ -148,6 +152,13 @@ impl From<WaveTableEngine> for Vec<OscState> {
                 on,
                 detune: osc.detune,
                 offset: osc.offset as u8,
+                target: match osc.target {
+                    OscTarget::Filter1 => "Filter 1".into(),
+                    OscTarget::Filter2 => "Filter 2".into(),
+                    OscTarget::Filter1_2 => "Filter 1 & 2".into(),
+                    OscTarget::Effects => "Effects".into(),
+                    OscTarget::DirectOut => "Direct Out".into(),
+                },
             })
             .to_vec()
     }
