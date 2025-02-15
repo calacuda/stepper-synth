@@ -97,13 +97,14 @@ def draw_wt(pygame, screen, fonts, osc_info, top, bottom, left, right, sel):
     line_color = RED if sel else PEACH
     graph_width = right - left - offset * 2
     x_dist = graph_width / len(wt)
-    graph_h = (bottom - top) / 6
+    graph_h = (bottom - top) / 5
 
     points = [(x_dist * i + left + offset, m_y - s * graph_h)
               for (i, s) in enumerate(wt)]
 
     pygame.draw.lines(screen, line_color, False,
                       points, width=int(LINE_WIDTH / 2))
+    # TODO: add a wave table name display.
 
 
 def draw_osc(pygame, screen, fonts, synth: StepperSynthState, osc_i, top, bottom, middle_y):
