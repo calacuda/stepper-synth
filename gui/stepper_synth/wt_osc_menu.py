@@ -1,4 +1,4 @@
-from stepper_synth_backend import StepperSynthState, StepperSynth
+from stepper_synth_backend import StepperSynthState, StepperSynth, WTSynthParam
 from .controls import Buttons, buttons
 from .config import *
 from .utils import *
@@ -9,13 +9,120 @@ import math
 OSC_INDEX = 0
 X_INDEX = 0
 CONTROLS = [
-    "osc-volume",
-    "osc-offset",
-    "osc-detune",
-    "osc-wave-table",
-    "osc-power",
-    "osc-target"
+    # "osc-volume",
+    WTSynthParam.OscVol,
+    # "osc-offset",
+    WTSynthParam.OscOffset,
+    # "osc-detune",
+    WTSynthParam.OscDetune,
+    # "osc-wave-table",
+    WTSynthParam.OscWaveTable,
+    # "osc-power",
+    WTSynthParam.OscOn,
+    # "osc-target"
+    WTSynthParam.OscTarget,
 ]
+TIMER = 0
+
+
+def getter_float(amts, up):
+    if up:
+        amt = amts[X_INDEX] + 0.05
+    else:
+        amt = amts[X_INDEX] - 0.05
+
+    return set_max(amt, 1.0, min=0.0)
+
+
+def getter_offset(amts, up):
+    if up:
+        amt = amts[X_INDEX] + 1
+    else:
+        amt = amts[X_INDEX] - 1
+
+    return set_max(amt, 127, min=-127)
+
+
+def do_nothing(amts, up):
+    return amts[X_INDEX]
+
+
+def getter_bool(amts, up):
+    return not amts[X_INDEX]
+
+
+def getter_target(amts, up):
+    if up:
+        amt = + 1
+    else:
+        amt = - 1
+
+    return amt
+
+
+GETTERS = [
+    getter_float,
+    getter_offset,
+    getter_float,
+    do_nothing,
+    getter_bool,
+    getter_target,
+]
+
+
+def adjust_value(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState):
+    global TIMER
+
+    if (not select_mod_pressed(controller)) or (not timer_is_done(pygame, TIMER)):
+        # TIMER = pygame.time.get_ticks()
+        return synth
+
+    osc = state.osc[OSC_INDEX]
+    amts = [
+        osc.volume,
+        osc.offset,
+        osc.detune,
+        osc.wave_table,
+        osc.on,
+        osc.target,
+    ]
+
+    if controller.is_pressed(buttons.get("right")):
+        set_to = GETTERS[X_INDEX](amts, True)
+    elif controller.is_pressed(buttons.get("left")):
+        # set_to = set_max(amts[X_INDEX] - 0.05, 1.0, min=0.0)
+        set_to = GETTERS[X_INDEX](amts, False)
+    else:
+        return synth
+
+    print(f"set_to = {set_to}")
+
+    TIMER = pygame.time.get_ticks()
+    synth.wt_param_setter(CONTROLS[X_INDEX](OSC_INDEX, set_to))
+
+    return synth
+
+
+def move_cursor(controller: Buttons):
+    global OSC_INDEX
+    global X_INDEX
+    global TIMER
+
+    if select_mod_pressed(controller):
+        return
+
+    if controller.just_pressed(buttons.get("up")):
+        OSC_INDEX -= 1
+        OSC_INDEX %= 3
+    elif controller.just_pressed(buttons.get("down")):
+        OSC_INDEX += 1
+        OSC_INDEX %= 3
+    elif controller.just_pressed(buttons.get("right")):
+        X_INDEX += 1
+        X_INDEX %= len(CONTROLS)
+    elif controller.just_pressed(buttons.get("left")):
+        X_INDEX -= 1
+        X_INDEX %= len(CONTROLS)
 
 
 def draw_volume_dial(pygame, screen, fonts, osc_info, x, y, selected):
@@ -204,4 +311,5 @@ def draw_osc_menu(pygame, screen, fonts, synth: StepperSynthState):
 
 
 def osc_menu_controls(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState) -> StepperSynth:
-    return synth
+    move_cursor(controller)
+    return adjust_value(pygame, controller, synth, state)

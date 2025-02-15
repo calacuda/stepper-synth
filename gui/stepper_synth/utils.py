@@ -21,3 +21,7 @@ def draw_text(screen, text: str, font, where: Tuple[float, float], color, rect_c
     text_rect = rect_callback(text_rect)
 
     screen.blit(display, text_rect)
+
+
+def timer_is_done(pygame, timer) -> bool:
+    return (pygame.time.get_ticks() - timer) / 1000 >= 0.1

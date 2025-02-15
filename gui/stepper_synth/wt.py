@@ -23,17 +23,17 @@ def wave_table_controls(pygame, controller: Buttons, synth: StepperSynth, state:
     # if select_mod_pressed(controller):
     #     return
 
-    right_pressed = controller.just_pressed(buttons.get("right"))
-    left_pressed = controller.just_pressed(buttons.get("left"))
-    a_pressed = controller.just_pressed(buttons.get("a"))
-
-    if select_mod_pressed(controller) and right_pressed and a_pressed:
-        SUB_SCREEN += 1
-        SUB_SCREEN %= len(SUB_SCREENS)
-    elif select_mod_pressed(controller) and left_pressed and a_pressed:
-        SUB_SCREEN -= 1
-        SUB_SCREEN %= len(SUB_SCREENS)
-    else:
-        synth = SUB_SCREENS[SUB_SCREEN][1](pygame, controller, synth, state)
+    # right_pressed = controller.just_pressed(buttons.get("right"))
+    # left_pressed = controller.just_pressed(buttons.get("left"))
+    # a_pressed = controller.just_pressed(buttons.get("a"))
+    #
+    # if select_mod_pressed(controller) and right_pressed and a_pressed:
+    #     SUB_SCREEN += 1
+    #     SUB_SCREEN %= len(SUB_SCREENS)
+    # elif select_mod_pressed(controller) and left_pressed and a_pressed:
+    #     SUB_SCREEN -= 1
+    #     SUB_SCREEN %= len(SUB_SCREENS)
+    # else:
+    synth = SUB_SCREENS[SUB_SCREEN][1](pygame, controller, synth, state)
 
     return synth

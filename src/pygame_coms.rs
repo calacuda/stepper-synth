@@ -13,6 +13,7 @@ use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
+    ops::IndexMut,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
@@ -268,6 +269,26 @@ pub enum StepperSynthState {
         lfo: Vec<LfoState>,
     },
     // MidiSeq(),
+}
+
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum WTSynthParam {
+    OscVol { n: usize, to: f32 },
+    OscWaveTable { n: usize, wave_table: Vec<f32> },
+    OscOn { n: usize, on: bool },
+    OscDetune { n: usize, detune: f32 },
+    OscOffset { n: usize, offset: i8 },
+    OscTarget { n: usize, target: i8 },
+    LowPassCutoff { n: usize, cutoff: f32 },
+    LowPassRes { n: usize, res: f32 },
+    LowPassTracking { n: usize, track: bool },
+    LowPassMix { n: usize, mix: f32 },
+    ADSRAttack { n: usize, val: f32 },
+    ADSRDecay { n: usize, val: f32 },
+    ADSRSustain { n: usize, val: f32 },
+    ADSRRelease { n: usize, val: f32 },
+    LfoSpeed { n: usize, speed: f32 },
 }
 
 #[cfg(feature = "pyo3")]
@@ -688,5 +709,60 @@ impl StepperSynth {
         self.set_updated();
         let mut seq = self.midi_sequencer.lock().unwrap();
         seq.del_step();
+    }
+
+    pub fn wt_param_setter(&mut self, param: WTSynthParam) {
+        self.set_updated();
+        let mut seq = self.midi_sequencer.lock().unwrap();
+        let synth = &mut seq.synth;
+
+        let SynthModule::WaveTable(wt_synth) = synth.get_engine() else {
+            return;
+        };
+
+        match param {
+            WTSynthParam::OscOn { n, on } => {
+                wt_synth
+                    .synth
+                    .voices
+                    .iter()
+                    .for_each(|v| v.lock().unwrap().oscs[n].1 = on);
+            }
+            WTSynthParam::OscVol { n, to } => wt_synth
+                .synth
+                .voices
+                .iter()
+                .for_each(|v| v.lock().unwrap().oscs.index_mut(n).0.level = to),
+            WTSynthParam::OscDetune { n, detune } => wt_synth
+                .synth
+                .voices
+                .iter()
+                .for_each(|v| v.lock().unwrap().oscs[n].0.detune = detune),
+            WTSynthParam::OscWaveTable {
+                n: _,
+                wave_table: _,
+            } => {
+                // wt_synth
+                //     .synth
+                //     .voices
+                //     .iter()
+                //     .for_each(|v| v.lock().unwrap().oscs[n].0.wave_table = wave_table);
+                // TODO: make happen
+            }
+            WTSynthParam::OscOffset { n, offset } => wt_synth
+                .synth
+                .voices
+                .iter()
+                .for_each(|v| v.lock().unwrap().oscs[n].0.offset = offset.into()),
+            WTSynthParam::OscTarget { n: _, target: _ } => {
+                // wt_synth
+                // .synth
+                // .voices
+                // .iter()
+                // .for_each(|v| v.lock().unwrap().oscs[n].0.target += target);
+                // TODO: make happen
+            }
+            _ => {}
+        }
     }
 }
