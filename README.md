@@ -36,7 +36,7 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [x] LFO Routing
 - [x] low_pass keytracking
 - [ ] Drum synth
-- [ ] Wave Table Synth
+- [x] Wave Table Synth
 - [ ] Wave Table Synth ui
 - [ ] config file
 - [ ] maybe a CLI (emphasis on maybe)
@@ -51,5 +51,5 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 
 ## TODOs
 
-- [ ] enable 1-4 toggles for effects
+- [ ] finish screens for wavetable synth
 
