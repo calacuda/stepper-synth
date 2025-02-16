@@ -375,7 +375,7 @@ impl MidiControlled for SequencerIntake {
                     false,
                 )
             }
-            MidiMessage::PitchBend(_cahnnel, _lsb, _msb) => return,
+            MidiMessage::PitchBend(_channel, _lsb, _msb) => return,
             _ => {
                 return;
             }

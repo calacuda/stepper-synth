@@ -13,6 +13,7 @@ use pyo3::prelude::*;
 use std::{fmt::Debug, ops::IndexMut};
 use strum::IntoEnumIterator;
 use synth_common::lfo::LFO;
+use wavetable_synth::MidiControlled as _;
 // use synth_common::lfo::LFO;
 use wave_table::WaveTableEngine;
 use wurlitzer::WurlitzerEngine;
@@ -249,7 +250,7 @@ impl MidiControlled for Synth {
             MidiMessage::PitchBend(_, lsb, msb) => {
                 let bend = i16::from_le_bytes([lsb, msb]) as f32 / (32_000.0 * 0.5) - 1.0;
 
-                if bend > 0.026 || bend < -0.026 {
+                if bend > 0.02 || bend < -0.020 {
                     self.get_engine().bend(bend);
                     // send();
                 } else {
@@ -259,41 +260,37 @@ impl MidiControlled for Synth {
             }
             MidiMessage::ControlChange(_, ControlEvent { control, value }) => {
                 let value = value as f32 / 127.0;
+                let effects = self.target_effects;
 
-                match control {
-                    70 if self.target_effects => self.get_effect().knob_1(value),
-                    71 if self.target_effects => self.get_effect().knob_2(value),
-                    72 if self.target_effects => self.get_effect().knob_3(value),
-                    73 if self.target_effects => self.get_effect().knob_4(value),
-                    70 if !self.target_effects => self.get_engine().knob_1(value),
-                    71 if !self.target_effects => self.get_engine().knob_2(value),
-                    72 if !self.target_effects => self.get_engine().knob_3(value),
-                    73 if !self.target_effects => self.get_engine().knob_4(value),
-                    74 => self.get_engine().knob_5(value),
-                    75 => self.get_engine().knob_6(value),
-                    76 => self.get_engine().knob_7(value),
-                    77 => self.get_engine().knob_8(value),
-                    1 => self.get_engine().volume_swell(value),
-                    // 117 => {
-                    //     self.midi_sequencer.state.playing = false;
-                    //     self.midi_sequencer.state.recording = false;
-                    //     false
-                    // }
-                    // 118 => {
-                    //     self.midi_sequencer.state.playing = true;
-                    //     self.midi_sequencer.state.recording = false;
-                    //     false
-                    // }
-                    // 119 => {
-                    //     self.midi_sequencer.state.playing = false;
-                    //     self.midi_sequencer.state.recording = true;
-                    //     false
-                    // }
-                    _ => {
-                        // info!("CC message => {control}-{value}");
-                        false
+                match self.get_engine() {
+                    SynthModule::WaveTable(wt) => {
+                        wt.synth.midi_input(message);
                     }
-                };
+                    engine => {
+                        match control {
+                            70 if effects => self.get_effect().knob_1(value),
+                            71 if effects => self.get_effect().knob_2(value),
+                            72 if effects => self.get_effect().knob_3(value),
+                            73 if effects => self.get_effect().knob_4(value),
+                            70 if !effects => self.get_engine().knob_1(value),
+                            71 if !effects => self.get_engine().knob_2(value),
+                            72 if !effects => self.get_engine().knob_3(value),
+                            73 if !effects => self.get_engine().knob_4(value),
+                            74 => engine.knob_5(value),
+                            75 => engine.knob_6(value),
+                            76 => engine.knob_7(value),
+                            77 => engine.knob_8(value),
+                            1 => engine.volume_swell(value),
+                            _ => {
+                                // info!("CC message => {control}-{value}");
+                                false
+                            }
+                        };
+                    }
+                }
+                // if self.engine_type == SynthEngineType::WaveTable {
+                // } else {
+                // }
             }
             _ => {}
         }

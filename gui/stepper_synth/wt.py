@@ -1,5 +1,6 @@
 from .wt_osc_menu import draw_osc_menu, osc_menu_controls
-from .controls import Buttons, buttons
+from .wt_lp_menu import draw_lp_menu, lp_menu_controls
+from .controls import Buttons
 from .config import *
 from .utils import *
 from .full_dial import draw_dial
@@ -7,7 +8,8 @@ from stepper_synth_backend import StepperSynthState, StepperSynth
 
 
 SUB_SCREENS = [
-    (draw_osc_menu, osc_menu_controls),
+    (draw_osc_menu, osc_menu_controls, "Osc."),
+    (draw_lp_menu, lp_menu_controls, "LowPass"),
 ]
 SUB_SCREEN = 0
 

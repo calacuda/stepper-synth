@@ -289,6 +289,10 @@ pub enum WTSynthParam {
     ADSRSustain { n: usize, val: f32 },
     ADSRRelease { n: usize, val: f32 },
     LfoSpeed { n: usize, speed: f32 },
+    // ModMatrixAdd {},
+    // ModMatrixDel {},
+    // MidiLearn {},
+    // MidiUnearn {},
 }
 
 #[cfg(feature = "pyo3")]
@@ -766,6 +770,34 @@ impl StepperSynth {
                 // .iter()
                 // .for_each(|v| v.lock().unwrap().oscs[n].0.target += target);
                 // TODO: make happen
+            }
+            WTSynthParam::LowPassCutoff { n, cutoff } => {
+                wt_synth
+                    .synth
+                    .voices
+                    .iter()
+                    .for_each(|v| v.lock().unwrap().filters[n].cutoff = cutoff);
+            }
+            WTSynthParam::LowPassRes { n, res } => {
+                wt_synth
+                    .synth
+                    .voices
+                    .iter()
+                    .for_each(|v| v.lock().unwrap().filters[n].resonance = res);
+            }
+            WTSynthParam::LowPassMix { n, mix } => {
+                wt_synth
+                    .synth
+                    .voices
+                    .iter()
+                    .for_each(|v| v.lock().unwrap().filters[n].mix = mix);
+            }
+            WTSynthParam::LowPassTracking { n, track } => {
+                wt_synth
+                    .synth
+                    .voices
+                    .iter()
+                    .for_each(|v| v.lock().unwrap().filters[n].key_track = track);
             }
             _ => {}
         }
