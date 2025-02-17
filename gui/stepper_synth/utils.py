@@ -23,5 +23,19 @@ def draw_text(screen, text: str, font, where: Tuple[float, float], color, rect_c
     screen.blit(display, text_rect)
 
 
+def draw_diagonal_text(screen, text: str, font, where: Tuple[float, float], color, angle=-45, rect_callback=do_nothing):
+    import pygame
+
+    display = font.render(
+        text, True, color)
+    display = pygame.transform.rotate(display, angle)
+    text_rect = display.get_rect()
+    x, y = where
+    text_rect.center = (int(x), int(y))
+    text_rect = rect_callback(text_rect)
+
+    screen.blit(display, text_rect)
+
+
 def timer_is_done(pygame, timer) -> bool:
     return (pygame.time.get_ticks() - timer) / 1000 >= 0.1

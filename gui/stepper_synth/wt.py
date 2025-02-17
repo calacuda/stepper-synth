@@ -1,3 +1,4 @@
+from .wt_menu import draw_wt_menu, wt_menu_controls
 from .wt_osc_menu import draw_osc_menu, osc_menu_controls
 from .wt_lp_menu import draw_lp_menu, lp_menu_controls
 from .controls import Buttons
@@ -10,32 +11,46 @@ from stepper_synth_backend import StepperSynthState, StepperSynth
 SUB_SCREENS = [
     (draw_osc_menu, osc_menu_controls, "Osc."),
     (draw_lp_menu, lp_menu_controls, "LowPass"),
+    (None, None, "Env."),
+    # (None, None, "LowPass"),
+    (None, None, "LFO"),
+    (None, None, "Mod"),
 ]
+SCREEN_NAMES = [screen[2] for screen in SUB_SCREENS]
 SUB_SCREEN = 0
+DRAW_MENU = False
+# DRAW_MENU = True
 
 
 def draw_wave_table(pygame, screen, fonts, synth: StepperSynthState):
     screen_draw_f = SUB_SCREENS[SUB_SCREEN][0]
-    screen_draw_f(pygame, screen, fonts, synth)
+
+    if screen_draw_f is not None:
+        screen_draw_f(pygame, screen, fonts, synth)
+
+    if DRAW_MENU:
+        draw_wt_menu(pygame, screen, fonts, SCREEN_NAMES)
 
 
 def wave_table_controls(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState) -> StepperSynth:
     global SUB_SCREEN
+    global DRAW_MENU
 
-    # if select_mod_pressed(controller):
-    #     return
+    if controller.just_pressed(buttons.get("y")):
+        DRAW_MENU = not DRAW_MENU
+    elif controller.just_pressed(buttons.get("b")):
+        DRAW_MENU = False
 
-    # right_pressed = controller.just_pressed(buttons.get("right"))
-    # left_pressed = controller.just_pressed(buttons.get("left"))
-    # a_pressed = controller.just_pressed(buttons.get("a"))
-    #
-    # if select_mod_pressed(controller) and right_pressed and a_pressed:
-    #     SUB_SCREEN += 1
-    #     SUB_SCREEN %= len(SUB_SCREENS)
-    # elif select_mod_pressed(controller) and left_pressed and a_pressed:
-    #     SUB_SCREEN -= 1
-    #     SUB_SCREEN %= len(SUB_SCREENS)
-    # else:
-    synth = SUB_SCREENS[SUB_SCREEN][1](pygame, controller, synth, state)
+    if DRAW_MENU:
+        screen = wt_menu_controls(
+            pygame, controller, synth, state, SCREEN_NAMES)
+        if screen is not None:
+            SUB_SCREEN = screen
+            DRAW_MENU = False
+    else:
+        control_f = SUB_SCREENS[SUB_SCREEN][1]
+
+        if control_f is not None:
+            synth = control_f(pygame, controller, synth, state)
 
     return synth
