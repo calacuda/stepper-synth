@@ -80,7 +80,16 @@ def draw_lp(pygame, screen, fonts, synth: StepperSynthState, top: int):
     draw_text(screen, f"{int(mix * 100)}%",
               fonts[0], (x, y), TEXT_COLOR_2)
 
-    # TODO: draw key track on off button
+    # draw key track on off button
+    m_x = (SCREEN_WIDTH * (4.35 / 5)) + graph_offset * 2
+    # m_y =
+    outer_r = SCREEN_WIDTH / 5 * 0.25
+    inner_r = outer_r - LINE_WIDTH * 2
+    outline = TEXT_COLOR_2 if not sel else RED
+    inner = GREEN if lp.keytracking else TEXT_COLOR_2
+
+    pygame.draw.circle(screen, outline, (m_x, m_y), outer_r)
+    pygame.draw.circle(screen, inner, (m_x, m_y), inner_r)
 
 
 def draw_lp_menu(pygame, screen, fonts, synth: StepperSynthState):
