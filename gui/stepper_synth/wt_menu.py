@@ -43,4 +43,4 @@ def wt_menu_controls(pygame, controller: Buttons, synth: StepperSynth, state: St
     elif controller.just_pressed(buttons.get("a")):
         return CURSOR
 
-    return None
+    return CURSOR

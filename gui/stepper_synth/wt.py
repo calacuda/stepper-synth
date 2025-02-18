@@ -45,9 +45,9 @@ def wave_table_controls(pygame, controller: Buttons, synth: StepperSynth, state:
     if DRAW_MENU:
         screen = wt_menu_controls(
             pygame, controller, synth, state, SCREEN_NAMES)
-        if screen is not None:
-            SUB_SCREEN = screen
-            DRAW_MENU = False
+        # if screen is not None:
+        SUB_SCREEN = screen
+        # DRAW_MENU = False
     else:
         control_f = SUB_SCREENS[SUB_SCREEN][1]
 
