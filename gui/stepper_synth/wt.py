@@ -4,7 +4,6 @@ from .wt_lp_menu import draw_lp_menu, lp_menu_controls
 from .controls import Buttons
 from .config import *
 from .utils import *
-from .full_dial import draw_dial
 from stepper_synth_backend import StepperSynthState, StepperSynth
 
 
@@ -17,8 +16,8 @@ SUB_SCREENS = [
     (None, None, "Mod"),
 ]
 SCREEN_NAMES = [screen[2] for screen in SUB_SCREENS]
-# SUB_SCREEN = 0
-SUB_SCREEN = 1
+SUB_SCREEN = 0
+# SUB_SCREEN = 1
 DRAW_MENU = False
 # DRAW_MENU = True
 
