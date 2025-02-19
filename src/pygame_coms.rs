@@ -23,9 +23,12 @@ use std::{
 };
 use strum::EnumIter;
 use tinyaudio::prelude::*;
-use wavetable_synth::synth_engines::{
-    synth::osc::OscTarget,
-    synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN},
+use wavetable_synth::{
+    common::{EnvParam, LfoParam, LowPass, LowPassParam, ModMatrixDest, ModMatrixSrc, OscParam},
+    synth_engines::{
+        synth::osc::OscTarget,
+        synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN},
+    },
 };
 
 #[cfg_attr(
@@ -238,6 +241,102 @@ impl From<WaveTableEngine> for Vec<LfoState> {
 }
 
 #[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct ModMatrixDisplayItem {
+    pub src: String,
+    pub dest: String,
+    pub amt: f32,
+    pub bipolar: bool,
+    pub id: usize,
+}
+
+impl From<WaveTableEngine> for Vec<ModMatrixDisplayItem> {
+    fn from(value: WaveTableEngine) -> Self {
+        value
+            .synth
+            .mod_matrix
+            .iter()
+            .enumerate()
+            .filter_map(|(i, mod_m)| {
+                if let Some(entry) = mod_m {
+                    let src = display_src(entry.src);
+                    let dest = display_dest(entry.dest);
+
+                    Some(ModMatrixDisplayItem {
+                        src,
+                        dest,
+                        amt: entry.amt,
+                        bipolar: entry.bipolar,
+                        id: i,
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+}
+
+fn display_src(src: ModMatrixSrc) -> String {
+    match src {
+        ModMatrixSrc::Gate => "Gate".into(),
+        ModMatrixSrc::Macro1 => "Macro-1".into(),
+        ModMatrixSrc::Macro2 => "Macro-2".into(),
+        ModMatrixSrc::Macro3 => "Macro-3".into(),
+        ModMatrixSrc::Macro4 => "Macro-4".into(),
+        ModMatrixSrc::Velocity => "Vel".into(),
+        ModMatrixSrc::ModWheel => "Mod-Whl".into(),
+        ModMatrixSrc::PitchWheel => "Pitch-Whl".into(),
+        ModMatrixSrc::Env(n) => format!("Env-{n}"),
+        ModMatrixSrc::Lfo(n) => format!("LFO-{n}"),
+    }
+}
+
+fn display_dest(dest: ModMatrixDest) -> String {
+    let display_lp_param = |param: LowPassParam| -> String {
+        match param {
+            LowPassParam::Cutoff => "CutOff".into(),
+            LowPassParam::Res => "Res".into(),
+            LowPassParam::Mix => "Mix".into(),
+        }
+    };
+
+    match dest {
+        ModMatrixDest::SynthVolume => "Vol.".into(),
+        ModMatrixDest::ModMatrixEntryModAmt(id) => format!("Mod-Entry {id}"),
+        ModMatrixDest::Osc {
+            osc,
+            param: OscParam::Level,
+        } => format!("OSC {} vol.", osc + 1),
+        ModMatrixDest::Osc {
+            osc,
+            param: OscParam::Tune,
+        } => format!("OSC {} Tune", osc + 1),
+        ModMatrixDest::LowPass {
+            low_pass: LowPass::LP1,
+            param,
+        } => format!("LowP 1 {}", display_lp_param(param)),
+        ModMatrixDest::LowPass {
+            low_pass: LowPass::LP2,
+            param,
+        } => format!("LowP 1 {}", display_lp_param(param)),
+        ModMatrixDest::Env { env, param } => format!(
+            "Env {env} {}",
+            match param {
+                EnvParam::Atk => "Atk",
+                EnvParam::Dcy => "Dcy",
+                EnvParam::Sus => "Sus",
+                EnvParam::Rel => "Rel",
+            }
+        ),
+        ModMatrixDest::Lfo {
+            lfo,
+            param: LfoParam::Speed,
+        } => format!("LFO {lfo} Speed"),
+    }
+}
+
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum StepperSynthState {
     Synth {
@@ -267,6 +366,7 @@ pub enum StepperSynthState {
         filter: Vec<LowPassState>,
         adsr: Vec<ADSRState>,
         lfo: Vec<LfoState>,
+        mod_matrix: Vec<ModMatrixDisplayItem>,
     },
     // MidiSeq(),
 }
@@ -545,12 +645,14 @@ impl StepperSynth {
                 let adsr: Vec<ADSRState> = Vec::from(wt.clone());
                 let filter: Vec<LowPassState> = Vec::from(wt.clone());
                 let lfo: Vec<LfoState> = Vec::from(wt.clone());
+                let mod_matrix: Vec<ModMatrixDisplayItem> = Vec::from(wt.clone());
 
                 Some(StepperSynthState::WaveTable {
                     osc,
                     adsr,
                     filter,
                     lfo,
+                    mod_matrix,
                 })
             }
         }

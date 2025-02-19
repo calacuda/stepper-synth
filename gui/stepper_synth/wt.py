@@ -1,6 +1,8 @@
 from .wt_menu import draw_wt_menu, wt_menu_controls
 from .wt_osc_menu import draw_osc_menu, osc_menu_controls
 from .wt_lp_menu import draw_lp_menu, lp_menu_controls
+from .wt_env_menu import draw_env_menu, env_menu_controls
+from .wt_mod_menu import draw_mod_menu, mod_menu_controls
 from .controls import Buttons
 from .config import *
 from .utils import *
@@ -10,10 +12,9 @@ from stepper_synth_backend import StepperSynthState, StepperSynth
 SUB_SCREENS = [
     (draw_osc_menu, osc_menu_controls, "Osc."),
     (draw_lp_menu, lp_menu_controls, "LowPass"),
-    (None, None, "Env."),
-    # (None, None, "LowPass"),
+    (draw_env_menu, env_menu_controls, "Env."),
     (None, None, "LFO"),
-    (None, None, "Mod"),
+    (draw_mod_menu, mod_menu_controls, "Mod"),
 ]
 SCREEN_NAMES = [screen[2] for screen in SUB_SCREENS]
 SUB_SCREEN = 0
