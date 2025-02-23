@@ -43,6 +43,7 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [ ] midi sequencer
 - [ ] mod matrix
 - [ ] wurlitzer engine
+- [ ] wurlitzer UI
 - [ ] overdrive effect.
 
 ## Currently Working On
@@ -52,4 +53,4 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 ## TODOs
 
 - [ ] finish screens for wavetable synth
-
+- [ ] update midi stepper to have 4 "channels" each with the same number of steps, they should play in unison and each be roputed to a different instrument.
