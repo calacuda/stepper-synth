@@ -758,12 +758,6 @@ impl StepperSynth {
     pub fn prev_sequence(&mut self) {
         self.midi_sequencer.lock().unwrap().prev_sequence();
         self.set_updated();
-
-        // match self.screen.clone() {
-        //     Screen::Stepper(s) => {
-        //         Screen::Stepper(self.synth.lock().unwrap().midi_sequencer.rec_head.);
-        //     }
-        // }
     }
 
     pub fn next_sequence(&mut self) {
@@ -856,9 +850,6 @@ impl StepperSynth {
                 // TODO: make happen
             }
             WTSynthParam::OscOffset { n, offset } => {
-                // let offset = offset as i16;
-                // info!("offset {offset}");
-
                 wt_synth
                     .synth
                     .voices
