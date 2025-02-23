@@ -37,5 +37,5 @@ def draw_diagonal_text(screen, text: str, font, where: Tuple[float, float], colo
     screen.blit(display, text_rect)
 
 
-def timer_is_done(pygame, timer) -> bool:
-    return (pygame.time.get_ticks() - timer) / 1000 >= 0.1
+def timer_is_done(pygame, timer, seconds_since=0.1) -> bool:
+    return (pygame.time.get_ticks() - timer) / 1000 >= seconds_since

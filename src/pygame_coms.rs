@@ -901,6 +901,34 @@ impl StepperSynth {
                     .iter()
                     .for_each(|v| v.lock().unwrap().filters[n].key_track = track);
             }
+            WTSynthParam::ADSRAttack { n, val } => {
+                wt_synth
+                    .synth
+                    .voices
+                    .iter()
+                    .for_each(|v| v.lock().unwrap().envs[n].set_atk(val));
+            }
+            WTSynthParam::ADSRDecay { n, val } => {
+                wt_synth
+                    .synth
+                    .voices
+                    .iter()
+                    .for_each(|v| v.lock().unwrap().envs[n].set_decay(val));
+            }
+            WTSynthParam::ADSRSustain { n, val } => {
+                wt_synth
+                    .synth
+                    .voices
+                    .iter()
+                    .for_each(|v| v.lock().unwrap().envs[n].set_sus(val));
+            }
+            WTSynthParam::ADSRRelease { n, val } => {
+                wt_synth
+                    .synth
+                    .voices
+                    .iter()
+                    .for_each(|v| v.lock().unwrap().envs[n].set_release(val));
+            }
             _ => {}
         }
     }

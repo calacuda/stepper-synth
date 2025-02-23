@@ -64,11 +64,8 @@ def adjust_value(pygame, controller: Buttons, synth: StepperSynth, state: Steppe
         filter.res,
     ]
     params = [
-        # "osc-volume",
         WTSynthParam.LowPassCutoff,
-        # "osc-detune",
         WTSynthParam.LowPassMix,
-        # "osc-wave-table",
         WTSynthParam.LowPassTracking,
         WTSynthParam.LowPassRes,
     ]
