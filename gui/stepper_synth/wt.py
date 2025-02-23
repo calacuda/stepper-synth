@@ -37,10 +37,11 @@ def wave_table_controls(pygame, controller: Buttons, synth: StepperSynth, state:
     global SUB_SCREEN
     global DRAW_MENU
 
-    if controller.just_pressed(buttons.get("y")):
-        DRAW_MENU = not DRAW_MENU
-    elif controller.just_pressed(buttons.get("b")):
-        DRAW_MENU = False
+    # if controller.just_pressed(buttons.get("y")):
+    #     DRAW_MENU = not DRAW_MENU
+    # elif controller.just_pressed(buttons.get("b")):
+    #     DRAW_MENU = False
+    DRAW_MENU = controller.is_pressed(buttons.get("y"))
 
     if DRAW_MENU:
         screen = wt_menu_controls(
