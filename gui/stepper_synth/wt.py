@@ -17,8 +17,8 @@ SUB_SCREENS = [
     (draw_mod_menu, mod_menu_controls, "Mod"),
 ]
 SCREEN_NAMES = [screen[2] for screen in SUB_SCREENS]
-SUB_SCREEN = 0
-# SUB_SCREEN = 1
+# SUB_SCREEN = 0
+SUB_SCREEN = 2
 DRAW_MENU = False
 # DRAW_MENU = True
 
