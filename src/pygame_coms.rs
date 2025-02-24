@@ -920,6 +920,13 @@ impl StepperSynth {
                     .iter()
                     .for_each(|v| v.lock().unwrap().envs[n].set_release(val));
             }
+            WTSynthParam::LfoSpeed { n, speed } => {
+                wt_synth
+                    .synth
+                    .voices
+                    .iter()
+                    .for_each(|v| v.lock().unwrap().lfos[n].set_frequency(speed));
+            }
             _ => {}
         }
     }
