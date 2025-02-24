@@ -7,6 +7,7 @@ use crate::{
 };
 #[cfg(feature = "pyo3")]
 use crate::{run_midi, sequencer::play_sequence};
+use anyhow::{bail, Result};
 use log::*;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
@@ -24,7 +25,10 @@ use std::{
 use strum::EnumIter;
 use tinyaudio::prelude::*;
 use wavetable_synth::{
-    common::{EnvParam, LfoParam, LowPass, LowPassParam, ModMatrixDest, ModMatrixSrc, OscParam},
+    common::{
+        EnvParam, LfoParam, LowPass, LowPassParam, ModMatrixDest, ModMatrixItem, ModMatrixSrc,
+        OscParam,
+    },
     synth_engines::{
         synth::osc::OscTarget,
         synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN},
@@ -374,23 +378,84 @@ pub enum StepperSynthState {
 #[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WTSynthParam {
-    OscVol { n: usize, to: f32 },
-    OscWaveTable { n: usize, wave_table: Vec<f32> },
-    OscOn { n: usize, on: bool },
-    OscDetune { n: usize, detune: f32 },
-    OscOffset { n: usize, offset: i16 },
-    OscTarget { n: usize, target: i8 },
-    LowPassCutoff { n: usize, cutoff: f32 },
-    LowPassRes { n: usize, res: f32 },
-    LowPassTracking { n: usize, track: bool },
-    LowPassMix { n: usize, mix: f32 },
-    ADSRAttack { n: usize, val: f32 },
-    ADSRDecay { n: usize, val: f32 },
-    ADSRSustain { n: usize, val: f32 },
-    ADSRRelease { n: usize, val: f32 },
-    LfoSpeed { n: usize, speed: f32 },
-    // ModMatrixAdd {},
-    // ModMatrixDel {},
+    OscVol {
+        n: usize,
+        to: f32,
+    },
+    OscWaveTable {
+        n: usize,
+        wave_table: Vec<f32>,
+    },
+    OscOn {
+        n: usize,
+        on: bool,
+    },
+    OscDetune {
+        n: usize,
+        detune: f32,
+    },
+    OscOffset {
+        n: usize,
+        offset: i16,
+    },
+    OscTarget {
+        n: usize,
+        target: i8,
+    },
+    LowPassCutoff {
+        n: usize,
+        cutoff: f32,
+    },
+    LowPassRes {
+        n: usize,
+        res: f32,
+    },
+    LowPassTracking {
+        n: usize,
+        track: bool,
+    },
+    LowPassMix {
+        n: usize,
+        mix: f32,
+    },
+    ADSRAttack {
+        n: usize,
+        val: f32,
+    },
+    ADSRDecay {
+        n: usize,
+        val: f32,
+    },
+    ADSRSustain {
+        n: usize,
+        val: f32,
+    },
+    ADSRRelease {
+        n: usize,
+        val: f32,
+    },
+    LfoSpeed {
+        n: usize,
+        speed: f32,
+    },
+    ModMatrixAdd {
+        src: String,
+        dest: String,
+        amt: f32,
+        bipolar: bool,
+    },
+    ModMatrixDel {
+        /// the id of the mod matrix entry to rm (i.e its index + 1)
+        id: usize,
+    },
+    ModMatrixMod {
+        /// the id of the mod matrix entry to modify (i.e its index + 1)
+        id: usize,
+        src: String,
+        dest: String,
+        amt: f32,
+        bipolar: bool,
+    },
     // MidiLearn {},
     // MidiUnearn {},
 }
@@ -927,7 +992,152 @@ impl StepperSynth {
                     .iter()
                     .for_each(|v| v.lock().unwrap().lfos[n].set_frequency(speed));
             }
+            WTSynthParam::ModMatrixAdd {
+                src,
+                dest,
+                amt,
+                bipolar,
+            } => {
+                // let Ok(src) = str_to_mod_src(&src) else {
+                //     error!("the source {src:?} failed to convert to ModMatrixSrc");
+                //     return;
+                // };
+                // let Ok(dest) = str_to_mod_dest(&dest) else {
+                //     error!("the destination {dest:?} failed to convert to ModMatrixDest");
+                //     return;
+                // };
+                // // let s = ModMatrixSrc::Lfo(0);
+                // // warn!("{:?}", toml::to_string_pretty(&s));
+
+                let Ok(src) = toml::from_str::<ModMatrixSrc>(&src) else {
+                    error!("the source {src:?} failed to convert to ModMatrixSrc");
+                    return;
+                };
+                // info!("src => {src:?}");
+                let Ok(dest) = toml::from_str::<ModMatrixDest>(&dest) else {
+                    error!("the destination {dest:?} failed to convert to ModMatrixDest");
+                    return;
+                };
+                // info!("dest => {dest:?}");
+                let matrix_item = ModMatrixItem {
+                    src,
+                    dest,
+                    amt,
+                    bipolar,
+                };
+
+                info!("adding matrix item {matrix_item:?} to the mod_matrix");
+
+                for item in wt_synth.synth.mod_matrix.iter_mut() {
+                    if item.is_none() {
+                        *item = Some(matrix_item);
+                    }
+                }
+            }
+            WTSynthParam::ModMatrixDel { id } => {
+                let mut to_rm = [id].to_vec();
+
+                loop {
+                    let Some(id) = to_rm.pop() else {
+                        break;
+                    };
+
+                    let matrix = wt_synth.synth.mod_matrix.clone();
+
+                    // rm the identified matrix entry & scootch everything after it down.
+                    for i in id..matrix.len() {
+                        wt_synth.synth.mod_matrix[i - 1] = matrix[i];
+                    }
+
+                    // if any matrix entries modulate the amount of a matrix entry with an id GREATER
+                    // then the rm'ed id adjust to account for the shift from the above for loop.
+                    //
+                    // if any matrix entries modulate the amount of a matrix entry with an id EQUAL to
+                    // that of the rm'ed id rm them too.
+                    for (i, item) in wt_synth.synth.mod_matrix.iter_mut().enumerate() {
+                        if let Some(ref mut entry) = item {
+                            match entry.dest {
+                                ModMatrixDest::ModMatrixEntryModAmt(ref mut n) => {
+                                    if *n > id {
+                                        *n -= 1
+                                    } else if *n == id {
+                                        // // recurse
+                                        // self.wt_param_setter(WTSynthParam::ModMatrixDel { id: i })
+                                        to_rm.push(i);
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+            WTSynthParam::ModMatrixMod {
+                id,
+                src,
+                dest,
+                amt,
+                bipolar,
+            } => {
+                // let Ok(src) = str_to_mod_src(&src) else {
+                //     error!("the source {src:?} failed to convert to ModMatrixSrc");
+                //     return;
+                // };
+                // let Ok(dest) = str_to_mod_dest(&dest) else {
+                //     error!("the destination {dest:?} failed to convert to ModMatrixDest");
+                //     return;
+                // };
+                let Ok(src) = toml::from_str::<ModMatrixSrc>(&src) else {
+                    error!("the source {src:?} failed to convert to ModMatrixSrc");
+                    return;
+                };
+                let Ok(dest) = toml::from_str::<ModMatrixDest>(&dest) else {
+                    error!("the destination {dest:?} failed to convert to ModMatrixDest");
+                    return;
+                };
+                let matrix_item = ModMatrixItem {
+                    src,
+                    dest,
+                    amt,
+                    bipolar,
+                };
+
+                wt_synth.synth.mod_matrix[id - 1] = Some(matrix_item);
+            }
             _ => {}
         }
     }
 }
+
+// fn str_to_mod_src(src: &str) -> Result<ModMatrixSrc> {
+//     let src = src.trim().to_lowercase();
+//
+//     if src.starts_with("env-") {
+//         let n: usize = src.split("-").collect::<Vec<_>>()[1].parse()?;
+//
+//         return Ok(ModMatrixSrc::Env(n));
+//     }
+//
+//     if src.starts_with("lfo-") {
+//         let n: usize = src.split("-").collect::<Vec<_>>()[1].parse()?;
+//
+//         return Ok(ModMatrixSrc::Lfo(n));
+//     }
+//
+//     Ok(match src.as_str() {
+//         "velocity" | "vel" => ModMatrixSrc::Velocity,
+//         "gate" => ModMatrixSrc::Gate,
+//         "mod-wheel" | "mod-whl" => ModMatrixSrc::ModWheel,
+//         "pitch-wheel" | "pitch-whl" => ModMatrixSrc::PitchWheel,
+//         "macro-1" | "macro1" | "m-1" | "m1" => ModMatrixSrc::Macro1,
+//         "macro-2" | "macro2" | "m-2" | "m2" => ModMatrixSrc::Macro1,
+//         "macro-3" | "macro3" | "m-3" | "m3" => ModMatrixSrc::Macro1,
+//         "macro-4" | "macro4" | "m-4" | "m4" => ModMatrixSrc::Macro1,
+//         // "" => ModMatrixSrc::,
+//         _ => bail!(""),
+//     })
+// }
+//
+// fn str_to_mod_dest(dest: &str) -> Result<ModMatrixDest> {
+//
+// }

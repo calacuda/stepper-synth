@@ -25,4 +25,5 @@ reverb = "1.0.47"
 serde = { version = "1.0.217", features = ["derive"] }
 strum = { version = "0.26.3", features = ["derive"] }
 tinyaudio = "1.0.0"
+toml = "0.8.20"
 wavetable-synth = { git = "https://github.com/calacuda/wavetable-synth", version = "0.1.0" }

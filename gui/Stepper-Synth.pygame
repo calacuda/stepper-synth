@@ -8,7 +8,7 @@ from stepper_synth.config import *
 from stepper_synth.engine_menu import draw_engine_menu, reset_engine_menu, engine_menu_controls
 from typing import Callable, Tuple
 import pygame
-from stepper_synth_backend import StepperSynth, SynthEngineType, StepperSynthState, EffectType, Screen
+from stepper_synth_backend import StepperSynth, SynthEngineType, StepperSynthState, EffectType, Screen, WTSynthParam
 from pathlib import Path
 from logging import DEBUG, INFO
 from stepper_synth.wt import draw_wave_table, wave_table_controls
@@ -277,6 +277,14 @@ def stop_synth():
     pygame.quit()
 
 
+def test_add_mod_mat():
+    src = "Lfo = 0"
+    dest = "[Osc]\nosc = 1\nparam = \"Level\""
+
+    item = WTSynthParam.ModMatrixAdd(src, dest, 0.5, False)
+    synth.wt_param_setter(item)
+
+
 if __name__ == "__main__":
     # ipc.send(PythonCmd.ChangeSynthEngine(SynthEngineType.SubSynth))
     # synth.set_screen(Screen.Effect(EffectType.Reverb))
@@ -284,6 +292,7 @@ if __name__ == "__main__":
     # synth.set_screen(Screen.Synth(SynthEngineType.Wurlitzer))
     synth.set_screen(Screen.WaveTableSynth())
     # synth.set_screen(Screen.Stepper(0))
+    # test_add_mod_mat()
 
     log.info("starting main loop.")
 
