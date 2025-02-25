@@ -990,7 +990,7 @@ impl StepperSynth {
                     .synth
                     .voices
                     .iter()
-                    .for_each(|v| v.lock().unwrap().lfos[n].set_frequency(speed));
+                    .for_each(|v| v.lock().unwrap().lfos[n].set_frequency(1.0 / speed));
             }
             WTSynthParam::ModMatrixAdd {
                 src,

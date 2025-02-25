@@ -12,32 +12,86 @@ MOVE_TIMER = 0
 ADJUST_TIMER = 0
 
 
+def move_cursor(pygame, controller: Buttons):
+    global X_I
+    global Y_I
+    global MOVE_TIMER
+
+    # print(f"({X_I}, {Y_I})")
+
+    if select_mod_pressed(controller) or not timer_is_done(pygame, MOVE_TIMER, 0.15):
+        return
+
+    if controller.is_pressed(buttons.get("up")):
+        Y_I -= 1
+        Y_I %= 2
+    elif controller.is_pressed(buttons.get("down")):
+        Y_I += 1
+        Y_I %= 2
+    elif controller.is_pressed(buttons.get("right")):
+        X_I += 1
+        X_I %= 2
+
+        if X_I == 0:
+            Y_I += 1
+            Y_I %= 2
+            X_I = 0
+    elif controller.is_pressed(buttons.get("left")):
+        X_I -= 1
+        X_I %= 2
+
+        if X_I == 1:
+            Y_I += 1
+            Y_I %= 2
+            X_I = 1
+    else:
+        return
+
+    MOVE_TIMER = pygame.time.get_ticks()
+
+
+def adjust_value(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState):
+    global ADJUST_TIMER
+
+    if (not select_mod_pressed(controller)) or (not timer_is_done(pygame, ADJUST_TIMER)):
+        # TIMER = pygame.time.get_ticks()
+        return synth
+
+    lfo_i = (Y_I * 2) + X_I
+    lfo = state.lfo[lfo_i]
+    amt = lfo.speed
+    # print(amt)
+
+    if controller.is_pressed(buttons.get("right")):
+        set_to = set_max(amt + 0.05, 1.0, min=0.0)
+    elif controller.is_pressed(buttons.get("left")):
+        set_to = set_max(amt - 0.05, 1.0, min=0.0)
+    else:
+        return synth
+
+    # print(f"set_to = {set_to}")
+
+    ADJUST_TIMER = pygame.time.get_ticks()
+    synth.wt_param_setter(WTSynthParam.LfoSpeed(lfo_i, set_to))
+
+    return synth
+
+
 def format_time(time: float, max: float = 1.0):
     val = max * time
 
-    return f"{val:.4f} sec"
+    return f"{val:.2f} sec"
 
 
 def draw_lfo(pygame, screen, fonts, lfo, top, left, lfo_i):
-    # bottom = top + (SCREEN_HEIGHT / 2)
     right = left + (SCREEN_WIDTH / 2)
     w = (SCREEN_WIDTH / 2)
     h = (SCREEN_HEIGHT / 2)
-    lfo_sel = (Y_I == lfo_i // 2) and (X_I // 4 == (lfo_i % 2))
-    # print(f"{env_i} => {env_sel}")
-
-    # offset = w / 8
+    lfo_sel = (Y_I == lfo_i // 2) and (X_I == (lfo_i % 2))
     col_w = w / 4
     row_h = h / 4
     row_offset = h / 6
     start_offset = lfo_i // 2
-
-    # display_things = (
-    #     (lfo.speed, format_time(lfo.speed)),
-    #     # ("D", env.dcy, format_time(env.dcy)),
-    #     # ("S", env.sus, f"{round(env.sus * 100)}"),
-    #     # ("R", env.rel, format_time(env.rel)),
-    # )
 
     # draw env filter title
     y = row_offset + row_h * ((start_offset + 3) % 4) + top
@@ -45,16 +99,11 @@ def draw_lfo(pygame, screen, fonts, lfo, top, left, lfo_i):
     color = TEXT_COLOR_2 if not lfo_sel else PEACH
     draw_text(screen, f"LFO {lfo_i + 1}", fonts[0], (x, y), color)
 
-    # for (i, (val, display)) in enumerate(display_things):
-    # x = (left + right) / 2
-
     y = row_offset + row_h * 1 + top
     sel = lfo_sel
     color = TEXT_COLOR_2 if not sel else PEACH
-    # draw_text(screen, label, fonts[2], (x, y), color)
 
     # draw dial
-    # y = row_offset + row_h * (start_offset + 1) + top
     draw_dial(pygame, screen, x, y, lfo.speed, sel, diameter=col_w / 2)
 
     # draw display
@@ -79,6 +128,6 @@ def draw_lfo_menu(pygame, screen, fonts, synth: StepperSynthState):
 
 
 def lfo_menu_controls(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState) -> StepperSynth:
-    # move_cursor(controller)
-    # return adjust_value(pygame, controller, synth, state)
-    return synth
+    move_cursor(pygame, controller)
+    return adjust_value(pygame, controller, synth, state)
+    # return synth
