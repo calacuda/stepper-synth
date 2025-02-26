@@ -36,11 +36,11 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [x] low_pass keytracking
 - [ ] Drum synth
 - [x] Wave Table Synth
-- [ ] Wave Table Synth ui
+- [x] Wave Table Synth ui
 - [ ] config file
 - [ ] maybe a CLI (emphasis on maybe)
 - [ ] midi sequencer
-- [ ] mod matrix
+- [x] mod matrix
 - [ ] wurlitzer engine
 - [ ] wurlitzer UI
 - [ ] overdrive effect.

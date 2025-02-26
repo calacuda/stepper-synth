@@ -131,7 +131,8 @@ def draw_steps(pygame, screen, fonts, state: StepperSynthState, bottom, top, seq
     # draw_step(pygame, screen, state, top, width, 0, state.cursor)
     # print(len(sequence))
 
-    for i in range(state.cursor, state.cursor + (16 - state.cursor % 16)):
+    # for i in range(state.cursor, state.cursor + (16 - state.cursor % 16)):
+    for i in range(state.cursor + (16 - state.cursor % 16) - 16, state.cursor + (16 - state.cursor % 16)):
         if i == len(sequence):
             break
         draw_step(pygame, screen, fonts, top, bottom, width, i, state.cursor)
@@ -143,14 +144,14 @@ def mk_text(font, text, color=TEXT_COLOR_1):
     return (display, text_rect)
 
 
-def draw_label_box(pygame, screen, top, bottom, x, y):
+def draw_label_box(pygame, screen, top, bottom, x, y, left):
     rad = LINE_WIDTH * 5
 
-    rect = pygame.Rect(0, 0, SCREEN_WIDTH / 3.0, (bottom - top) / 2)
+    rect = pygame.Rect(0, 0, (SCREEN_WIDTH - left) / 4.0, (bottom - top) / 2)
     rect.center = (x, y)
     pygame.draw.rect(screen, RED, rect,
                      border_top_left_radius=rad, border_bottom_left_radius=rad, border_top_right_radius=rad, border_bottom_right_radius=rad)
-    rect = pygame.Rect(0, 0, SCREEN_WIDTH / 3.0 -
+    rect = pygame.Rect(0, 0, (SCREEN_WIDTH - left) / 4.0 -
                        LINE_WIDTH * 2, (bottom - top) / 2 - LINE_WIDTH * 2)
     rect.center = (x, y)
     rad -= LINE_WIDTH
@@ -158,45 +159,53 @@ def draw_label_box(pygame, screen, top, bottom, x, y):
                      border_top_left_radius=rad, border_bottom_left_radius=rad, border_top_right_radius=rad, border_bottom_right_radius=rad)
 
 
-def do_draw_label(pygame, screen, fonts, top: float, bottom: float, l: float, r: float, label: str, value: str, selected: bool):
-    x = (r - l) / 2 + l
+def do_draw_label(pygame, screen, fonts, top: float, bottom: float, x: float, label: str, value: str, selected: bool, left):
+    # x = (r - l) / 2 + l + left
     y = (bottom - top) / 2 + top
     font = fonts[2]
 
     # text = "Sequence"
     if selected:
-        draw_label_box(pygame, screen, top, bottom, x, y)
+        draw_label_box(pygame, screen, top, bottom, x, y, left)
 
     display, text_rect = mk_text(font, label)
-    text_rect.centerx = x + text_rect.width * 0.06
+    text_rect.centerx = x  # + text_rect.width * 0.06
     text_rect.bottom = y - LINE_WIDTH
 
     screen.blit(display, text_rect)
 
     display, text_rect = mk_text(font, value, color=TEXT_COLOR_2)
-    text_rect.centerx = x + text_rect.width * 0.06
+    text_rect.centerx = x  # + text_rect.width * 0.06
     text_rect.top = y + LINE_WIDTH
     screen.blit(display, text_rect)
 
 
-def draw_labels(pygame, screen, fonts, state: StepperSynthState, bottom: float, top: float):
-    thirds = [0] + [SCREEN_WIDTH * (i / 3) for i in range(1, 4)]
-    l_r = [thirds[i:i+2] for i in range(0, len(thirds) - 1)]
+def draw_labels(pygame, screen, fonts, state: StepperSynthState, bottom: float, top: float, left):
+    # thirds = [left] + [left + ((SCREEN_WIDTH - left) * (i / 3))
+    #                    for i in range(1, 4)]
+    # l_r = [thirds[i:i+2] for i in range(0, len(thirds) - 1)]
     # chunk = ints[i:i+chunk_size]
+    right = SCREEN_WIDTH
 
-    l, r = l_r[0]
+    x_s = [
+        (left * 3 + right * 1) / 4,
+        (left + right) / 2,
+        (left * 1 + right * 3) / 4,
+    ]
+
+    # l, r = l_r[0]
     # draw_name(pygame, screen, fonts, top, bottom, l, r, state.name)
     do_draw_label(pygame, screen, fonts, top, bottom,
-                  l, r, "Sequence", state.name, INDEX == 0)
-    l, r = l_r[1]
+                  x_s[0], "Seq-n", state.name, INDEX == 0, left)
+    # l, r = l_r[1]
     # draw_tempo(pygame, screen, fonts, top, bottom, l, r, state.tempo)
     do_draw_label(pygame, screen, fonts, top,
-                  bottom, l, r, "Tempo", f"{state.tempo}", INDEX == 1)
-    l, r = l_r[2]
+                  bottom, x_s[1], "Tempo", f"{state.tempo}", INDEX == 1, left)
+    # l, r = l_r[2]
     # draw_step_total(pygame, screen, fonts, top,
     #                 bottom, l, r, len(state.sequence.steps))
     do_draw_label(pygame, screen, fonts, top,
-                  bottom, l, r, "Steps", f"{len(state.sequence.steps)}", INDEX == 2)
+                  bottom, x_s[2], "Steps", f"{len(state.sequence.steps)}", INDEX == 2, left)
 
 
 def draw_button(pygame, screen, font, l: float, r: float, top: float, height: float, label: str, selected: bool, text_color=[TEXT_COLOR_1, GREEN], border_color=[GREEN, TEXT_COLOR_2]):
@@ -233,11 +242,12 @@ def draw_button(pygame, screen, font, l: float, r: float, top: float, height: fl
     screen.blit(display, text_rect)
 
 
-def draw_buttons(pygame, screen, fonts, state: StepperSynthState, bottom: float, top: float):
-    middle_section = SCREEN_WIDTH * (3 / 5)
-    fifth = SCREEN_WIDTH * (1 / 5)
+def draw_buttons(pygame, screen, fonts, state: StepperSynthState, bottom: float, top: float, left):
+    middle_section = (SCREEN_WIDTH - left) * (3 / 5)
+    fifth = (SCREEN_WIDTH - left) * (1 / 5)
     sections = [fifth] + [middle_section *
                           (i / 3) + fifth for i in range(1, 4)]
+    sections = [n + left for n in sections]
     l_r = [sections[i:i+2] for i in range(0, len(sections) - 1)]
     h = bottom - top
     button_h = h * (3.0 / 8.0)
@@ -261,6 +271,31 @@ def draw_buttons(pygame, screen, fonts, state: StepperSynthState, bottom: float,
                 button_h * 0.5, button_h, ">>>", False)
 
 
+def draw_channel(pygame, screen, fonts, x, y, size, channel):
+    rect = pygame.Rect(0, 0, size, size)
+    rect.center = (x, y)
+    # sel = LP_INDEX == i and X_INDEX == 0
+    sel = False
+    color = RED if sel else GREEN
+    pygame.draw.rect(screen, BACKGROUND_COLOR, rect)
+    pygame.draw.rect(screen, color, rect, LINE_WIDTH)
+
+    draw_text(screen, channel, fonts[0], (x, y), TEXT_COLOR_1)
+
+
+def draw_channels(pygame, screen, fonts, state: StepperSynthState, bottom: float, top: float, right: float):
+    w = right
+    h = bottom - top
+    x = w * (2 / 6)
+    y = 0
+    size = h / 6
+
+    for (i, channel) in enumerate("ABCD"):
+        y = h * (i / 4) + (h * 0.125)
+        draw_channel(pygame, screen, fonts, x, y, size, channel)
+        # TODO: display the notes that are playing on eatch channel
+
+
 def draw_stepper(pygame, screen, fonts, state: StepperSynthState):
     third = SCREEN_HEIGHT / 3
     bottom_h = third * 2
@@ -273,11 +308,14 @@ def draw_stepper(pygame, screen, fonts, state: StepperSynthState):
     # print("second_playing =", playing)
 
     draw_piano(pygame, screen, state, SCREEN_HEIGHT - bottom_row_h, playing)
+    left = SCREEN_WIDTH / 8
     draw_steps(pygame, screen, fonts, state, SCREEN_HEIGHT -
                bottom_row_h, SCREEN_HEIGHT - bottom_row_h * 2, state.sequence.steps)
     draw_labels(pygame, screen, fonts, state, SCREEN_HEIGHT -
-                bottom_row_h * 2, SCREEN_HEIGHT - bottom_row_h * 4)
-    draw_buttons(pygame, screen, fonts, state, bottom_row_h, 0.0)
+                bottom_row_h * 2, SCREEN_HEIGHT - bottom_row_h * 4, left)
+    draw_buttons(pygame, screen, fonts, state, bottom_row_h, 0.0, left)
+    draw_channels(pygame, screen, fonts, state,
+                  SCREEN_HEIGHT - bottom_row_h * 2, 0.0, left)
 
 
 def main_stepper_controls(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState):
