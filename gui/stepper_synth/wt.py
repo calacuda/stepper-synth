@@ -19,7 +19,7 @@ SUB_SCREENS = [
 ]
 SCREEN_NAMES = [screen[2] for screen in SUB_SCREENS]
 # SUB_SCREEN = 0
-SUB_SCREEN = 3
+SUB_SCREEN = 4
 DRAW_MENU = False
 # DRAW_MENU = True
 

@@ -998,25 +998,35 @@ impl StepperSynth {
                 amt,
                 bipolar,
             } => {
-                // let Ok(src) = str_to_mod_src(&src) else {
-                //     error!("the source {src:?} failed to convert to ModMatrixSrc");
-                //     return;
-                // };
+                let Ok(src) = str_to_mod_src(&src) else {
+                    error!("the source {src:?} failed to convert to ModMatrixSrc");
+                    return;
+                };
                 // let Ok(dest) = str_to_mod_dest(&dest) else {
                 //     error!("the destination {dest:?} failed to convert to ModMatrixDest");
                 //     return;
                 // };
-                // // let s = ModMatrixSrc::Lfo(0);
-                // // warn!("{:?}", toml::to_string_pretty(&s));
+                // let s = ModMatrixSrc::Velocity;
+                // warn!("{:?}", toml::to_string_pretty(&s));
 
-                let Ok(src) = toml::from_str::<ModMatrixSrc>(&src) else {
-                    error!("the source {src:?} failed to convert to ModMatrixSrc");
-                    return;
-                };
+                // let Ok(src) = toml::from_str::<ModMatrixSrc>(&src) else {
+                //     error!("the source {src:?} failed to convert to ModMatrixSrc");
+                //     return;
+                // };
                 // info!("src => {src:?}");
-                let Ok(dest) = toml::from_str::<ModMatrixDest>(&dest) else {
-                    error!("the destination {dest:?} failed to convert to ModMatrixDest");
-                    return;
+
+                // let d = ModMatrixDest::SynthVolume;
+                // warn!("{:?}", toml::to_string_pretty(&d));
+
+                let dest = if dest.to_string().to_lowercase().starts_with("vol") {
+                    ModMatrixDest::SynthVolume
+                } else {
+                    let Ok(dest) = toml::from_str::<ModMatrixDest>(&dest) else {
+                        error!("the destination {dest:?} failed to convert to ModMatrixDest");
+                        return;
+                    };
+
+                    dest
                 };
                 // info!("dest => {dest:?}");
                 let matrix_item = ModMatrixItem {
@@ -1031,6 +1041,7 @@ impl StepperSynth {
                 for item in wt_synth.synth.mod_matrix.iter_mut() {
                     if item.is_none() {
                         *item = Some(matrix_item);
+                        break;
                     }
                 }
             }
@@ -1079,18 +1090,18 @@ impl StepperSynth {
                 amt,
                 bipolar,
             } => {
-                // let Ok(src) = str_to_mod_src(&src) else {
-                //     error!("the source {src:?} failed to convert to ModMatrixSrc");
-                //     return;
-                // };
+                let Ok(src) = str_to_mod_src(&src) else {
+                    error!("the source {src:?} failed to convert to ModMatrixSrc");
+                    return;
+                };
                 // let Ok(dest) = str_to_mod_dest(&dest) else {
                 //     error!("the destination {dest:?} failed to convert to ModMatrixDest");
                 //     return;
                 // };
-                let Ok(src) = toml::from_str::<ModMatrixSrc>(&src) else {
-                    error!("the source {src:?} failed to convert to ModMatrixSrc");
-                    return;
-                };
+                // let Ok(src) = toml::from_str::<ModMatrixSrc>(&src) else {
+                //     error!("the source {src:?} failed to convert to ModMatrixSrc");
+                //     return;
+                // };
                 let Ok(dest) = toml::from_str::<ModMatrixDest>(&dest) else {
                     error!("the destination {dest:?} failed to convert to ModMatrixDest");
                     return;
@@ -1109,35 +1120,35 @@ impl StepperSynth {
     }
 }
 
-// fn str_to_mod_src(src: &str) -> Result<ModMatrixSrc> {
-//     let src = src.trim().to_lowercase();
-//
-//     if src.starts_with("env-") {
-//         let n: usize = src.split("-").collect::<Vec<_>>()[1].parse()?;
-//
-//         return Ok(ModMatrixSrc::Env(n));
-//     }
-//
-//     if src.starts_with("lfo-") {
-//         let n: usize = src.split("-").collect::<Vec<_>>()[1].parse()?;
-//
-//         return Ok(ModMatrixSrc::Lfo(n));
-//     }
-//
-//     Ok(match src.as_str() {
-//         "velocity" | "vel" => ModMatrixSrc::Velocity,
-//         "gate" => ModMatrixSrc::Gate,
-//         "mod-wheel" | "mod-whl" => ModMatrixSrc::ModWheel,
-//         "pitch-wheel" | "pitch-whl" => ModMatrixSrc::PitchWheel,
-//         "macro-1" | "macro1" | "m-1" | "m1" => ModMatrixSrc::Macro1,
-//         "macro-2" | "macro2" | "m-2" | "m2" => ModMatrixSrc::Macro1,
-//         "macro-3" | "macro3" | "m-3" | "m3" => ModMatrixSrc::Macro1,
-//         "macro-4" | "macro4" | "m-4" | "m4" => ModMatrixSrc::Macro1,
-//         // "" => ModMatrixSrc::,
-//         _ => bail!(""),
-//     })
-// }
-//
+fn str_to_mod_src(src: &str) -> Result<ModMatrixSrc> {
+    let src = src.trim().to_lowercase();
+
+    if src.starts_with("env-") {
+        let n: usize = src.split("-").collect::<Vec<_>>()[1].parse()?;
+
+        return Ok(ModMatrixSrc::Env(n));
+    }
+
+    if src.starts_with("lfo-") {
+        let n: usize = src.split("-").collect::<Vec<_>>()[1].parse()?;
+
+        return Ok(ModMatrixSrc::Lfo(n));
+    }
+
+    Ok(match src.as_str() {
+        "velocity" | "vel" => ModMatrixSrc::Velocity,
+        "gate" => ModMatrixSrc::Gate,
+        "mod-wheel" | "mod-whl" => ModMatrixSrc::ModWheel,
+        "pitch-wheel" | "pitch-whl" => ModMatrixSrc::PitchWheel,
+        "macro-1" | "macro1" | "m-1" | "m1" => ModMatrixSrc::Macro1,
+        "macro-2" | "macro2" | "m-2" | "m2" => ModMatrixSrc::Macro1,
+        "macro-3" | "macro3" | "m-3" | "m3" => ModMatrixSrc::Macro1,
+        "macro-4" | "macro4" | "m-4" | "m4" => ModMatrixSrc::Macro1,
+        // "" => ModMatrixSrc::,
+        _ => bail!(""),
+    })
+}
+
 // fn str_to_mod_dest(dest: &str) -> Result<ModMatrixDest> {
 //
 // }

@@ -293,6 +293,15 @@ if __name__ == "__main__":
     synth.set_screen(Screen.WaveTableSynth())
     # synth.set_screen(Screen.Stepper(0))
     # test_add_mod_mat()
+    # test_add_mod_mat()
+    # test_add_mod_mat()
+    # test_add_mod_mat()
+    # test_add_mod_mat()
+    # test_add_mod_mat()
+    # test_add_mod_mat()
+    # test_add_mod_mat()
+    # test_add_mod_mat()
+    # test_add_mod_mat()
 
     log.info("starting main loop.")
 
