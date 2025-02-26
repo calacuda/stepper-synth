@@ -278,8 +278,14 @@ def stop_synth():
 
 
 def test_add_mod_mat():
-    src = "Lfo = 0"
-    dest = "[Osc]\nosc = 1\nparam = \"Level\""
+    # src = "Lfo = 0"
+    # dest = "[Osc]\nosc = 1\nparam = \"Level\""
+
+    # src = "Velocity"
+    # dest = "Volume"
+
+    src = "Velocity"
+    dest = "[Osc]\nosc = 0\nparam = \"Level\""
 
     item = WTSynthParam.ModMatrixAdd(src, dest, 0.5, False)
     synth.wt_param_setter(item)

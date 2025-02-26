@@ -164,6 +164,8 @@ class NewRow:
         synth.wt_param_setter(WTSynthParam.ModMatrixAdd(
             self.src, self.dest_i.gen_cmd(), self.amt, self.bipolar))
 
+        return synth
+
     def nudge_src(self, forward: bool):
         if forward:
             self.src_i += 1
@@ -269,11 +271,13 @@ def adjust_value(pygame, controller: Buttons, synth: StepperSynth, state: Steppe
     if controller.just_released(buttons.get("a")) and not NEW_ROW.display:
         NEW_ROW.display = True
     elif controller.just_released(buttons.get("a")) and NEW_ROW.display:
-        NEW_ROW.add(synth, state)
+        synth = NEW_ROW.add(synth, state)
 
     if (not select_mod_pressed(controller)) or (not timer_is_done(pygame, ADJUST_TIMER)) or (not NEW_ROW.display) or (not COL_I == matrix_i):
         # TIMER = pygame.time.get_ticks()
         return synth
+
+    # print(synth.)
 
     nudge = [
         # nudge src
