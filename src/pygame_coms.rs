@@ -1056,7 +1056,7 @@ impl StepperSynth {
                     let matrix = wt_synth.synth.mod_matrix.clone();
 
                     // rm the identified matrix entry & scootch everything after it down.
-                    for i in id..matrix.len() {
+                    for i in (id + 1)..matrix.len() {
                         wt_synth.synth.mod_matrix[i - 1] = matrix[i];
                     }
 

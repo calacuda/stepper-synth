@@ -23,8 +23,8 @@ SRC_S = [
     "Macro2",
     "Macro3",
     "Macro4",
-    "ModWheel",
-    "PitchWheel",
+    "Mod-Whl",
+    "Pitch-Whl",
 ]
 
 
@@ -187,6 +187,8 @@ class NewRow:
 NEW_ROW = NewRow()
 MOVE_TIMER = 0
 ADJUST_TIMER = 0
+TO_RM = None
+RM_CONF_I = 1
 
 
 def move_cursor(pygame, controller: Buttons, state: StepperSynthState):
@@ -241,9 +243,8 @@ def toggle_bipol(forward: bool):
 def nudge_amt(forward: bool):
     global NEW_ROW
 
-    amt = 0.005 if forward else -0.005
-
-    NEW_ROW.amt += amt
+    amt = 0.0075 if forward else -0.0075
+    NEW_ROW.amt = set_max(NEW_ROW.amt + amt, 1.0, min=-1.0)
 
 
 def nudge_src(forward: bool):
@@ -261,6 +262,7 @@ def nudge_dest(forward: bool):
 def adjust_value(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState):
     global ADJUST_TIMER
     global NEW_ROW
+    global TO_RM
 
     matrix = state.mod_matrix
     matrix_i = min((len(matrix) - FIRST_I, 7))
@@ -268,16 +270,28 @@ def adjust_value(pygame, controller: Buttons, synth: StepperSynth, state: Steppe
     if NEW_ROW.display:
         NEW_ROW.check_was_added(state)
 
+    # if (not select_mod_pressed(controller)):
+    #     # TIMER = pygame.time.get_ticks()
+    #     return synth
+
+    # or (not NEW_ROW.display) or (not COL_I == matrix_i):
+    if (not select_mod_pressed(controller)):
+        # TIMER = pygame.time.get_ticks()
+        return synth
+    # else:
+    #     print("timmer =>", timer_is_done(pygame, ADJUST_TIMER))
+
     if controller.just_released(buttons.get("a")) and not NEW_ROW.display:
         NEW_ROW.display = True
     elif controller.just_released(buttons.get("a")) and NEW_ROW.display:
         synth = NEW_ROW.add(synth, state)
 
-    if (not select_mod_pressed(controller)) or (not timer_is_done(pygame, ADJUST_TIMER)) or (not NEW_ROW.display) or (not COL_I == matrix_i):
-        # TIMER = pygame.time.get_ticks()
-        return synth
+    if controller.just_released(buttons.get("b")) and TO_RM is None:
+        # print("assigning TO_RM")
+        TO_RM = FIRST_I + COL_I
 
-    # print(synth.)
+    if (not timer_is_done(pygame, ADJUST_TIMER)) or (not NEW_ROW.display) or (not COL_I == matrix_i):
+        return synth
 
     nudge = [
         # nudge src
@@ -297,7 +311,7 @@ def adjust_value(pygame, controller: Buttons, synth: StepperSynth, state: Steppe
     else:
         return synth
 
-    # TODO: add deleting and modding of mod matrix entries
+    # TODO: add modding of mod matrix entries
 
     ADJUST_TIMER = pygame.time.get_ticks()
 
@@ -382,6 +396,62 @@ def draw_new_matrix(pygame, screen, fonts, top, left, row_width, i):
     draw_src(screen, fonts, NEW_ROW.dest, top, bottom, x, col_sel and Y_I == 3)
 
 
+def draw_rm_conf_menu(pygame, screen, fonts):
+    prefix = "> "
+    yes_pre = prefix if RM_CONF_I == 0 else ""
+    no_pre = prefix if RM_CONF_I == 1 else ""
+    lines = [f"Remove matrix entry: {TO_RM}?", f"{yes_pre}Yes", f"{no_pre}No"]
+
+    font = fonts[0]
+
+    tmp_text = font.render(
+        lines[0], True, GREEN).get_rect()
+    line_h = tmp_text.height
+    line_w = tmp_text.width
+    box_h = line_h * 3 + LINE_WIDTH * 4
+    box_w = line_w + LINE_WIDTH * 6
+
+    # draw a rounded box in the center of the screen
+    rect = pygame.Rect(0, 0, box_w, box_h)
+    rect.center = SCREEN_CENTER
+    color = RED
+    pygame.draw.rect(screen, BACKGROUND_COLOR, rect)
+    pygame.draw.rect(screen, color, rect, LINE_WIDTH)
+
+    # TODO: draw text lines
+    y_offset = rect.top
+    ys = [y + y_offset for y in [box_h / 4.0,
+                                 box_h / 2.0, box_h * (3.0 / 4.0)]]
+    x = SCREEN_CENTER[0]
+    draw_text(screen, lines[0], font, (x, ys[0]), color)
+    draw_text(screen, lines[1], font, (x, ys[1]), TEXT_COLOR_2)
+    draw_text(screen, lines[2], font, (x, ys[2]), TEXT_COLOR_2)
+
+
+def rm_move_cursor(controller: Buttons):
+    global RM_CONF_I
+
+    if controller.just_pressed(buttons.get("up")) or controller.just_pressed(buttons.get("down")):
+        RM_CONF_I += 1
+        RM_CONF_I %= 2
+
+
+def rm_menu_adjust(controller: Buttons, synth: StepperSynth):
+    global TO_RM
+
+    if controller.just_released(buttons.get("b")) and TO_RM is not None:
+        # print("unasigning TO_RM")
+        TO_RM = None
+
+    if controller.just_released(buttons.get("a")) and TO_RM is not None and RM_CONF_I == 0:
+        synth.wt_param_setter(WTSynthParam.ModMatrixDel(TO_RM))
+
+    if controller.just_released(buttons.get("a")) and TO_RM is not None:
+        TO_RM = None
+
+    return synth
+
+
 def draw_mod_menu(pygame, screen, fonts, synth: StepperSynthState):
     matrix = synth.mod_matrix
     row_width = SCREEN_WIDTH / 8
@@ -414,8 +484,14 @@ def draw_mod_menu(pygame, screen, fonts, synth: StepperSynthState):
         left = i * row_width
         draw_new_matrix(pygame, screen, fonts, top, left, row_width, i)
 
+    if TO_RM is not None:
+        draw_rm_conf_menu(pygame, screen, fonts)
+
 
 def mod_menu_controls(pygame, controller: Buttons, synth: StepperSynth, state: StepperSynthState) -> StepperSynth:
-    move_cursor(pygame, controller, state)
-    return adjust_value(pygame, controller, synth, state)
-    # return synth
+    if TO_RM is None:
+        move_cursor(pygame, controller, state)
+        return adjust_value(pygame, controller, synth, state)
+    else:
+        rm_move_cursor(controller)
+        return rm_menu_adjust(controller, synth)
