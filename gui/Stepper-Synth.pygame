@@ -307,7 +307,7 @@ if __name__ == "__main__":
     # test_add_mod_mat()
     # test_add_mod_mat()
     # test_add_mod_mat()
-    test_add_mod_mat()
+    # test_add_mod_mat()
 
     log.info("starting main loop.")
 
