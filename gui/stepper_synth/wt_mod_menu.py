@@ -418,12 +418,12 @@ def draw_rm_conf_menu(pygame, screen, fonts):
     pygame.draw.rect(screen, BACKGROUND_COLOR, rect)
     pygame.draw.rect(screen, color, rect, LINE_WIDTH)
 
-    # TODO: draw text lines
+    # draw text lines
     y_offset = rect.top
     ys = [y + y_offset for y in [box_h / 4.0,
                                  box_h / 2.0, box_h * (3.0 / 4.0)]]
     x = SCREEN_CENTER[0]
-    draw_text(screen, lines[0], font, (x, ys[0]), color)
+    draw_text(screen, lines[0], font, (x, ys[0]), PEACH)
     draw_text(screen, lines[1], font, (x, ys[1]), TEXT_COLOR_2)
     draw_text(screen, lines[2], font, (x, ys[2]), TEXT_COLOR_2)
 
