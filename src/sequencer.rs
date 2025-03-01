@@ -4,7 +4,7 @@ use crate::{
     HashSet, MidiControlled,
 };
 use log::*;
-use midi_control::{ControlEvent, KeyEvent, MidiMessage, MidiNote};
+use midi_control::{Channel, ControlEvent, KeyEvent, MidiMessage, MidiNote};
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -42,10 +42,63 @@ pub enum StepCmd {
 
 #[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct Step {
-    pub on_enter: MidiMessages,
-    pub on_exit: MidiMessages,
+pub struct PerChannelMidi {
+    pub channel_a: MidiMessages,
+    pub channel_b: MidiMessages,
+    pub channel_c: MidiMessages,
+    pub channel_d: MidiMessages,
 }
+
+impl Index<SequenceChannel> for PerChannelMidi {
+    type Output = MidiMessages;
+
+    fn index(&self, index: SequenceChannel) -> &Self::Output {
+        match index {
+            SequenceChannel::A => &self.channel_a,
+            SequenceChannel::B => &self.channel_b,
+            SequenceChannel::C => &self.channel_c,
+            SequenceChannel::D => &self.channel_d,
+        }
+    }
+}
+
+impl IndexMut<SequenceChannel> for PerChannelMidi {
+    fn index_mut(&mut self, index: SequenceChannel) -> &mut Self::Output {
+        match index {
+            SequenceChannel::A => &mut self.channel_a,
+            SequenceChannel::B => &mut self.channel_b,
+            SequenceChannel::C => &mut self.channel_c,
+            SequenceChannel::D => &mut self.channel_d,
+        }
+    }
+}
+
+impl PerChannelMidi {
+    pub fn by_channel(&self) -> Vec<MidiMessages> {
+        vec![
+            self.channel_a.clone(),
+            self.channel_b.clone(),
+            self.channel_c.clone(),
+            self.channel_d.clone(),
+        ]
+    }
+}
+
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Step {
+    pub on_enter: PerChannelMidi,
+    pub on_exit: PerChannelMidi,
+}
+
+// #[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
+// #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+// pub struct Step {
+//     pub ca_step: ChannelStep,
+//     pub cb_step: ChannelStep,
+//     pub cc_step: ChannelStep,
+//     pub cd_step: ChannelStep,
+// }
 
 #[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -75,11 +128,31 @@ pub struct StepperState {
     pub playing: AtomicBool,
 }
 
+#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum SequenceChannel {
+    A,
+    B,
+    C,
+    D,
+}
+
+impl Into<u8> for SequenceChannel {
+    fn into(self) -> u8 {
+        match self {
+            Self::A => Channel::Ch1 as u8,
+            Self::B => Channel::Ch2 as u8,
+            Self::C => Channel::Ch3 as u8,
+            Self::D => Channel::Ch4 as u8,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct SequenceIndex {
     sequence: usize,
     step: usize,
-    // on_enter: bool,
+    channel: SequenceChannel,
 }
 
 impl Default for SequenceIndex {
@@ -87,7 +160,7 @@ impl Default for SequenceIndex {
         Self {
             sequence: 0,
             step: 0,
-            // on_enter: true,
+            channel: SequenceChannel::A,
         }
     }
 }
@@ -95,6 +168,10 @@ impl Default for SequenceIndex {
 impl SequenceIndex {
     pub fn get_sequence(&self) -> usize {
         self.sequence
+    }
+
+    pub fn get_channel(&self) -> SequenceChannel {
+        self.channel
     }
 
     fn set_sequence(&mut self, sequence: usize) {
@@ -111,6 +188,10 @@ impl SequenceIndex {
         self.sequence -= 1;
         self.step = 0;
         // self.on_enter = true;
+    }
+
+    pub fn set_channel(&mut self, channel: SequenceChannel) {
+        self.channel = channel;
     }
 }
 
@@ -144,8 +225,8 @@ pub struct SequencerIntake {
     #[cfg(feature = "pyo3")]
     pub synth: Synth,
     // sequence_i: usize,
-    pub rec_head: SequenceIndex,
-    pub play_head: SequenceIndex,
+    pub rw_head: SequenceIndex,
+    pub view_head: SequenceIndex,
     pub state: StepperState,
     pub bpm: u16,
 }
@@ -161,8 +242,8 @@ impl SequencerIntake {
                 Sequence::default(),
             ],
             // sequence_i: 0,
-            rec_head: SequenceIndex::default(),
-            play_head: SequenceIndex::default(),
+            rw_head: SequenceIndex::default(),
+            view_head: SequenceIndex::default(),
             state: StepperState::default(),
             bpm: 120,
             synth,
@@ -187,9 +268,9 @@ impl SequencerIntake {
 
     pub fn get_step(&self, play: bool) -> Step {
         let i = if play {
-            self.play_head.clone()
+            self.view_head.clone()
         } else {
-            self.rec_head.clone()
+            self.rw_head.clone()
         };
 
         self.sequences[i].clone()
@@ -197,27 +278,27 @@ impl SequencerIntake {
 
     pub fn get_cursor(&self, play: bool) -> usize {
         if play {
-            self.play_head.step
+            self.view_head.step
         } else {
-            self.rec_head.step
+            self.rw_head.step
         }
     }
 
     pub fn add_step(&mut self) {
-        self.sequences[self.rec_head.sequence]
+        self.sequences[self.rw_head.sequence]
             .steps
             .push(Step::default());
     }
 
     pub fn del_step(&mut self) {
-        self.sequences[self.rec_head.sequence].steps.pop();
+        self.sequences[self.rw_head.sequence].steps.pop();
     }
 
     pub fn next_sequence(&mut self) {
         let len = self.sequences.len();
 
         // info!("rec head sequence = {}", self.play_head.sequence);
-        self.rec_head.sequence = ((self.rec_head.sequence as i64 + 1) % (len as i64)) as usize;
+        self.rw_head.sequence = ((self.rw_head.sequence as i64 + 1) % (len as i64)) as usize;
         // info!(
         //     "rec head sequence = {}, len = {}",
         //     self.play_head.sequence, len
@@ -228,43 +309,48 @@ impl SequencerIntake {
     pub fn prev_sequence(&mut self) {
         let len = self.sequences.len();
 
-        if self.rec_head.sequence == 0 {
-            self.rec_head.sequence = len - 1;
+        if self.rw_head.sequence == 0 {
+            self.rw_head.sequence = len - 1;
         } else {
-            self.rec_head.sequence -= 1;
+            self.rw_head.sequence -= 1;
         }
+
+        // if self.view_head.sequence == 0 {
+        //     self.view_head.sequence = len - 1;
+        // } else {
+        //     self.view_head.sequence -= 1;
+        // }
+
         // info!("rec head sequence = {}, {len}", self.play_head.sequence);
     }
 
     pub fn next_step(&mut self) {
-        let len = self.sequences[self.rec_head.sequence].steps.len();
+        let len = self.sequences[self.rw_head.sequence].steps.len();
 
-        // info!("rec head sequence = {}", self.play_head.sequence);
-        self.rec_head.step = ((self.rec_head.step as i64 + 1) % (len as i64)) as usize;
-        // info!(
-        //     "rec head sequence = {}, len = {}",
-        //     self.play_head.sequence, len
-        // );
+        // info!("rw_head step = {}", self.rw_head.step);
+        self.rw_head.step = ((self.rw_head.step as i64 + 1) % (len as i64)) as usize;
+        // self.view_head.step = ((self.rw_head.step as i64 + 1) % (len as i64)) as usize;
+        // info!("rw head step = {}, len = {}", self.rw_head.step, len);
         // }
     }
 
     pub fn prev_step(&mut self) {
         // let len = self.sequences.len();
-        let len = self.sequences[self.rec_head.sequence].steps.len();
+        let len = self.sequences[self.rw_head.sequence].steps.len();
 
-        if self.rec_head.step == 0 {
-            self.rec_head.step = len - 1;
+        if self.rw_head.step == 0 {
+            self.rw_head.step = len - 1;
         } else {
-            self.rec_head.step -= 1;
+            self.rw_head.step -= 1;
         }
         // info!("rec head sequence = {}, {len}", self.play_head.sequence);
     }
 
     pub fn get_name(&self) -> String {
-        if let Some(name) = self.sequences[self.rec_head.sequence].human_name.clone() {
+        if let Some(name) = self.sequences[self.rw_head.sequence].human_name.clone() {
             name
         } else {
-            format!("{}", self.rec_head.sequence)
+            format!("{}", self.rw_head.sequence)
         }
     }
 
@@ -278,12 +364,12 @@ impl SequencerIntake {
             return;
         }
 
-        if at <= self.rec_head.sequence {
-            self.rec_head.sequence -= 1;
+        if at <= self.rw_head.sequence {
+            self.rw_head.sequence -= 1;
         }
 
-        if at <= self.play_head.sequence {
-            self.play_head.sequence -= 1;
+        if at <= self.view_head.sequence {
+            self.view_head.sequence -= 1;
         }
 
         self.sequences = self
@@ -296,19 +382,23 @@ impl SequencerIntake {
 
     pub fn get_sequence(&self) -> Sequence {
         // self.sequences[i].clone()
-        self.sequences[self.rec_head.sequence].clone()
+        self.sequences[self.rw_head.sequence].clone()
     }
 
     pub fn set_rec_head_seq(&mut self, seq: i64) {
-        self.rec_head.sequence = (seq % self.sequences.len() as i64) as usize;
+        self.rw_head.sequence = (seq % self.sequences.len() as i64) as usize;
     }
 
     pub fn set_sequence(&mut self, sequence: usize) {
         if sequence < self.sequences.len() {
-            self.rec_head.set_sequence(sequence);
+            self.rw_head.set_sequence(sequence);
         } else {
             error!("atempted to set record head to {sequence}, but that sequence doesn't exist.");
         }
+    }
+
+    pub fn set_rec_channel(&mut self, channel: SequenceChannel) {
+        self.rw_head.set_channel(channel);
     }
 }
 
@@ -320,15 +410,15 @@ impl MidiControlled for SequencerIntake {
         if let MidiMessage::ControlChange(_channel, ControlEvent { control, value: _ }) = message {
             match control {
                 115 => {
-                    self.rec_head.step = if self.rec_head.step > 0 {
-                        self.rec_head.step - 1
+                    self.rw_head.step = if self.rw_head.step > 0 {
+                        self.rw_head.step - 1
                     } else {
-                        self.sequences[self.rec_head.sequence].steps.len() - 1
+                        self.sequences[self.rw_head.sequence].steps.len() - 1
                     };
                 }
                 116 => {
-                    self.rec_head.step += 1;
-                    self.rec_head.step %= self.sequences[self.rec_head.sequence].steps.len();
+                    self.rw_head.step += 1;
+                    self.rw_head.step %= self.sequences[self.rw_head.sequence].steps.len();
                 }
                 117 => {
                     self.state.playing.store(false, Ordering::Relaxed);
@@ -382,9 +472,9 @@ impl MidiControlled for SequencerIntake {
         };
 
         let step = if on_enter {
-            &mut self.sequences[self.rec_head.clone()].on_enter
+            &mut self.sequences[self.rw_head.clone()].on_enter
         } else {
-            &mut self.sequences[self.rec_head.clone()].on_exit
+            &mut self.sequences[self.rw_head.clone()].on_exit
         };
 
         let step_filter_f =
@@ -409,7 +499,7 @@ impl MidiControlled for SequencerIntake {
                 }
             };
 
-        let step_not_contains = step
+        let step_not_contains = step[self.rw_head.channel]
             .clone()
             .into_iter()
             .filter_map(step_filter_f)
@@ -418,12 +508,12 @@ impl MidiControlled for SequencerIntake {
             == 0;
 
         if step_not_contains {
-            step.insert((ch, msg));
+            step[self.rw_head.channel].insert((self.rw_head.channel.into(), msg));
         } else {
             // info!("rm'ing a message");
             // info!("rm'ing a message from on_enter {on_enter}");
             // info!("number of messages before = {}", step.len());
-            step.retain(|msg| step_filter_f(msg.clone()).is_none());
+            step[self.rw_head.channel].retain(|msg| step_filter_f(msg.clone()).is_none());
             // info!("number of messages after = {}", step.len());
         }
     }
@@ -462,24 +552,35 @@ pub fn play_sequence(seq: Arc<Mutex<SequencerIntake>>) {
         }
     };
 
-    let mut play_step = |last_on_exit: MidiMessages| {
+    let mut send_channel = |synth: &mut Synth, seq_chan: PerChannelMidi| {
+        for midi_channel in seq_chan.by_channel() {
+            send_midi(synth, midi_channel)
+        }
+    };
+
+    let mut play_step = |last_on_exit: PerChannelMidi| {
         // info!("beat");
         let mut seq = seq.lock().unwrap();
         // info!("after sequence lock");
-        let step = seq.sequences[seq.play_head].clone();
-        send_midi(&mut seq.synth, last_on_exit);
+        let step = seq.sequences[seq.rw_head].clone();
+        send_channel(&mut seq.synth, last_on_exit);
 
-        send_midi(&mut seq.synth, step.on_enter);
+        send_channel(&mut seq.synth, step.on_enter);
         step.on_exit.clone()
+        // .by_channel()
+        // .into_iter()
+        // .flatten()
+        // .collect()
     };
     let inc_step = || {
         // info!("beat");
         let mut seq = seq.lock().unwrap();
-        seq.play_head.step += 1;
-        seq.play_head.step %= seq.sequences[seq.play_head.sequence].steps.len();
+        seq.rw_head.step += 1;
+        seq.rw_head.step %= seq.sequences[seq.rw_head.sequence].steps.len();
     };
 
-    let mut last_on_exit = play_step(HashSet::default());
+    // let mut last_on_exit = play_step(HashSet::default());
+    let mut last_on_exit = play_step(PerChannelMidi::default());
     let mut last_play = Instant::now();
 
     while seq
@@ -500,7 +601,7 @@ pub fn play_sequence(seq: Arc<Mutex<SequencerIntake>>) {
     }
 
     let mut seq = seq.lock().unwrap();
-    seq.play_head.step = 0;
+    seq.rw_head.step = 0;
     playing.into_iter().for_each(|(ch, note)| {
         let synth = &mut seq.synth;
 

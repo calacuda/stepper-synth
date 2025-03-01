@@ -1,7 +1,7 @@
 use crate::{
     effects::{Effect, EffectType},
     logger_init,
-    sequencer::{Sequence, SequencerIntake, Step},
+    sequencer::{Sequence, SequenceChannel, SequencerIntake, Step},
     synth_engines::{wave_table::WaveTableEngine, Synth, SynthEngine, SynthModule},
     HashMap, KnobCtrl, SampleGen, SAMPLE_RATE,
 };
@@ -364,6 +364,7 @@ pub enum StepperSynthState {
         step: Step,
         sequence: Sequence,
         seq_n: usize,
+        channel: SequenceChannel,
     },
     WaveTable {
         osc: Vec<OscState>,
@@ -696,7 +697,8 @@ impl StepperSynth {
                     step: seq.get_step(false),
                     cursor: seq.get_cursor(false),
                     sequence: seq.get_sequence(),
-                    seq_n: seq.rec_head.get_sequence(),
+                    seq_n: seq.rw_head.get_sequence(),
+                    channel: seq.rw_head.get_channel(),
                 })
             }
             Screen::WaveTableSynth() => {
@@ -874,6 +876,11 @@ impl StepperSynth {
         self.set_updated();
         let mut seq = self.midi_sequencer.lock().unwrap();
         seq.del_step();
+    }
+
+    pub fn set_seq_channel(&mut self, channel: SequenceChannel) {
+        self.set_updated();
+        self.midi_sequencer.lock().unwrap().set_rec_channel(channel);
     }
 
     pub fn wt_param_setter(&mut self, param: WTSynthParam) {

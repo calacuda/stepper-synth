@@ -1,5 +1,5 @@
 from .controls import Buttons, buttons
-from stepper_synth_backend import StepperSynthState, StepperSynth, StepCmd, Screen
+from stepper_synth_backend import StepperSynthState, StepperSynth, StepCmd, Screen, SequenceChannel
 from .config import *
 from .utils import *
 from dataclasses import dataclass
@@ -288,12 +288,12 @@ def draw_channels(pygame, screen, fonts, state: StepperSynthState, bottom: float
     h = bottom - top
     x = w * (2 / 6)
     y = 0
-    size = h / 6
+    size = h / 5
 
     for (i, channel) in enumerate("ABCD"):
         y = h * (i / 4) + (h * 0.125)
         draw_channel(pygame, screen, fonts, x, y, size, channel)
-        # TODO: display the notes that are playing on eatch channel
+        # TODO: display the notes that are playing on each channel in TEXT_COLOR_2
 
 
 def draw_stepper(pygame, screen, fonts, state: StepperSynthState):
@@ -302,7 +302,20 @@ def draw_stepper(pygame, screen, fonts, state: StepperSynthState):
     bottom_row_h = bottom_h / 3
 
     playing = state.step.on_enter  # if state.playing else []
-    # print("first_playing =", playing)
+    # print(state.step)
+
+    if state.channel == SequenceChannel.A:
+        playing = playing.channel_a
+    elif state.channel == SequenceChannel.B:
+        playing = playing.channel_b
+    elif state.channel == SequenceChannel.C:
+        playing = playing.channel_c
+    elif state.channel == SequenceChannel.D:
+        playing = playing.channel_d
+    else:
+        playing = playing.channel_a
+
+        # print("first_playing =", playing)
     playing = [step.note for (_, step) in playing if isinstance(
         step, StepCmd.Play)]
     # print("second_playing =", playing)

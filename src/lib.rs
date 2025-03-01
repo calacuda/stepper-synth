@@ -281,6 +281,7 @@ fn stepper_synth_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
     use pygame_coms::{
         ADSRState, LfoState, LowPassState, OscState, SynthEngineState, WTSynthParam,
     };
+    use sequencer::{PerChannelMidi, SequenceChannel};
 
     m.add_function(wrap_pyfunction!(log_trace, m)?)?;
     m.add_function(wrap_pyfunction!(log_debug, m)?)?;
@@ -311,6 +312,8 @@ fn stepper_synth_backend(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<ADSRState>()?;
     m.add_class::<LfoState>()?;
     m.add_class::<WTSynthParam>()?;
+    m.add_class::<PerChannelMidi>()?;
+    m.add_class::<SequenceChannel>()?;
     // m.add_class::<>()?;
 
     Ok(())
