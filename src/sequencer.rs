@@ -211,9 +211,9 @@ impl SequenceIndex {
     pub fn prev_channel(&mut self) {
         self.channel = match self.channel.clone() {
             SequenceChannel::A => SequenceChannel::D,
-            SequenceChannel::B => SequenceChannel::C,
+            SequenceChannel::B => SequenceChannel::A,
             SequenceChannel::C => SequenceChannel::B,
-            SequenceChannel::D => SequenceChannel::A,
+            SequenceChannel::D => SequenceChannel::C,
         }
     }
 
@@ -509,27 +509,26 @@ impl MidiControlled for SequencerIntake {
             &mut self.sequences[self.rw_head.clone()].on_exit
         };
 
-        let step_filter_f =
-            |(rec_ch, rec_msg)| {
-                if ch == rec_ch {
-                    match (rec_msg, msg.clone()) {
-                        (
-                            StepCmd::Play { note: n1, vel: _ },
-                            StepCmd::Play { note: n2, vel: _ },
-                        ) if n1 == n2 => Some(()),
-                        (
-                            StepCmd::CC { code: c1, value: _ },
-                            StepCmd::CC { code: c2, value: _ },
-                        ) if c1 == c2 => Some(()),
-                        (StepCmd::Stop { note: n1 }, StepCmd::Stop { note: n2 }) if n1 == n2 => {
-                            Some(())
-                        }
-                        _ => None,
-                    }
-                } else {
-                    None
+        let step_filter_f = |(_rec_ch, rec_msg)| {
+            // if ch == rec_ch {
+            match (rec_msg, msg.clone()) {
+                (StepCmd::Play { note: n1, vel: _ }, StepCmd::Play { note: n2, vel: _ })
+                    if n1 == n2 =>
+                {
+                    Some(())
                 }
-            };
+                (StepCmd::CC { code: c1, value: _ }, StepCmd::CC { code: c2, value: _ })
+                    if c1 == c2 =>
+                {
+                    Some(())
+                }
+                (StepCmd::Stop { note: n1 }, StepCmd::Stop { note: n2 }) if n1 == n2 => Some(()),
+                _ => None,
+            }
+            // } else {
+            //     None
+            // }
+        };
 
         let step_not_contains = step[self.rw_head.channel]
             .clone()

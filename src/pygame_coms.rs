@@ -323,7 +323,7 @@ fn display_dest(dest: ModMatrixDest) -> String {
         ModMatrixDest::LowPass {
             low_pass: LowPass::LP2,
             param,
-        } => format!("LowP 1 {}", display_lp_param(param)),
+        } => format!("LowP 2 {}", display_lp_param(param)),
         ModMatrixDest::Env { env, param } => format!(
             "Env {env} {}",
             match param {
@@ -1143,13 +1143,13 @@ fn str_to_mod_src(src: &str) -> Result<ModMatrixSrc> {
     if src.starts_with("env-") {
         let n: usize = src.split("-").collect::<Vec<_>>()[1].parse()?;
 
-        return Ok(ModMatrixSrc::Env(n));
+        return Ok(ModMatrixSrc::Env(n - 1));
     }
 
     if src.starts_with("lfo-") {
         let n: usize = src.split("-").collect::<Vec<_>>()[1].parse()?;
 
-        return Ok(ModMatrixSrc::Lfo(n));
+        return Ok(ModMatrixSrc::Lfo(n - 1));
     }
 
     Ok(match src.as_str() {

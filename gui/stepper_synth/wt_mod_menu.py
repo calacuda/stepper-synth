@@ -10,14 +10,16 @@ COL_I = 0
 Y_I = 0
 SRC_S = [
     "Velocity",
-    "Env-0",
+    # "Env-0",
     "Env-1",
     "Env-2",
     "Env-3",
-    "Lfo-0",
+    "Env-4",
+    # "Lfo-0",
     "Lfo-1",
     "Lfo-2",
     "Lfo-3",
+    "Lfo-4",
     "Gate",
     "Macro1",
     "Macro2",

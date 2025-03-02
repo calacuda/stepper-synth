@@ -22,8 +22,6 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [x] Subtractive Synth ui
 - [ ] Sampler Synth
 - [ ] Sampler Synth ui
-- [ ] Modelling Synth
-- [ ] Modelling Synth ui
 - [x] synth switch menu
 - [x] effect switch menu
 - [ ] volume & battery icons
@@ -44,6 +42,12 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 - [ ] wurlitzer engine
 - [ ] wurlitzer UI
 - [ ] overdrive effect.
+- [ ] add midi bindings
+- [x] finish screens for wavetable synth
+  - [ ] mod matrix edit screen is buggy
+- [ ] update midi stepper to have 4 "channels" each with the same number of steps, they should play in unison
+  - [ ] rming notes from non main channel is broken
+- [ ] each midi stepper channel should be routed to a different instrument.
 
 ## Currently Working On
 
@@ -51,7 +55,6 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 
 ## TODOs
 
-- [x] finish screens for wavetable synth
 - [ ] update midi stepper to have 4 "channels" each with the same number of steps, they should play in unison
-- [ ] each midi stepper channel should be roputed to a different instrument.
+- [ ] each midi stepper channel should be routed to a different instrument.
 - [ ] add a way to for the wavetable synth to learn midi bindings
