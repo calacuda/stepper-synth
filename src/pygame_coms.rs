@@ -291,8 +291,8 @@ fn display_src(src: ModMatrixSrc) -> String {
         ModMatrixSrc::Velocity => "Vel".into(),
         ModMatrixSrc::ModWheel => "Mod-Whl".into(),
         ModMatrixSrc::PitchWheel => "Pitch-Whl".into(),
-        ModMatrixSrc::Env(n) => format!("Env-{n}"),
-        ModMatrixSrc::Lfo(n) => format!("LFO-{n}"),
+        ModMatrixSrc::Env(n) => format!("Env-{}", n + 1),
+        ModMatrixSrc::Lfo(n) => format!("LFO-{}", n + 1),
     }
 }
 
@@ -307,7 +307,7 @@ fn display_dest(dest: ModMatrixDest) -> String {
 
     match dest {
         ModMatrixDest::SynthVolume => "Vol.".into(),
-        ModMatrixDest::ModMatrixEntryModAmt(id) => format!("Mod-Entry {id}"),
+        ModMatrixDest::ModMatrixEntryModAmt(id) => format!("Mod-Entry {}", id + 1),
         ModMatrixDest::Osc {
             osc,
             param: OscParam::Level,
