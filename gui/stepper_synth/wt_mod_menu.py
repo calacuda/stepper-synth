@@ -402,8 +402,8 @@ def draw_rm_conf_menu(pygame, screen, fonts):
     prefix = "> "
     yes_pre = prefix if RM_CONF_I == 0 else ""
     no_pre = prefix if RM_CONF_I == 1 else ""
-    lines = [f"Remove matrix entry: \
-        {TO_RM + 1}?", f"{yes_pre}Yes", f"{no_pre}No"]
+    lines = [f"Remove matrix entry: {TO_RM + 1}?",
+             f"{yes_pre}Yes", f"{no_pre}No"]
 
     font = fonts[0]
 
