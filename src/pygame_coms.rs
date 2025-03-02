@@ -311,7 +311,7 @@ fn display_dest(dest: ModMatrixDest) -> String {
         ModMatrixDest::Osc {
             osc,
             param: OscParam::Level,
-        } => format!("OSC {} vol.", osc + 1),
+        } => format!("OSC {} Vol.", osc + 1),
         ModMatrixDest::Osc {
             osc,
             param: OscParam::Tune,
