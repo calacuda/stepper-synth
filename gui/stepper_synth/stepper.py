@@ -64,7 +64,7 @@ def draw_octave(pygame, screen, state: StepperSynthState, top: float, width: flo
             left = b_width * i + offset + LINE_WIDTH / 2
 
             midi_note = octave_n * 12 + key.note
-            color = SURFACE_0 if midi_note in playing else CRUST
+            color = SURFACE_1 if midi_note in playing else CRUST
 
             rect = pygame.Rect(
                 left, top, b_width + LINE_WIDTH, b_height + LINE_WIDTH)
@@ -271,16 +271,25 @@ def draw_buttons(pygame, screen, fonts, state: StepperSynthState, bottom: float,
                 button_h * 0.5, button_h, ">>>", False)
 
 
-def draw_channel(pygame, screen, fonts, x, y, size, channel):
+def draw_channel(pygame, screen, fonts, state: StepperSynthState, x, y, size, channel):
     rect = pygame.Rect(0, 0, size, size)
     rect.center = (x, y)
     # sel = LP_INDEX == i and X_INDEX == 0
-    sel = False
+    sel = state.channel.matches(channel)
     color = RED if sel else GREEN
     pygame.draw.rect(screen, BACKGROUND_COLOR, rect)
     pygame.draw.rect(screen, color, rect, LINE_WIDTH)
 
     draw_text(screen, channel, fonts[0], (x, y), TEXT_COLOR_1)
+
+
+def display_note(note):
+    octave = note // 12
+    note = note % 12
+    name = ["C-", "C#", "D-", "D#", "E-", "F-",
+            "F#", "G-", "G#", "A-", "A#", "B-"]
+
+    return f"{name[note]}{octave}"
 
 
 def draw_channels(pygame, screen, fonts, state: StepperSynthState, bottom: float, top: float, right: float):
@@ -289,11 +298,23 @@ def draw_channels(pygame, screen, fonts, state: StepperSynthState, bottom: float
     x = w * (2 / 6)
     y = 0
     size = h / 5
+    playing = state.step.on_enter
 
-    for (i, channel) in enumerate("ABCD"):
+    for (i, (channel, playing)) in enumerate([("A", playing.channel_a), ("B", playing.channel_b), ("C", playing.channel_c), ("D", playing.channel_d),]):
         y = h * (i / 4) + (h * 0.125)
-        draw_channel(pygame, screen, fonts, x, y, size, channel)
+        draw_channel(pygame, screen, fonts, state, x, y, size, channel)
         # TODO: display the notes that are playing on each channel in TEXT_COLOR_2
+        playing = list(playing)
+        playing = [n[1].note for n in playing if isinstance(
+            n[1], StepCmd.Play)]
+        playing.sort()
+
+        for (j, note) in enumerate(playing[0:4]):
+            # y = (h / 4) * (j / 4) + ((h / 4) * 0.125)
+            loc_y = (h / 4) * (j / 4) + ((h / 4) * i) + ((h / 4) * 0.125)
+            loc_x = w * (j / 4) + (x * 2) + (w / 4)
+            draw_text(screen, display_note(note),
+                      fonts[1], (loc_x, loc_y), TEXT_COLOR_2)
 
 
 def draw_stepper(pygame, screen, fonts, state: StepperSynthState):
@@ -326,7 +347,8 @@ def draw_stepper(pygame, screen, fonts, state: StepperSynthState):
                bottom_row_h, SCREEN_HEIGHT - bottom_row_h * 2, state.sequence.steps)
     draw_labels(pygame, screen, fonts, state, SCREEN_HEIGHT -
                 bottom_row_h * 2, SCREEN_HEIGHT - bottom_row_h * 4, left)
-    draw_buttons(pygame, screen, fonts, state, bottom_row_h, 0.0, left)
+    draw_buttons(pygame, screen, fonts, state,
+                 bottom_row_h, 0.0, left)
     draw_channels(pygame, screen, fonts, state,
                   SCREEN_HEIGHT - bottom_row_h * 2, 0.0, left)
 
@@ -362,6 +384,8 @@ def secondary_stepper_controls(pygame, controller: Buttons, synth: StepperSynth,
 
     left = buttons.get("left")
     right = buttons.get("right")
+    up = buttons.get("up")
+    down = buttons.get("down")
     right_f_s = [synth.next_sequence, synth.tempo_up, synth.add_step]
     left_f_s = [synth.prev_sequence, synth.tempo_down, synth.del_step]
 
@@ -369,6 +393,10 @@ def secondary_stepper_controls(pygame, controller: Buttons, synth: StepperSynth,
         left_f_s[INDEX]()
     elif controller.just_released(right):
         right_f_s[INDEX]()
+    elif controller.just_released(up):
+        synth.prev_channel()
+    elif controller.just_released(down):
+        synth.next_channel()
 
     return synth
 

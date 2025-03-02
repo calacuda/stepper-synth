@@ -883,6 +883,16 @@ impl StepperSynth {
         self.midi_sequencer.lock().unwrap().set_rec_channel(channel);
     }
 
+    pub fn prev_channel(&mut self) {
+        self.set_updated();
+        self.midi_sequencer.lock().unwrap().rw_head.prev_channel();
+    }
+
+    pub fn next_channel(&mut self) {
+        self.set_updated();
+        self.midi_sequencer.lock().unwrap().rw_head.next_channel();
+    }
+
     pub fn wt_param_setter(&mut self, param: WTSynthParam) {
         self.set_updated();
         let mut seq = self.midi_sequencer.lock().unwrap();

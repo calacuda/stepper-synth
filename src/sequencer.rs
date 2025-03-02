@@ -148,6 +148,20 @@ impl Into<u8> for SequenceChannel {
     }
 }
 
+#[cfg(feature = "pyo3")]
+#[cfg_attr(feature = "pyo3", pymethods)]
+impl SequenceChannel {
+    fn matches(&self, str_name: String) -> bool {
+        match (*self, str_name.to_lowercase().as_str()) {
+            (Self::A, "a") => true,
+            (Self::B, "b") => true,
+            (Self::C, "c") => true,
+            (Self::D, "d") => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct SequenceIndex {
     sequence: usize,
@@ -192,6 +206,24 @@ impl SequenceIndex {
 
     pub fn set_channel(&mut self, channel: SequenceChannel) {
         self.channel = channel;
+    }
+
+    pub fn prev_channel(&mut self) {
+        self.channel = match self.channel.clone() {
+            SequenceChannel::A => SequenceChannel::D,
+            SequenceChannel::B => SequenceChannel::C,
+            SequenceChannel::C => SequenceChannel::B,
+            SequenceChannel::D => SequenceChannel::A,
+        }
+    }
+
+    pub fn next_channel(&mut self) {
+        self.channel = match self.channel.clone() {
+            SequenceChannel::A => SequenceChannel::B,
+            SequenceChannel::B => SequenceChannel::C,
+            SequenceChannel::C => SequenceChannel::D,
+            SequenceChannel::D => SequenceChannel::A,
+        }
     }
 }
 

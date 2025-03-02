@@ -52,4 +52,6 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 ## TODOs
 
 - [x] finish screens for wavetable synth
-- [ ] update midi stepper to have 4 "channels" each with the same number of steps, they should play in unison and each be roputed to a different instrument.
+- [ ] update midi stepper to have 4 "channels" each with the same number of steps, they should play in unison
+- [ ] each midi stepper channel should be roputed to a different instrument.
+- [ ] add a way to for the wavetable synth to learn midi bindings
