@@ -59,6 +59,10 @@ A multi-mode synth for retro emulation consoles running knulli/batocera. It supp
 ## TODOs
 
 - [ ] improve wave table synth efficiency.
+  - [x] global LFOs 
+  - [x] global effects 
+  - [ ] only most recent note in the wave table.
+- [ ] generate audio buffer before its needed.
 - [ ] update midi stepper to have 4 "channels" each with the same number of steps, they should play in unison
 - [ ] each midi stepper channel should be routed to a different instrument (configurable).
 - [ ] add a way to for the wavetable synth to learn midi bindings.
