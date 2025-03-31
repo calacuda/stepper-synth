@@ -14,6 +14,7 @@ pyo3 = ["dep:pyo3"]
 
 [dependencies]
 anyhow = { version = "1.0.94", features = ["backtrace"] }
+array-macro = "2.1.8"
 enum_dispatch = "0.3.13"
 fern = { version = "0.7.0", features = ["colored"] }
 fxhash = "0.2.1"
@@ -26,4 +27,4 @@ serde = { version = "1.0.217", features = ["derive"] }
 strum = { version = "0.26.3", features = ["derive"] }
 tinyaudio = "1.0.0"
 toml = "0.8.20"
-wavetable-synth = { git = "https://github.com/calacuda/wavetable-synth", version = "0.1.0" }
+# wavetable-synth = { git = "https://github.com/calacuda/wavetable-synth", version = "0.1.0" }

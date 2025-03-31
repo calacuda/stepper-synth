@@ -1,4 +1,5 @@
-#![feature(let_chains)]
+#![feature(let_chains, stmt_expr_attributes)]
+// #![feature(let_chains)]
 use anyhow::Result;
 use effects::reverb::ReverbParam;
 use effects::EffectType;

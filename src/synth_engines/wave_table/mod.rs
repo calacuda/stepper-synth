@@ -1,14 +1,13 @@
+use super::{LfoInput, SynthEngine};
 use crate::{
     pygame_coms::{GuiParam, Knob},
     HashMap, KnobCtrl, SampleGen,
 };
 use log::warn;
 use midi_control::MidiNote;
-// #[cfg(feature = "pyo3")]
-// use pyo3::prelude::*;
-use wavetable_synth::{App, SampleGen as _};
+use wavetable_synth::App;
 
-use super::{LfoInput, SynthEngine};
+pub mod wavetable_synth;
 
 #[derive(Debug, Clone)]
 pub struct WaveTableEngine {
@@ -18,16 +17,12 @@ pub struct WaveTableEngine {
 
 impl WaveTableEngine {
     pub fn new() -> Self {
-        let synth = App::default();
+        let mut synth = App::default();
 
-        synth.voices.iter().for_each(|voice| {
-            voice
-                .lock()
-                .unwrap()
-                .oscs
-                .iter_mut()
-                .for_each(|(osc, _on)| osc.level = 0.8)
-        });
+        synth
+            .voices
+            .iter_mut()
+            .for_each(|voice| voice.oscs.iter_mut().for_each(|(osc, _on)| osc.level = 0.8));
 
         Self {
             synth,

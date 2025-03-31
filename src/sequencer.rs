@@ -128,8 +128,11 @@ pub struct StepperState {
     pub playing: AtomicBool,
 }
 
-#[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend", get_all))]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(
+    feature = "pyo3",
+    pyclass(module = "stepper_synth_backend", get_all, eq, eq_int)
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum SequenceChannel {
     A,
     B,
@@ -213,7 +216,7 @@ impl SequenceIndex {
             SequenceChannel::A => SequenceChannel::D,
             SequenceChannel::B => SequenceChannel::A,
             SequenceChannel::C => SequenceChannel::B,
-            SequenceChannel::D => SequenceChannel::C,
+            SequenceChannel::D => SequenceChannel::A,
         }
     }
 

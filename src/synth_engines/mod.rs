@@ -12,8 +12,7 @@ use organ::organ::Organ;
 use pyo3::prelude::*;
 use std::{fmt::Debug, ops::IndexMut};
 use strum::IntoEnumIterator;
-use synth_common::lfo::LFO;
-use wavetable_synth::MidiControlled as _;
+// use wavetable_synth::MidiControlled as _;
 // use synth_common::lfo::LFO;
 use wave_table::WaveTableEngine;
 use wurlitzer::WurlitzerEngine;
@@ -89,7 +88,7 @@ impl From<SynthEngineType> for SynthModule {
 
 #[derive(Debug, Clone)]
 pub struct Synth {
-    pub lfo: LFO,
+    // pub lfo: LFO,
     pub engines: Box<[SynthModule]>,
     pub engine_type: SynthEngineType,
     pub effect_power: bool,
@@ -97,8 +96,8 @@ pub struct Synth {
     pub effects: Box<[EffectsModule]>,
     pub effect_type: EffectType,
     // pub effect_power: bool,
-    pub lfo_target: Option<LfoTarget>,
-    pub lfo_routed: bool,
+    // pub lfo_target: Option<LfoTarget>,
+    // pub lfo_routed: bool,
     // pub stepper_state: StepperState,
     pub target_effects: bool,
 }
@@ -115,17 +114,17 @@ impl Synth {
         // let engine_type = SynthEngineType::WaveTable;
 
         Self {
-            lfo: LFO::new(),
+            // lfo: LFO::new(),
             // effect: EffectsModules::new(),
             effects,
             effect_type: EffectType::Reverb,
             effect_power: false,
-            lfo_target: None,
+            // lfo_target: None,
             engine_type,
             engines,
             // engine: Box::new(Organ::new()),
             // engine: SynthEngines::new(),
-            lfo_routed: false,
+            // lfo_routed: false,
             // stepper_state: StepperState::default(),
             target_effects: false,
         }
@@ -183,17 +182,17 @@ impl SampleGen for Synth {
     fn get_sample(&mut self) -> f32 {
         // let engine = self.engines.index_mut(self.engine_type as usize);
 
-        if let Some(target) = self.lfo_target
-            && self.lfo_routed
-        {
-            // info!("sending lfo data to target");
-            let lfo_sample = self.lfo.get_sample();
-
-            match target {
-                LfoTarget::Synth(_) => self.get_engine().lfo_control(lfo_sample),
-                LfoTarget::Effect(_) => self.get_effect().lfo_control(lfo_sample),
-            }
-        }
+        // if let Some(target) = self.lfo_target
+        //     && self.lfo_routed
+        // {
+        //     // info!("sending lfo data to target");
+        //     let lfo_sample = self.lfo.get_sample();
+        //
+        //     match target {
+        //         LfoTarget::Synth(_) => self.get_engine().lfo_control(lfo_sample),
+        //         LfoTarget::Effect(_) => self.get_effect().lfo_control(lfo_sample),
+        //     }
+        // }
 
         // // let n_engines = self.engines.len();
         // let mut n_samples = 1;
