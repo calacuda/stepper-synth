@@ -1,8 +1,9 @@
 use crate::{
     effects::{Effect, EffectType, EffectsModule},
     pygame_coms::{GuiParam, Knob, SynthEngineType},
-    HashMap, KnobCtrl, MidiControlled, SampleGen,
+    HashMap, KnobCtrl, MidiControlled, SampleGen, CHANNEL_SIZE,
 };
+use crossbeam::channel::Receiver;
 use enum_dispatch::enum_dispatch;
 use log::*;
 use midi_control::MidiNote;
@@ -10,7 +11,7 @@ use midi_control::{ControlEvent, KeyEvent, MidiMessage};
 use organ::organ::Organ;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
-use std::{fmt::Debug, ops::IndexMut};
+use std::{fmt::Debug, ops::IndexMut, sync::Arc};
 use strum::IntoEnumIterator;
 // use wavetable_synth::MidiControlled as _;
 // use synth_common::lfo::LFO;
@@ -100,10 +101,11 @@ pub struct Synth {
     // pub lfo_routed: bool,
     // pub stepper_state: StepperState,
     pub target_effects: bool,
+    // pub sample_buffer_channel: Receiver<Arc<[f32]>>,
 }
 
 impl Synth {
-    pub fn new() -> Self {
+    pub fn new(/* sample_buffer_channel: Receiver<Arc<[f32]>> */) -> Self {
         let engines = SynthEngineType::iter()
             .map(|engine_type| engine_type.into())
             .collect();
@@ -127,6 +129,7 @@ impl Synth {
             // lfo_routed: false,
             // stepper_state: StepperState::default(),
             target_effects: false,
+            // sample_buffer_channel,
         }
     }
 
@@ -174,8 +177,9 @@ impl Synth {
         true
     }
 
-    // pub fn route_lfo(&mut self, )
-    // TODO: mod route
+    // pub fn get_samples(&self) -> Arc<[f32]> {
+    //     self.sample_buffer_channel.recv().unwrap()
+    // }
 }
 
 impl SampleGen for Synth {

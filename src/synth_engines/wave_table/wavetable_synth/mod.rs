@@ -1,26 +1,25 @@
-// use crate::effects::chorus::Chorus;
-// use crate::effects::reverb::Reverb;
-// use crate::effects::EffectsModule;
 pub use crate::{MidiControlled, SampleGen};
 use array_macro::array;
 use common::DataTable;
 use common::ModMatrixDest;
 use common::ModMatrixItem;
-use config::LFO_WAVE_TABLE_SIZE;
 use config::N_LFO;
-use config::OSC_WAVE_TABLE_SIZE;
 use config::POLYPHONY;
 use lfo::LFO;
 #[allow(unused_imports)]
 use log::*;
+use std::sync::Arc;
 use synth_engines::synth::build_sine_table;
 use synth_engines::synth::osc::N_OVERTONES;
 use voice::Voice;
 
 // pub type HashMap<Key, Val> = fxhash::FxHashMap<Key, Val>;
-pub type ModMatrix = [Option<ModMatrixItem>; 255];
-pub type OscWaveTable = [f32; OSC_WAVE_TABLE_SIZE];
-pub type LfoWaveTable = [f32; LFO_WAVE_TABLE_SIZE];
+// pub type ModMatrix = [Option<ModMatrixItem>; 255];
+pub type ModMatrix = [Option<ModMatrixItem>; 64];
+// pub type OscWaveTable = [f32; OSC_WAVE_TABLE_SIZE];
+pub type OscWaveTable = Arc<[f32]>;
+// pub type LfoWaveTable = [f32; LFO_WAVE_TABLE_SIZE];
+pub type LfoWaveTable = Arc<[f32]>;
 
 pub mod common;
 pub mod config;
@@ -43,7 +42,7 @@ pub struct App {
     /// describes what modulates what.
     pub mod_matrix: ModMatrix,
     /// used for routung cc messages
-    pub midi_table: [Option<ModMatrixDest>; 255],
+    pub midi_table: [Option<ModMatrixDest>; 127],
     /// the sound producers
     pub voices: Vec<Voice>,
     /// LFOs
@@ -65,9 +64,9 @@ impl Default for App {
             .collect();
 
         Self {
-            mod_matrix: [None; 255],
+            mod_matrix: [None; 64],
             data_table: DataTable::default(),
-            midi_table: [None; 255],
+            midi_table: [None; 127],
             lfos: array![LFO::new(); N_LFO],
             voices,
         }

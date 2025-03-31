@@ -36,6 +36,7 @@ pub type HashMap<Key, Val> = FxHashMap<Key, Val>;
 pub type HashSet<T> = FxHashSet<T>;
 
 pub const SAMPLE_RATE: u32 = 48_000;
+pub const CHANNEL_SIZE: usize = 1_024;
 
 pub mod effects;
 pub mod pygame_coms;
@@ -167,7 +168,7 @@ fn run_midi(
             info!("port {port_name}");
             let mut midi_in = MidiInput::new("midir reading input")?;
             midi_in.ignore(Ignore::None);
-            let synth = synth.clone();
+            // let synth = synth.clone();
             // let tx = tx.clone();
             let updated = updated.clone();
             // let effect = effect_midi.clone();
@@ -177,16 +178,19 @@ fn run_midi(
                 midi_in.connect(
                     in_port,
                     "midir-read-input",
-                    move |_stamp, message, _| {
-                        let message = MidiMessage::from(message);
-                        let send = || {
-                            let mut u = updated.lock().unwrap();
-                            *u = true;
-                        };
+                    {
+                        let synth = synth.clone();
+                        move |_stamp, message, _| {
+                            let message = MidiMessage::from(message);
+                            let send = || {
+                                let mut u = updated.lock().unwrap();
+                                *u = true;
+                            };
 
-                        // do midi stuff
-                        synth.lock().unwrap().midi_input(&message);
-                        send();
+                            // do midi stuff
+                            synth.lock().unwrap().midi_input(&message);
+                            send();
+                        }
                     },
                     (),
                 ),

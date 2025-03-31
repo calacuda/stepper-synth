@@ -67,6 +67,9 @@ impl Voice {
         // let lpf = LowPass::new();
         let mut oscs = array![(Oscillator::new(wave_table), false); N_OSC];
         oscs[0].1 = true;
+        oscs[1].1 = true;
+        oscs[1].0.offset = -24;
+        // oscs[2].1 = true;
         let targets = [
             OscTarget::Filter1,
             OscTarget::Filter2,

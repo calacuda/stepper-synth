@@ -2,22 +2,28 @@ use crate::{
     effects::{Effect, EffectType},
     logger_init,
     sequencer::{Sequence, SequenceChannel, SequencerIntake, Step},
-    synth_engines::wave_table::wavetable_synth::{
-        common::{
-            EnvParam, LfoParam, LowPass, LowPassParam, ModMatrixDest, ModMatrixItem, ModMatrixSrc,
-            OscParam,
+    synth_engines::{
+        wave_table::{
+            wavetable_synth::{
+                common::{
+                    EnvParam, LfoParam, LowPass, LowPassParam, ModMatrixDest, ModMatrixItem,
+                    ModMatrixSrc, OscParam,
+                },
+                synth_engines::{
+                    synth::osc::OscTarget,
+                    synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN},
+                },
+            },
+            WaveTableEngine,
         },
-        synth_engines::{
-            synth::osc::OscTarget,
-            synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN},
-        },
+        Synth, SynthEngine, SynthModule,
     },
-    synth_engines::{wave_table::WaveTableEngine, Synth, SynthEngine, SynthModule},
-    HashMap, KnobCtrl, SampleGen, SAMPLE_RATE,
+    HashMap, KnobCtrl, SampleGen, CHANNEL_SIZE, SAMPLE_RATE,
 };
 #[cfg(feature = "pyo3")]
 use crate::{run_midi, sequencer::play_sequence};
 use anyhow::{bail, Result};
+use crossbeam::channel::{bounded, unbounded};
 use log::*;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
@@ -461,8 +467,9 @@ pub struct StepperSynth {
     // synth: Arc<Mutex<Synth>>,
     updated: Arc<Mutex<bool>>,
     screen: Screen,
-    _handle: JoinHandle<()>,
-    _midi_thread: JoinHandle<()>,
+    _midi_handle: JoinHandle<()>,
+    _audio_handle: JoinHandle<()>,
+    _midi_player_handle: JoinHandle<()>,
     exit: Arc<AtomicBool>,
     pub midi_sequencer: Arc<Mutex<SequencerIntake>>,
 }
@@ -477,46 +484,67 @@ impl StepperSynth {
         let updated = Arc::new(Mutex::new(true));
         let exit = Arc::new(AtomicBool::new(false));
         // let effect_midi = Arc::new(AtomicBool::new(false));
+        let (tx, rx) = bounded(CHANNEL_SIZE);
 
-        let handle = {
+        let (midi_handle, audio_handle) = {
             let seq = sequencer.clone();
             // let synth = synth.clone();
             let updated = updated.clone();
             let exit = exit.clone();
             // let effect_midi = effect_midi.clone();
 
-            spawn(move || {
-                let params = OutputDeviceParameters {
-                    channels_count: 1,
-                    sample_rate: SAMPLE_RATE as usize,
-                    // channel_sample_count: 2048,
-                    channel_sample_count: 1024,
-                };
-                // NOTE: must stay in this thread so that it stays in scope
-                let device = run_output_device(params, {
+            (
+                spawn({
                     let seq = seq.clone();
 
-                    move |data| {
-                        for samples in data.chunks_mut(params.channels_count) {
-                            let value = seq.lock().expect("couldn't lock synth").synth.get_sample();
+                    move || {
+                        let params = OutputDeviceParameters {
+                            channels_count: 1,
+                            sample_rate: SAMPLE_RATE as usize,
+                            // channel_sample_count: 2048,
+                            channel_sample_count: CHANNEL_SIZE,
+                        };
+                        // NOTE: must stay in this thread so that it stays in scope
+                        let device = run_output_device(params, {
+                            // let seq = seq.clone();
 
-                            for sample in samples {
-                                *sample = value;
+                            move |data| {
+                                for samples in data.chunks_mut(params.channels_count) {
+                                    // let value =
+                                    //     seq.lock().expect("couldn't lock synth").synth.get_sample();
+                                    let value = rx.recv().unwrap_or(0.0);
+
+                                    for sample in samples {
+                                        *sample = value;
+                                    }
+                                }
                             }
+                        });
+
+                        if let Err(e) = device {
+                            error!("starting audio playback caused error: {e}");
+                        }
+
+                        // let seq = sequencer.clone();
+
+                        if let Err(e) = run_midi(seq, updated, exit) {
+                            error!("{e}");
                         }
                     }
-                });
+                }),
+                spawn({
+                    // let seq = seq.clone();
+                    // let sample = 0.0;
 
-                if let Err(e) = device {
-                    error!("starting audio playback caused error: {e}");
-                }
-
-                // let seq = sequencer.clone();
-
-                if let Err(e) = run_midi(seq, updated, exit) {
-                    error!("{e}");
-                }
-            })
+                    move || loop {
+                        while tx.len() < CHANNEL_SIZE {
+                            let sample =
+                                seq.lock().expect("couldn't lock synth").synth.get_sample();
+                            while let Err(_e) = tx.send(sample) {}
+                        }
+                    }
+                }),
+            )
         };
 
         let thread = {
@@ -548,8 +576,9 @@ impl StepperSynth {
             // synth,
             updated,
             screen: Screen::Synth(SynthEngineType::B3Organ),
-            _handle: handle,
-            _midi_thread: thread,
+            _midi_handle: midi_handle,
+            _audio_handle: audio_handle,
+            _midi_player_handle: thread,
             midi_sequencer: sequencer,
             exit,
             // effect_midi,

@@ -15,6 +15,7 @@ pyo3 = ["dep:pyo3"]
 [dependencies]
 anyhow = { version = "1.0.94", features = ["backtrace"] }
 array-macro = "2.1.8"
+crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 enum_dispatch = "0.3.13"
 fern = { version = "0.7.0", features = ["colored"] }
 fxhash = "0.2.1"

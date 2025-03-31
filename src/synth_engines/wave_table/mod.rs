@@ -5,7 +5,10 @@ use crate::{
 };
 use log::warn;
 use midi_control::MidiNote;
-use wavetable_synth::App;
+use wavetable_synth::{
+    common::{ModMatrixDest, ModMatrixItem, ModMatrixSrc, OscParam},
+    App,
+};
 
 pub mod wavetable_synth;
 
@@ -22,7 +25,40 @@ impl WaveTableEngine {
         synth
             .voices
             .iter_mut()
-            .for_each(|voice| voice.oscs.iter_mut().for_each(|(osc, _on)| osc.level = 0.8));
+            .for_each(|voice| voice.oscs.iter_mut().for_each(|(osc, _on)| osc.level = 0.5));
+        synth.mod_matrix[0] = Some(ModMatrixItem {
+            src: ModMatrixSrc::Velocity,
+            dest: ModMatrixDest::SynthVolume,
+            amt: 1.0,
+            bipolar: false,
+        });
+        synth.mod_matrix[1] = Some(ModMatrixItem {
+            src: ModMatrixSrc::Velocity,
+            dest: ModMatrixDest::Osc {
+                osc: 0,
+                param: OscParam::Level,
+            },
+            amt: 1.0,
+            bipolar: false,
+        });
+        synth.mod_matrix[2] = Some(ModMatrixItem {
+            src: ModMatrixSrc::Velocity,
+            dest: ModMatrixDest::Osc {
+                osc: 1,
+                param: OscParam::Level,
+            },
+            amt: 1.0,
+            bipolar: false,
+        });
+        synth.mod_matrix[3] = Some(ModMatrixItem {
+            src: ModMatrixSrc::Velocity,
+            dest: ModMatrixDest::Osc {
+                osc: 2,
+                param: OscParam::Level,
+            },
+            amt: 1.0,
+            bipolar: false,
+        });
 
         Self {
             synth,

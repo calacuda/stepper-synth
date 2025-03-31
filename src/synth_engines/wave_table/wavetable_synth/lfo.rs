@@ -161,5 +161,5 @@ fn mk_default_lfo_wt() -> LfoWaveTable {
         };
     }
 
-    table
+    table.into()
 }
