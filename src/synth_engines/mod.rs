@@ -224,7 +224,7 @@ impl SampleGen for Synth {
         // let sample = samples.into_iter().sum::<f32>() * 0.8 * bias;
         let sample = self.engines[self.engine_type as usize].get_sample();
 
-        if !self.effect_power || self.engine_type == SynthEngineType::WaveTable {
+        if !self.effect_power {
             return sample;
         }
 
