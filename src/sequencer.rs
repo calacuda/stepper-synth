@@ -294,8 +294,9 @@ impl SequencerIntake {
                 Sequence::default(),
                 Sequence::default(),
             ],
-            rec_head: SequenceIndex::default(),
-            play_head: SequenceIndex::default(),
+            // sequence_i: 0,
+            rw_head: SequenceIndex::default(),
+            view_head: SequenceIndex::default(),
             state: StepperState::default(),
             bpm: 120,
         }

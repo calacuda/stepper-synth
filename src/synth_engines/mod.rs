@@ -1,9 +1,8 @@
 use crate::{
     effects::{Effect, EffectType, EffectsModule},
     pygame_coms::{GuiParam, Knob, SynthEngineType},
-    HashMap, KnobCtrl, MidiControlled, SampleGen, CHANNEL_SIZE,
+    HashMap, KnobCtrl, MidiControlled, SampleGen,
 };
-use crossbeam::channel::Receiver;
 use enum_dispatch::enum_dispatch;
 use log::*;
 use midi_control::MidiNote;
@@ -11,7 +10,7 @@ use midi_control::{ControlEvent, KeyEvent, MidiMessage};
 use organ::organ::Organ;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
-use std::{fmt::Debug, ops::IndexMut, sync::Arc};
+use std::{fmt::Debug, ops::IndexMut};
 use strum::IntoEnumIterator;
 // use wavetable_synth::MidiControlled as _;
 // use synth_common::lfo::LFO;
