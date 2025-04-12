@@ -7,6 +7,7 @@ use enum_dispatch::enum_dispatch;
 use log::*;
 use midi_control::MidiNote;
 use midi_control::{ControlEvent, KeyEvent, MidiMessage};
+use midi_out_engine::MidiOutEngine;
 use organ::organ::Organ;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
@@ -17,6 +18,7 @@ use strum::IntoEnumIterator;
 use wave_table::WaveTableEngine;
 use wurlitzer::WurlitzerEngine;
 
+pub mod midi_out_engine;
 pub mod organ;
 pub mod synth;
 pub mod synth_common;
@@ -73,6 +75,7 @@ pub enum SynthModule {
     SubSynth(synth::synth::Synth),
     Wurli(WurlitzerEngine),
     WaveTable(WaveTableEngine),
+    MidiOutEngine(MidiOutEngine),
 }
 
 impl From<SynthEngineType> for SynthModule {
@@ -82,67 +85,71 @@ impl From<SynthEngineType> for SynthModule {
             SynthEngineType::SubSynth => Self::SubSynth(synth::synth::Synth::new()),
             SynthEngineType::Wurlitzer => Self::Wurli(WurlitzerEngine::new()),
             SynthEngineType::WaveTable => Self::WaveTable(WaveTableEngine::new()),
+            SynthEngineType::MidiOut => Self::MidiOutEngine(MidiOutEngine::new()),
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Synth {
+pub struct SynthChannel {
     // pub lfo: LFO,
-    pub engines: Box<[SynthModule]>,
+    pub engine: SynthModule,
     pub engine_type: SynthEngineType,
-    pub effect_power: bool,
-    // pub effect: EffectsModules,
-    pub effects: Box<[EffectsModule]>,
-    pub effect_type: EffectType,
     // pub effect_power: bool,
+    // pub effect: EffectsModules,
+    pub effects: [Option<(EffectsModule, bool)>; 2],
+    // pub effect_type: EffectType,
     // pub lfo_target: Option<LfoTarget>,
     // pub lfo_routed: bool,
     // pub stepper_state: StepperState,
     pub target_effects: bool,
-    // pub sample_buffer_channel: Receiver<Arc<[f32]>>,
 }
 
-impl Synth {
-    pub fn new(/* sample_buffer_channel: Receiver<Arc<[f32]>> */) -> Self {
-        let engines = SynthEngineType::iter()
-            .map(|engine_type| engine_type.into())
-            .collect();
-        let effects = EffectType::iter()
-            .map(|effect_type| effect_type.into())
-            .collect();
-        let engine_type = SynthEngineType::B3Organ;
-        // let engine_type = SynthEngineType::WaveTable;
+impl From<SynthEngineType> for SynthChannel {
+    fn from(value: SynthEngineType) -> Self {
+        let engine = SynthModule::from(value);
 
         Self {
-            // lfo: LFO::new(),
-            // effect: EffectsModules::new(),
-            effects,
-            effect_type: EffectType::Reverb,
-            effect_power: false,
-            // lfo_target: None,
-            engine_type,
-            engines,
-            // engine: Box::new(Organ::new()),
-            // engine: SynthEngines::new(),
-            // lfo_routed: false,
-            // stepper_state: StepperState::default(),
+            engine,
+            engine_type: value,
+            effects: [None, None],
             target_effects: false,
-            // sample_buffer_channel,
         }
     }
+}
 
-    pub fn get_engine(&mut self) -> &mut SynthModule {
-        // info!("{} => {}", self.engine_type, self.engine_type as usize);
+impl SampleGen for SynthChannel {
+    fn get_sample(&mut self) -> f32 {
+        let sample = self.engine.get_sample();
 
-        self.engines.index_mut(self.engine_type as usize)
+        // if !self.effect_power || self.engine_type == SynthEngineType::WaveTable {
+        //     return sample;
+        // }
+        //
+        // self.get_effect().take_input(sample);
+        //
+        // self.get_effect().get_sample()
+
+        let mut output = None;
+
+        for effect in self.effects.iter_mut() {
+            if let Some((ref mut effect, power)) = effect {
+                if power.to_owned() {
+                    match output {
+                        Some(sample) => effect.take_input(sample),
+                        None => effect.take_input(sample),
+                    }
+
+                    output = Some(effect.get_sample())
+                }
+            }
+        }
+
+        output.unwrap_or(sample)
     }
+}
 
-    pub fn get_effect(&mut self) -> &mut EffectsModule {
-        // let effect = self.effect.;
-        self.effects.index_mut(self.effect_type as usize)
-    }
-
+impl SynthChannel {
     pub fn set_engine(&mut self, engine: SynthEngineType) -> bool {
         if engine == self.engine_type {
             return false;
@@ -155,83 +162,166 @@ impl Synth {
         self.engine_type = engine;
         true
     }
+}
 
-    pub fn set_effect(&mut self, effect: EffectType) -> bool {
-        // self.effect = EffectsModule::from(effect);
-
-        self.effect_type = effect;
-
-        // self.effect_power = true;
-
-        true
-    }
-
-    pub fn effect_toggle(&mut self) -> bool {
-        self.effect_power = !self.effect_power;
-
-        // if self.engine_type == SynthEngineType::WaveTable {
-        // self.effect_power = false;
-        // }
-
-        true
-    }
-
-    // pub fn get_samples(&self) -> Arc<[f32]> {
-    //     self.sample_buffer_channel.recv().unwrap()
-    // }
+#[derive(Debug, Clone)]
+pub struct Synth {
+    pub active_channel: usize,
+    pub channels: [SynthChannel; 4],
+    // pub
 }
 
 impl SampleGen for Synth {
     fn get_sample(&mut self) -> f32 {
-        // let engine = self.engines.index_mut(self.engine_type as usize);
-
-        // if let Some(target) = self.lfo_target
-        //     && self.lfo_routed
-        // {
-        //     // info!("sending lfo data to target");
-        //     let lfo_sample = self.lfo.get_sample();
-        //
-        //     match target {
-        //         LfoTarget::Synth(_) => self.get_engine().lfo_control(lfo_sample),
-        //         LfoTarget::Effect(_) => self.get_effect().lfo_control(lfo_sample),
-        //     }
-        // }
-
-        // // let n_engines = self.engines.len();
-        // let mut n_samples = 1;
-        // // let mut sample = 0.0; // self.get_engine().get_sample() * 1.8;
-        //
-        // let mut samples: Vec<f32> = self
-        //     .engines
-        //     .iter_mut()
-        //     .map(|engine| {
-        //         let samp = engine.get_sample();
-        //
-        //         if samp != 0.0 {
-        //             // info!("{engine:?}");
-        //             n_samples += 1;
-        //         }
-        //
-        //         samp
-        //     })
-        //     .collect();
-        // samples[self.engine_type as usize] = samples[self.engine_type as usize] * 2.0;
-        //
-        // // let mut sample = samples.into_iter().sum();
-        //
-        // let bias = 1.0 / (n_samples as f32);
-        // let sample = samples.into_iter().sum::<f32>() * 0.8 * bias;
-        let sample = self.engines[self.engine_type as usize].get_sample();
-
-        if !self.effect_power {
-            return sample;
-        }
-
-        self.get_effect().take_input(sample);
-
-        self.get_effect().get_sample()
+        let sum: f32 = self.channels.iter_mut().map(|chan| chan.get_sample()).sum();
+        sum / 4.0
     }
 }
+
+impl Synth {
+    // pub fn new() -> Self {
+    //     let engines = SynthEngineType::iter()
+    //         .map(|engine_type| engine_type.into())
+    //         .collect();
+    //     let effects = EffectType::iter()
+    //         .map(|effect_type| effect_type.into())
+    //         .collect();
+    //     let engine_type = SynthEngineType::B3Organ;
+    //     // let engine_type = SynthEngineType::WaveTable;
+    //
+    //     Self {
+    //         lfo: LFO::new(),
+    //         // effect: EffectsModules::new(),
+    //         effects,
+    //         effect_type: EffectType::Reverb,
+    //         effect_power: false,
+    //         lfo_target: None,
+    //         engine_type,
+    //         engines,
+    //         // engine: Box::new(Organ::new()),
+    //         // engine: SynthEngines::new(),
+    //         lfo_routed: false,
+    //         // stepper_state: StepperState::default(),
+    //         target_effects: false,
+    //     }
+    // }
+
+    pub fn new() -> Self {
+        Self {
+            active_channel: 0,
+            channels: [
+                SynthChannel::from(SynthEngineType::WaveTable),
+                SynthChannel::from(SynthEngineType::B3Organ),
+                SynthChannel::from(SynthEngineType::SubSynth),
+                SynthChannel::from(SynthEngineType::MidiOut),
+            ],
+        }
+    }
+
+    fn get_channel(&mut self) -> &mut SynthChannel {
+        &mut self.channels[self.active_channel]
+    }
+
+    pub fn get_engine(&mut self) -> &mut SynthModule {
+        // info!("{} => {}", self.engine_type, self.engine_type as usize);
+
+        &mut self.get_channel().engine
+        // .index_mut(self.engine_type as usize)
+    }
+
+    // pub fn get_effect(&mut self) -> &mut EffectsModule {
+    //     // let effect = self.effect.;
+    //     self.effects.index_mut(self.effect_type as usize)
+    // }
+
+    pub fn set_channel_engine(&mut self, channel: usize, engine: SynthEngineType) -> bool {
+        if engine == self.channels[channel].engine_type {
+            return false;
+        }
+
+        // if engine == SynthEngineType::WaveTable {
+        //     self.effect_power = false;
+        // }
+
+        self.channels[channel].engine_type = engine;
+        true
+    }
+
+    // pub fn set_effect(&mut self, effect: EffectType) -> bool {
+    //     // self.effect = EffectsModule::from(effect);
+    //
+    //     self.effect_type = effect;
+    //
+    //     // self.effect_power = true;
+    //
+    //     true
+    // }
+
+    // pub fn effect_toggle(&mut self) -> bool {
+    //     self.effect_power = !self.effect_power;
+    //
+    //     // if self.engine_type == SynthEngineType::WaveTable {
+    //     // self.effect_power = false;
+    //     // }
+    //
+    //     true
+    // }
+
+    // pub fn route_lfo(&mut self, )
+    // TODO: mod route
+}
+
+// impl SampleGen for Synth {
+//     fn get_sample(&mut self) -> f32 {
+//         // let engine = self.engines.index_mut(self.engine_type as usize);
+//
+//         if let Some(target) = self.lfo_target
+//             && self.lfo_routed
+//         {
+//             // info!("sending lfo data to target");
+//             let lfo_sample = self.lfo.get_sample();
+//
+//             match target {
+//                 LfoTarget::Synth(_) => self.get_engine().lfo_control(lfo_sample),
+//                 LfoTarget::Effect(_) => self.get_effect().lfo_control(lfo_sample),
+//             }
+//         }
+//
+//         // // let n_engines = self.engines.len();
+//         // let mut n_samples = 1;
+//         // // let mut sample = 0.0; // self.get_engine().get_sample() * 1.8;
+//         //
+//         // let mut samples: Vec<f32> = self
+//         //     .engines
+//         //     .iter_mut()
+//         //     .map(|engine| {
+//         //         let samp = engine.get_sample();
+//         //
+//         //         if samp != 0.0 {
+//         //             // info!("{engine:?}");
+//         //             n_samples += 1;
+//         //         }
+//         //
+//         //         samp
+//         //     })
+//         //     .collect();
+//         // samples[self.engine_type as usize] = samples[self.engine_type as usize] * 2.0;
+//         //
+//         // // let mut sample = samples.into_iter().sum();
+//         //
+//         // let bias = 1.0 / (n_samples as f32);
+//         // let sample = samples.into_iter().sum::<f32>() * 0.8 * bias;
+//         let sample = self.engines[self.engine_type as usize].get_sample();
+//
+//         if !self.effect_power || self.engine_type == SynthEngineType::WaveTable {
+//             return sample;
+//         }
+//
+//         self.get_effect().take_input(sample);
+//
+//         self.get_effect().get_sample()
+//     }
+// }
 
 impl MidiControlled for Synth {
     fn midi_input(&mut self, message: &MidiMessage) {
@@ -262,7 +352,7 @@ impl MidiControlled for Synth {
             }
             MidiMessage::ControlChange(_, ControlEvent { control, value }) => {
                 let value = value as f32 / 127.0;
-                let effects = self.target_effects;
+                // let effects = self.target_effects;
 
                 match self.get_engine() {
                     SynthModule::WaveTable(wt) => {
@@ -270,14 +360,18 @@ impl MidiControlled for Synth {
                     }
                     engine => {
                         match control {
-                            70 if effects => self.get_effect().knob_1(value),
-                            71 if effects => self.get_effect().knob_2(value),
-                            72 if effects => self.get_effect().knob_3(value),
-                            73 if effects => self.get_effect().knob_4(value),
-                            70 if !effects => self.get_engine().knob_1(value),
-                            71 if !effects => self.get_engine().knob_2(value),
-                            72 if !effects => self.get_engine().knob_3(value),
-                            73 if !effects => self.get_engine().knob_4(value),
+                            // 70 if effects => self.get_effect().knob_1(value),
+                            // 71 if effects => self.get_effect().knob_2(value),
+                            // 72 if effects => self.get_effect().knob_3(value),
+                            // 73 if effects => self.get_effect().knob_4(value),
+                            // 70 if !effects => self.get_engine().knob_1(value),
+                            // 71 if !effects => self.get_engine().knob_2(value),
+                            // 72 if !effects => self.get_engine().knob_3(value),
+                            // 73 if !effects => self.get_engine().knob_4(value),
+                            70 => self.get_engine().knob_1(value),
+                            71 => self.get_engine().knob_2(value),
+                            72 => self.get_engine().knob_3(value),
+                            73 => self.get_engine().knob_4(value),
                             74 => engine.knob_5(value),
                             75 => engine.knob_6(value),
                             76 => engine.knob_7(value),

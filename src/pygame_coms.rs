@@ -85,6 +85,7 @@ pub enum SynthEngineType {
     B3Organ,
     Wurlitzer,
     WaveTable,
+    MidiOut,
     // DrumSynth,
     // SamplerSynth,
 }
@@ -96,6 +97,7 @@ impl Into<usize> for SynthEngineType {
             Self::SubSynth => 1,
             Self::Wurlitzer => 2,
             Self::WaveTable => 3,
+            Self::MidiOut => 4,
         }
     }
 }
@@ -107,6 +109,7 @@ impl Display for SynthEngineType {
             Self::B3Organ => write!(f, "Organ"),
             Self::Wurlitzer => write!(f, "Wurlitzer"),
             Self::WaveTable => write!(f, "WaveTable"),
+            Self::MidiOut => write!(f, "MIDI output"),
             // Self::SamplerSynth => write!(f, "Sampler"),
         }
     }
