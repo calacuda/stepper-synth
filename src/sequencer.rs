@@ -15,7 +15,7 @@ use std::{
         Arc, Mutex,
     },
     time::{Duration, Instant},
-    u16,
+    u16, usize,
 };
 use strum::IntoEnumIterator;
 
@@ -143,10 +143,24 @@ pub enum SequenceChannel {
 impl Into<u8> for SequenceChannel {
     fn into(self) -> u8 {
         match self {
-            Self::A => Channel::Ch1 as u8,
-            Self::B => Channel::Ch2 as u8,
-            Self::C => Channel::Ch3 as u8,
-            Self::D => Channel::Ch4 as u8,
+            Self::A => 0,
+            Self::B => 1,
+            Self::C => 2,
+            Self::D => 3,
+        }
+    }
+}
+
+impl From<usize> for SequenceChannel {
+    fn from(value: usize) -> Self {
+        if value == 0 {
+            Self::A
+        } else if value == 1 {
+            Self::B
+        } else if value == 2 {
+            Self::C
+        } else {
+            Self::D
         }
     }
 }
@@ -216,7 +230,7 @@ impl SequenceIndex {
             SequenceChannel::A => SequenceChannel::D,
             SequenceChannel::B => SequenceChannel::A,
             SequenceChannel::C => SequenceChannel::B,
-            SequenceChannel::D => SequenceChannel::A,
+            SequenceChannel::D => SequenceChannel::C,
         }
     }
 
@@ -429,7 +443,7 @@ impl SequencerIntake {
         if sequence < self.sequences.len() {
             self.rw_head.set_sequence(sequence);
         } else {
-            error!("atempted to set record head to {sequence}, but that sequence doesn't exist.");
+            error!("attempted to set record head to {sequence}, but that sequence doesn't exist.");
         }
     }
 
@@ -562,25 +576,30 @@ pub fn play_sequence(seq: Arc<Mutex<SequencerIntake>>) {
     let mut playing: HashSet<(u8, u8)> = HashSet::default();
 
     let mut send_midi = |synth: &mut Synth, midi_s: MidiMessages| {
-        for midi in midi_s {
-            let instrument = if midi.0 == 0 {
-                synth.get_engine()
-            } else if let Some(synth_type) = synth_types.get((midi.0 - 1) as usize) {
-                synth.engines.index_mut(*synth_type as usize)
-            } else {
-                continue;
-            };
+        for (midi_chan, midi_mesg) in midi_s {
+            // let instrument =
+            // if midi.0 == 0 {
+            //     synth.get_engine()
+            // } else
+            // if let Some(synth_type) = synth_types.get((midi.0 - 1) as usize) {
+            //     synth.engines.index_mut(*synth_type as usize)
+            // } else {
+            //     continue;
+            // };
 
-            match midi.1 {
+            match midi_mesg {
                 StepCmd::Play { note, vel } => {
-                    playing.insert((midi.0, note));
+                    playing.insert((midi_chan, note));
 
-                    instrument.play(note, vel)
+                    synth
+                        .get_channel_engine(midi_chan.into())
+                        .engine
+                        .play(note, vel)
                 }
                 StepCmd::Stop { note } => {
-                    playing.remove(&(midi.0, note));
+                    playing.remove(&(midi_chan, note));
 
-                    instrument.stop(note)
+                    synth.get_channel_engine(midi_chan.into()).engine.stop(note)
                 }
                 StepCmd::CC { code: _, value: _ } => {}
             }
@@ -640,10 +659,12 @@ pub fn play_sequence(seq: Arc<Mutex<SequencerIntake>>) {
     playing.into_iter().for_each(|(ch, note)| {
         let synth = &mut seq.synth;
 
-        if ch == 0 {
-            synth.get_engine().stop(note);
-        } else if let Some(synth_type) = synth_types.get((ch - 1) as usize) {
-            synth.engines.index_mut(*synth_type as usize).stop(note);
-        }
+        synth.get_channel_engine(ch.into()).engine.stop(note);
+
+        // if ch == 0 {
+        //     synth.get_engine().stop(note);
+        // } else if let Some(synth_type) = synth_types.get((ch - 1) as usize) {
+        //     synth.engines.index_mut(*synth_type as usize).stop(note);
+        // }
     })
 }
