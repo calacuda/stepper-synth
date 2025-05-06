@@ -202,7 +202,7 @@ def draw(synth_state):
             controls_f = sub_synth_controls
             controls_args = [pygame, loc_controller, synth, synth_state]
         # case StepperSynthState.Synth(engine=SynthEngineType.WaveTable):
-        #     # log.warning("WaveTable pummlescreen not yet programmed")
+        #     # log.warning("WaveTable screen not yet programmed")
         #     pass
         case StepperSynthState.Effect(effect=EffectType.Reverb):
             draw_reverb_menu(pygame, screen, fonts, synth_state)
@@ -296,7 +296,7 @@ if __name__ == "__main__":
     # synth.set_screen(Screen.Effect(EffectType.Reverb))
     # synth.set_screen(Screen.Synth(SynthEngineType.SubSynth))
     # synth.set_screen(Screen.Synth(SynthEngineType.Wurlitzer))
-    synth.set_screen(Screen.WaveTableSynth())
+    # synth.set_screen(Screen.WaveTableSynth())
     synth.set_screen(Screen.Stepper(0))
     # test_add_mod_mat()
     # test_add_mod_mat()
