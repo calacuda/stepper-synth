@@ -21,7 +21,7 @@ enum_dispatch = "0.3.13"
 fern = { version = "0.7.0", features = ["colored"] }
 fxhash = "0.2.1"
 log = { version = "0.4.22", features = ["max_level_info", "release_max_level_info"] }
-midi-control = "0.2.2"
+midi-control = { version = "0.2.2", default-features = false }
 midir = { version = "0.10.1", optional = true }
 pyo3 = { version = "0.23.3", optional = true }
 reverb = "1.0.47"
