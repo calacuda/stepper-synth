@@ -10,7 +10,9 @@ use fxhash::FxHashMap;
 use fxhash::FxHashSet;
 use log::*;
 use midi_control::MidiMessage;
+#[cfg(feature = "midir")]
 use midir::MidiInput;
+#[cfg(feature = "midir")]
 use midir::{Ignore, PortInfoError};
 use pygame_coms::Screen;
 #[cfg(feature = "pyo3")]

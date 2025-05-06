@@ -9,8 +9,9 @@ name = "stepper_synth_backend"
 crate-type = ["cdylib", "lib"]
 
 [features]
-default = ["pyo3"]
+default = ["pyo3", "midir"]
 pyo3 = ["dep:pyo3"]
+midir = ["dep:midir"] 
 
 [dependencies]
 anyhow = { version = "1.0.94", features = ["backtrace"] }
@@ -21,7 +22,7 @@ fern = { version = "0.7.0", features = ["colored"] }
 fxhash = "0.2.1"
 log = { version = "0.4.22", features = ["max_level_info", "release_max_level_info"] }
 midi-control = "0.2.2"
-midir = "0.10.1"
+midir = { version = "0.10.1", optional = true }
 pyo3 = { version = "0.23.3", optional = true }
 reverb = "1.0.47"
 serde = { version = "1.0.217", features = ["derive"] }
