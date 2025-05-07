@@ -213,7 +213,7 @@ impl Synth {
         Self {
             active_channel: 0,
             channels: [
-                SynthChannel::from(SynthEngineType::WaveTable),
+                // SynthChannel::from(SynthEngineType::WaveTable),
                 SynthChannel::from(SynthEngineType::B3Organ),
                 SynthChannel::from(SynthEngineType::SubSynth),
                 // SynthChannel::from(SynthEngineType::MidiOut),
