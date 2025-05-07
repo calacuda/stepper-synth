@@ -208,13 +208,15 @@ impl Synth {
 
     pub fn new() -> Self {
         info!("Synth::new() called!");
+        println!("Synth::new() called!");
+
         Self {
             active_channel: 0,
             channels: [
                 SynthChannel::from(SynthEngineType::WaveTable),
                 SynthChannel::from(SynthEngineType::B3Organ),
                 SynthChannel::from(SynthEngineType::SubSynth),
-                SynthChannel::from(SynthEngineType::MidiOut),
+                // SynthChannel::from(SynthEngineType::MidiOut),
             ]
             .to_vec(),
         }
