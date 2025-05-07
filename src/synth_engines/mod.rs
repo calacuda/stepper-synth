@@ -3,6 +3,7 @@ use crate::{
     pygame_coms::{GuiParam, Knob, SynthEngineType},
     HashMap, KnobCtrl, MidiControlled, SampleGen,
 };
+use biquad::{Biquad, Coefficients, DirectForm1, ToHertz, Type, Q_BUTTERWORTH_F32};
 use enum_dispatch::enum_dispatch;
 use log::*;
 use midi_control::{Channel, MidiNote};
@@ -168,13 +169,15 @@ impl SynthChannel {
 pub struct Synth {
     pub active_channel: usize,
     pub channels: Vec<SynthChannel>,
+    all_pass: DirectForm1<f32>,
     // pub
 }
 
 impl SampleGen for Synth {
     fn get_sample(&mut self) -> f32 {
         let sum: f32 = self.channels.iter_mut().map(|chan| chan.get_sample()).sum();
-        sum / self.channels.len() as f32
+        // sum / self.channels.len() as f32
+        self.all_pass.run(sum)
     }
 }
 
@@ -210,15 +213,27 @@ impl Synth {
         info!("Synth::new() called!");
         println!("Synth::new() called!");
 
+        // Cutoff and sampling frequencies
+        let f0 = 10.hz();
+        let fs = 1.khz();
+
+        // Create coefficients for the biquads
+        let coeffs =
+            Coefficients::<f32>::from_params(Type::AllPass, fs, f0, Q_BUTTERWORTH_F32).unwrap();
+
+        // Create two different biquads
+        let all_pass = DirectForm1::<f32>::new(coeffs);
+
         Self {
             active_channel: 0,
             channels: [
                 // SynthChannel::from(SynthEngineType::WaveTable),
                 SynthChannel::from(SynthEngineType::B3Organ),
-                SynthChannel::from(SynthEngineType::SubSynth),
+                // SynthChannel::from(SynthEngineType::SubSynth),
                 // SynthChannel::from(SynthEngineType::MidiOut),
             ]
             .to_vec(),
+            all_pass,
         }
     }
 
