@@ -1,6 +1,5 @@
 use crate::{
     effects::EffectType,
-    logger_init,
     sequencer::{Sequence, SequenceChannel, SequencerIntake, Step},
     synth_engines::{
         wave_table::{
@@ -22,7 +21,7 @@ use crate::{
 };
 #[cfg(feature = "pyo3")]
 use crate::{run_midi, sequencer::play_sequence};
-use anyhow::{bail, Result};
+// use anyhow::Result;
 use crossbeam::channel::bounded;
 use log::*;
 #[cfg(feature = "pyo3")]
@@ -482,7 +481,7 @@ impl StepperSynth {
     pub fn new() -> Self {
         use tinyaudio::prelude::*;
 
-        if let Err(reason) = logger_init() {
+        if let Err(reason) = super::logger_init() {
             eprintln!("failed to initiate logger because {reason}");
         }
 
@@ -1198,17 +1197,21 @@ impl StepperSynth {
     }
 }
 
-fn str_to_mod_src(src: &str) -> anyhow::Result<ModMatrixSrc> {
+fn str_to_mod_src(src: &str) -> Result<ModMatrixSrc, String> {
     let src = src.trim().to_lowercase();
 
     if src.starts_with("env-") {
-        let n: usize = src.split("-").collect::<Vec<_>>()[1].parse()?;
+        let n: usize = src.split("-").collect::<Vec<_>>()[1]
+            .parse()
+            .map_err(|e| format!("{e}"))?;
 
         return Ok(ModMatrixSrc::Env(n - 1));
     }
 
     if src.starts_with("lfo-") {
-        let n: usize = src.split("-").collect::<Vec<_>>()[1].parse()?;
+        let n: usize = src.split("-").collect::<Vec<_>>()[1]
+            .parse()
+            .map_err(|e| format!("{e}"))?;
 
         return Ok(ModMatrixSrc::Lfo(n - 1));
     }
@@ -1223,7 +1226,11 @@ fn str_to_mod_src(src: &str) -> anyhow::Result<ModMatrixSrc> {
         "macro-3" | "macro3" | "m-3" | "m3" => ModMatrixSrc::Macro1,
         "macro-4" | "macro4" | "m-4" | "m4" => ModMatrixSrc::Macro1,
         // "" => ModMatrixSrc::,
-        _ => bail!(""),
+        _ => {
+            let msg = format!("{src} could not be parsed as a valid command.");
+            error!("{msg}");
+            return Err(msg);
+        }
     })
 }
 

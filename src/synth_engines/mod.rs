@@ -207,6 +207,7 @@ impl Synth {
     // }
 
     pub fn new() -> Self {
+        info!("Synth::new() called!");
         Self {
             active_channel: 0,
             channels: [

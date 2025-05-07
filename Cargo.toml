@@ -9,18 +9,19 @@ name = "stepper_synth_backend"
 crate-type = ["cdylib", "lib"]
 
 [features]
-default = ["pyo3", "midir", "tinyaudio"]
+default = ["pyo3", "midir", "tinyaudio", "fern"]
 pyo3 = ["dep:pyo3", "anyhow"]
 midir = ["dep:midir"] 
 tinyaudio = ["dep:tinyaudio"]
 anyhow = ["dep:anyhow"]
+fern = ["dep:fern"]
 
 [dependencies]
 anyhow = { version = "1.0.94", features = ["backtrace"], optional = true }
 array-macro = "2.1.8"
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 enum_dispatch = "0.3.13"
-fern = { version = "0.7.0", features = ["colored"] }
+fern = { version = "0.7.0", features = ["colored"], optional = true }
 fxhash = "0.2.1"
 log = { version = "0.4.22", features = ["max_level_info", "release_max_level_info"] }
 midi-control = { version = "0.2.2", default-features = false }

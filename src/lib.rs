@@ -5,6 +5,7 @@ use effects::reverb::ReverbParam;
 use effects::EffectType;
 use effects::EffectsModule;
 use enum_dispatch::enum_dispatch;
+#[cfg(feature = "fern")]
 use fern::colors::{Color, ColoredLevelConfig};
 use fxhash::FxHashMap;
 use fxhash::FxHashSet;
@@ -203,7 +204,8 @@ fn run_midi(
     Ok(())
 }
 
-fn logger_init() -> Result<()> {
+#[cfg(feature = "fern")]
+fn logger_init() -> Result<(), String> {
     let colors = ColoredLevelConfig::new()
         .debug(Color::Blue)
         .info(Color::Green)
@@ -242,7 +244,7 @@ fn logger_init() -> Result<()> {
     #[cfg(target_arch = "aarch64")]
     let dis = dis.chain(fern::log_file("stepper-synth.log")?);
 
-    dis.apply()?;
+    dis.apply().map_err(|e| format!("{e}"))?;
 
     info!("logger started");
 
