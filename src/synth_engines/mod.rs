@@ -211,7 +211,6 @@ impl Synth {
 
     pub fn new() -> Self {
         info!("Synth::new() called!");
-        println!("Synth::new() called!");
 
         // Cutoff and sampling frequencies
         let f0 = 10.hz();
@@ -229,7 +228,6 @@ impl Synth {
             channels: vec![
                 SynthChannel::from(SynthEngineType::WaveTable),
                 SynthChannel::from(SynthEngineType::B3Organ),
-                // SynthChannel::from(SynthEngineType::B3Organ),
                 SynthChannel::from(SynthEngineType::SubSynth),
                 SynthChannel::from(SynthEngineType::MidiOut),
             ],
