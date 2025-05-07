@@ -9,12 +9,14 @@ name = "stepper_synth_backend"
 crate-type = ["cdylib", "lib"]
 
 [features]
-default = ["pyo3", "midir"]
-pyo3 = ["dep:pyo3"]
+default = ["pyo3", "midir", "tinyaudio"]
+pyo3 = ["dep:pyo3", "anyhow"]
 midir = ["dep:midir"] 
+tinyaudio = ["dep:tinyaudio"]
+anyhow = ["dep:anyhow"]
 
 [dependencies]
-anyhow = { version = "1.0.94", features = ["backtrace"] }
+anyhow = { version = "1.0.94", features = ["backtrace"], optional = true }
 array-macro = "2.1.8"
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 enum_dispatch = "0.3.13"
@@ -27,6 +29,6 @@ pyo3 = { version = "0.23.3", optional = true }
 reverb = "1.0.47"
 serde = { version = "1.0.217", features = ["derive"] }
 strum = { version = "0.26.3", features = ["derive"] }
-tinyaudio = "1.0.0"
+tinyaudio = { version = "1.0.0", optional = true }
 toml = "0.8.20"
 # wavetable-synth = { git = "https://github.com/calacuda/wavetable-synth", version = "0.1.0" }

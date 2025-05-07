@@ -1,5 +1,5 @@
 use crate::{
-    effects::{Effect, EffectType},
+    effects::EffectType,
     logger_init,
     sequencer::{Sequence, SequenceChannel, SequencerIntake, Step},
     synth_engines::{
@@ -23,7 +23,7 @@ use crate::{
 #[cfg(feature = "pyo3")]
 use crate::{run_midi, sequencer::play_sequence};
 use anyhow::{bail, Result};
-use crossbeam::channel::{bounded, unbounded};
+use crossbeam::channel::bounded;
 use log::*;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
@@ -39,7 +39,7 @@ use std::{
     time::Duration,
 };
 use strum::EnumIter;
-use tinyaudio::prelude::*;
+// use tinyaudio::prelude::*;
 
 #[cfg_attr(
     feature = "pyo3",
@@ -480,6 +480,8 @@ pub struct StepperSynth {
 #[cfg(feature = "pyo3")]
 impl StepperSynth {
     pub fn new() -> Self {
+        use tinyaudio::prelude::*;
+
         if let Err(reason) = logger_init() {
             eprintln!("failed to initiate logger because {reason}");
         }
@@ -1196,7 +1198,7 @@ impl StepperSynth {
     }
 }
 
-fn str_to_mod_src(src: &str) -> Result<ModMatrixSrc> {
+fn str_to_mod_src(src: &str) -> anyhow::Result<ModMatrixSrc> {
     let src = src.trim().to_lowercase();
 
     if src.starts_with("env-") {

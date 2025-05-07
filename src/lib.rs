@@ -1,6 +1,6 @@
 #![feature(let_chains, stmt_expr_attributes)]
 // #![feature(let_chains)]
-use anyhow::Result;
+// use anyhow::Result;
 use effects::reverb::ReverbParam;
 use effects::EffectType;
 use effects::EffectsModule;
@@ -143,7 +143,7 @@ fn run_midi(
     updated: Arc<Mutex<bool>>,
     exit: Arc<AtomicBool>,
     // effect_midi: Arc<AtomicBool>,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let mut registered_ports = HashMap::default();
 
     while !exit.load(Ordering::Relaxed) {
