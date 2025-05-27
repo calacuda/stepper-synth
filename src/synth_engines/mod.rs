@@ -225,7 +225,7 @@ impl Synth {
 
         info!("allpass made");
 
-        Self {
+        let s = Self {
             active_channel: 0,
             channels: vec![
                 SynthChannel::from(SynthEngineType::WaveTable),
@@ -234,7 +234,11 @@ impl Synth {
                 SynthChannel::from(SynthEngineType::MidiOut),
             ],
             all_pass,
-        }
+        };
+
+        info!("Synth made");
+
+        s
     }
 
     pub fn get_channel(&mut self) -> &mut SynthChannel {
