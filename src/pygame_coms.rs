@@ -462,7 +462,7 @@ pub enum WTSynthParam {
     // MidiUnearn {},
 }
 
-#[cfg(feature = "pyo3")]
+// #[cfg(feature = "pyo3")]
 #[cfg_attr(feature = "pyo3", pyclass(module = "stepper_synth_backend"))]
 #[derive(Debug)]
 pub struct StepperSynth {

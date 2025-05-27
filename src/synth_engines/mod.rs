@@ -223,6 +223,8 @@ impl Synth {
         // Create two different biquads
         let all_pass = DirectForm1::<f32>::new(coeffs);
 
+        info!("allpass made");
+
         Self {
             active_channel: 0,
             channels: vec![
