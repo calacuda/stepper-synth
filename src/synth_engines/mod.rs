@@ -237,7 +237,7 @@ impl Synth {
         //         SynthChannel::from(SynthEngineType::Wurlitzer),
         // ].iter().for_each(|chan|  channels.push(chan));
 
-        channels.push(SynthChannel::from(SynthEngineType::WaveTable));
+        channels[0] = SynthChannel::from(SynthEngineType::WaveTable);
         info!("n_channels {}", channels.len());
         channels.push(SynthChannel::from(SynthEngineType::B3Organ));
         info!("n_channels {}", channels.len());
