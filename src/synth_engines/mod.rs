@@ -232,7 +232,7 @@ impl Synth {
         let channels = [
             SynthChannel::from(SynthEngineType::WaveTable),
             SynthChannel::from(SynthEngineType::B3Organ),
-            SynthChannel::from(SynthEngineType::SubSynth),
+            // SynthChannel::from(SynthEngineType::SubSynth),
             // SynthChannel::from(SynthEngineType::MidiOut),
             SynthChannel::from(SynthEngineType::Wurlitzer),
         ]
