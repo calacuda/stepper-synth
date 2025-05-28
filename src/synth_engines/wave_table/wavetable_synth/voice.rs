@@ -41,9 +41,9 @@ const U32: f32 = u32::MAX as f32 * 0.5;
 #[derive(Clone, Debug)]
 pub struct Voice {
     /// Oscilators holds the osc and if its playing
-    pub oscs: [(Oscillator, bool); N_OSC],
+    pub oscs: Vec<(Oscillator, bool)>,
     /// env filters
-    pub envs: [ADSR; N_ENV],
+    pub envs: Vec<ADSR>,
     // /// LFOs
     // pub lfos: [LFO; N_LFO],
     /// filters
@@ -65,7 +65,9 @@ impl Voice {
         //     // (EffectsModule::Reverb(Reverb::new()), false),
         // ];
         // let lpf = LowPass::new();
-        let mut oscs = array![(Oscillator::new(wave_table), false); N_OSC];
+        let mut oscs: Vec<(Oscillator, bool)> = array![(Oscillator::new(wave_table), false); N_OSC]
+            .into_iter()
+            .collect();
         oscs[0].1 = true;
         oscs[1].1 = true;
         oscs[1].0.offset = -24;
@@ -92,7 +94,7 @@ impl Voice {
 
         Self {
             oscs,
-            envs: array![ADSR::new(); N_ENV],
+            envs: array![ADSR::new(); N_ENV].into_iter().collect(),
             // lfos: array![LFO::new(); N_LFO],
             filters: [LowPass::new(), LowPass::new()],
             playing: None,
