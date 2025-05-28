@@ -236,7 +236,7 @@ impl Synth {
             // SynthChannel::from(SynthEngineType::MidiOut),
             SynthChannel::from(SynthEngineType::Wurlitzer),
         ]
-        .iter()
+        .into_iter()
         .for_each(|chan| channels.push(chan));
 
         // channels.push(SynthChannel::from(SynthEngineType::WaveTable));
