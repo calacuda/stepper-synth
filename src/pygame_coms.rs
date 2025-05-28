@@ -175,7 +175,7 @@ impl From<WaveTableEngine> for Vec<OscState> {
                     OscTarget::DirectOut => "Direct Out".into(),
                 },
             })
-            .to_vec()
+            .collect()
     }
 }
 
@@ -224,7 +224,7 @@ impl From<WaveTableEngine> for Vec<ADSRState> {
                 sus: env.base_params[SUSTAIN],
                 rel: env.base_params[RELEASE],
             })
-            .to_vec()
+            .collect()
     }
 }
 
