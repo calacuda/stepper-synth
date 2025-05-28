@@ -225,11 +225,11 @@ impl Synth {
 
         info!("allpass made");
 
-        let mut channels = Vec::new();
+        // let mut channels = Vec::new();
+        //
+        // info!("channels var made.");
 
-        info!("channels var made.");
-
-        [
+        let channels = [
             SynthChannel::from(SynthEngineType::WaveTable),
             SynthChannel::from(SynthEngineType::B3Organ),
             SynthChannel::from(SynthEngineType::SubSynth),
@@ -237,7 +237,8 @@ impl Synth {
             SynthChannel::from(SynthEngineType::Wurlitzer),
         ]
         .into_iter()
-        .for_each(|chan| channels.push(chan));
+        // .for_each(|chan| channels.push(chan));
+        .collect();
 
         // channels.push(SynthChannel::from(SynthEngineType::WaveTable));
         // info!("n_channels {}", channels.len());
