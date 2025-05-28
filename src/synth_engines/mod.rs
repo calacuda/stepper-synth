@@ -227,12 +227,13 @@ impl Synth {
 
         let s = Self {
             active_channel: 0,
-            channels: vec![
+            channels: [
                 SynthChannel::from(SynthEngineType::WaveTable),
                 SynthChannel::from(SynthEngineType::B3Organ),
                 SynthChannel::from(SynthEngineType::SubSynth),
                 SynthChannel::from(SynthEngineType::MidiOut),
-            ],
+            ]
+            .to_vec(),
             all_pass,
         };
 
