@@ -225,7 +225,7 @@ impl Synth {
 
         info!("allpass made");
 
-        let mut channels = Vec::with_capacity(5);
+        let mut channels = Vec::with_capacity(3);
 
         info!("channels var made.");
 
@@ -247,7 +247,7 @@ impl Synth {
         channels.push(SynthChannel::from(SynthEngineType::Wurlitzer));
         info!("n_channels {}", channels.len());
 
-        info!("channels made");
+        info!("channels made and initialized with default values");
 
         let s = Self {
             active_channel: 0,
