@@ -236,10 +236,14 @@ impl Synth {
         // ].iter().for_each(|chan|  channels.push(chan));
 
         channels.push(SynthChannel::from(SynthEngineType::WaveTable));
+        info!("n_channels {}", channels.len());
         channels.push(SynthChannel::from(SynthEngineType::B3Organ));
+        info!("n_channels {}", channels.len());
         channels.push(SynthChannel::from(SynthEngineType::SubSynth));
+        info!("n_channels {}", channels.len());
         channels.push(SynthChannel::from(SynthEngineType::MidiOut));
-        // SynthChannel::from(SynthEngineType::Wurlitzer);
+        // channels.push(SynthChannel::from(SynthEngineType::Wurlitzer));
+        info!("n_channels {}", channels.len());
 
         info!("channels made");
 
