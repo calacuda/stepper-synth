@@ -225,28 +225,30 @@ impl Synth {
 
         info!("allpass made");
 
-        let mut channels = Vec::with_capacity(3);
+        let mut channels = Vec::new();
 
         info!("channels var made.");
 
-        // [
-        //         SynthChannel::from(SynthEngineType::WaveTable),
-        //         SynthChannel::from(SynthEngineType::B3Organ),
-        //         SynthChannel::from(SynthEngineType::SubSynth),
-        //         // SynthChannel::from(SynthEngineType::MidiOut),
-        //         SynthChannel::from(SynthEngineType::Wurlitzer),
-        // ].iter().for_each(|chan|  channels.push(chan));
+        [
+            SynthChannel::from(SynthEngineType::WaveTable),
+            SynthChannel::from(SynthEngineType::B3Organ),
+            SynthChannel::from(SynthEngineType::SubSynth),
+            // SynthChannel::from(SynthEngineType::MidiOut),
+            SynthChannel::from(SynthEngineType::Wurlitzer),
+        ]
+        .iter()
+        .for_each(|chan| channels.push(chan));
 
-        channels.push(SynthChannel::from(SynthEngineType::WaveTable));
-        info!("n_channels {}", channels.len());
-        channels.push(SynthChannel::from(SynthEngineType::B3Organ));
-        info!("n_channels {}", channels.len());
-        channels.push(SynthChannel::from(SynthEngineType::SubSynth));
-        info!("n_channels {}", channels.len());
-        // channels.push(SynthChannel::from(SynthEngineType::MidiOut));
-        channels.push(SynthChannel::from(SynthEngineType::Wurlitzer));
-        info!("n_channels {}", channels.len());
-
+        // channels.push(SynthChannel::from(SynthEngineType::WaveTable));
+        // info!("n_channels {}", channels.len());
+        // channels.push(SynthChannel::from(SynthEngineType::B3Organ));
+        // info!("n_channels {}", channels.len());
+        // channels.push(SynthChannel::from(SynthEngineType::SubSynth));
+        // info!("n_channels {}", channels.len());
+        // // channels.push(SynthChannel::from(SynthEngineType::MidiOut));
+        // channels.push(SynthChannel::from(SynthEngineType::Wurlitzer));
+        // info!("n_channels {}", channels.len());
+        //
         info!("channels made and initialized with default values");
 
         let s = Self {
