@@ -225,15 +225,27 @@ impl Synth {
 
         info!("allpass made");
 
+        let mut channels = Vec::with_capacity(4);
+
+        // [
+        //         SynthChannel::from(SynthEngineType::WaveTable),
+        //         SynthChannel::from(SynthEngineType::B3Organ),
+        //         SynthChannel::from(SynthEngineType::SubSynth),
+        //         // SynthChannel::from(SynthEngineType::MidiOut),
+        //         SynthChannel::from(SynthEngineType::Wurlitzer),
+        // ].iter().for_each(|chan|  channels.push(chan));
+
+        channels.push(SynthChannel::from(SynthEngineType::WaveTable));
+        channels.push(SynthChannel::from(SynthEngineType::B3Organ));
+        channels.push(SynthChannel::from(SynthEngineType::SubSynth));
+        channels.push(SynthChannel::from(SynthEngineType::MidiOut));
+        // SynthChannel::from(SynthEngineType::Wurlitzer);
+
+        info!("channels made");
+
         let s = Self {
             active_channel: 0,
-            channels: vec![
-                SynthChannel::from(SynthEngineType::WaveTable),
-                SynthChannel::from(SynthEngineType::B3Organ),
-                SynthChannel::from(SynthEngineType::SubSynth),
-                // SynthChannel::from(SynthEngineType::MidiOut),
-                SynthChannel::from(SynthEngineType::Wurlitzer),
-            ],
+            channels,
             all_pass,
         };
 
