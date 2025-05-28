@@ -160,6 +160,7 @@ impl From<WaveTableEngine> for Vec<OscState> {
         value.synth.voices[0]
             .oscs
             .clone()
+            .into_iter()
             .map(|(osc, on)| OscState {
                 volume: osc.level,
                 wave_table: osc.wave_table.to_vec(),
@@ -216,6 +217,7 @@ impl From<WaveTableEngine> for Vec<ADSRState> {
         value.synth.voices[0]
             .envs
             .clone()
+            .into_iter()
             .map(|env| ADSRState {
                 atk: env.base_params[ATTACK],
                 dcy: env.base_params[DECAY],
