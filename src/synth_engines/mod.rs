@@ -227,6 +227,8 @@ impl Synth {
 
         let mut channels = Vec::with_capacity(4);
 
+        info!("channels var made.");
+
         // [
         //         SynthChannel::from(SynthEngineType::WaveTable),
         //         SynthChannel::from(SynthEngineType::B3Organ),
