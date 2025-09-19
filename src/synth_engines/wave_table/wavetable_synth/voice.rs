@@ -71,7 +71,7 @@ impl Voice {
         oscs[0].1 = true;
         oscs[1].1 = true;
         oscs[1].0.offset = -24;
-        // oscs[2].1 = true;
+        oscs[2].1 = true;
         let targets = [
             OscTarget::Filter1,
             OscTarget::Filter2,

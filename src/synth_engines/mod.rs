@@ -163,6 +163,12 @@ impl SynthChannel {
         self.engine_type = engine;
         true
     }
+
+    // pub fn get_engine(&mut self) -> &mut impl SynthEngine {
+    //     match self {
+    //         Self { engine, engine_type, effects, target_effects }
+    //     }
+    // }
 }
 
 #[derive(Debug, Clone)]
