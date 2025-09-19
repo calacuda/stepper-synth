@@ -70,9 +70,9 @@ impl Voice {
             .collect();
         oscs[0].1 = true;
         oscs[1].1 = true;
-        oscs[1].0.offset = -12;
+        oscs[1].0.offset = +7;
         oscs[2].1 = true;
-        oscs[2].0.offset = -24;
+        oscs[2].0.offset = -12;
 
         let targets = [
             OscTarget::Filter1,
