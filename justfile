@@ -39,14 +39,15 @@ hardware-reboot:
 
 flash-adb:
   adb shell "mkdir /userdata/roms/ports/stepper-synth/"
-  adb push ./{gui/{Stepper-Synth.pygame,stepper_synth,Anonymous-Pro.ttf},dist/stepper_synth_backend-0.1.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl} /userdata/roms/ports/stepper-synth/
+  adb push ./{gui/{Stepper-Synth.pygame,stepper_synth,Anonymous-Pro.ttf},dist/stepper_synth_backend-0.1.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl} /userdata/roms/ports/stepper-synth/
   adb shell "cd /userdata/roms/ports/stepper-synth/; .venv/bin/python -m pip install --force-reinstall --no-index ./stepper_synth_backend-*aarch64.whl"
 
 build-debug:
-  PKG_CONFIG_SYSROOT_DIR=./cross-build-deps/aarch64 maturin build --out dist --find-interpreter --target aarch64-unknown-linux-gnu --zig
+  PKG_CONFIG_SYSROOT_DIR=./cross-build-deps/aarch64 maturin build --out dist --interpreter=3.12 --target aarch64-unknown-linux-gnu --zig
 
 build-release:
-  PKG_CONFIG_SYSROOT_DIR=./cross-build-deps/aarch64 maturin build --out dist --find-interpreter --target aarch64-unknown-linux-gnu --zig --release
+  PKG_CONFIG_SYSROOT_DIR=./cross-build-deps/aarch64 maturin build --out dist --interpreter=3.12 --target aarch64-unknown-linux-gnu --zig --release
+  # PKG_CONFIG_SYSROOT_DIR=./cross-build-deps/aarch64 maturin build --out dist --find-interpreter --target aarch64-unknown-linux-gnu --zig --release
 
 force-kill-synth:
   adb shell "killall python"

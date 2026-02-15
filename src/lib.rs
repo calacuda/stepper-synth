@@ -241,8 +241,9 @@ fn logger_init() -> Result<(), String> {
     // .filter(|metadata| metadata.target().starts_with("stepper"))
     // .apply()?;
 
-    #[cfg(target_arch = "aarch64")]
-    let dis = dis.chain(fern::log_file("stepper-synth.log")?);
+    // #[cfg(target_arch = "aarch64")]
+    // let dis = dis.chain(fern::log_file("stepper-synth.log"));
+    // let dis = dis.chain(fern::log_file("stepper-synth.log"));
 
     dis.apply().map_err(|e| format!("{e}"))?;
 
