@@ -3,16 +3,16 @@ use crate::{
     sequencer::{Sequence, SequenceChannel, SequencerIntake, Step},
     synth_engines::{
         wave_table::{
-            wavetable_synth::{
-                common::{
-                    EnvParam, LfoParam, LowPass, LowPassParam, ModMatrixDest, ModMatrixItem,
-                    ModMatrixSrc, OscParam,
-                },
-                synth_engines::{
-                    synth::osc::OscTarget,
-                    synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN},
-                },
-            },
+            // wavetable_synth::{
+            //     common::{
+            //         EnvParam, LfoParam, LowPass, LowPassParam, ModMatrixDest, ModMatrixItem,
+            //         ModMatrixSrc, OscParam,
+            //     },
+            //     synth_engines::{
+            //         synth::osc::OscTarget,
+            //         synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN},
+            //     },
+            // },
             WaveTableEngine,
         },
         Synth, SynthEngine, SynthModule,
@@ -38,6 +38,17 @@ use std::{
     time::Duration,
 };
 use strum::EnumIter;
+use wavetable_synth::{
+    common::{
+        EnvParam, LfoParam, LowPass, LowPassParam, ModMatrixDest, ModMatrixItem, ModMatrixSrc,
+        OscParam,
+    },
+    synth_engines::{
+        synth::osc::OscTarget,
+        synth_common::env::{ATTACK, DECAY, RELEASE, SUSTAIN},
+    },
+};
+
 // use tinyaudio::prelude::*;
 
 #[cfg_attr(
@@ -158,6 +169,8 @@ pub struct OscState {
 impl From<WaveTableEngine> for Vec<OscState> {
     fn from(value: WaveTableEngine) -> Self {
         value.synth.voices[0]
+            .read()
+            .unwrap()
             .oscs
             .clone()
             .into_iter()
@@ -171,7 +184,7 @@ impl From<WaveTableEngine> for Vec<OscState> {
                     OscTarget::Filter1 => "Filter 1".into(),
                     OscTarget::Filter2 => "Filter 2".into(),
                     OscTarget::Filter1_2 => "Filter 1 & 2".into(),
-                    // OscTarget::Effects => "Effects".into(),
+                    OscTarget::Effects => "Effects".into(),
                     OscTarget::DirectOut => "Direct Out".into(),
                 },
             })
@@ -191,6 +204,8 @@ pub struct LowPassState {
 impl From<WaveTableEngine> for Vec<LowPassState> {
     fn from(value: WaveTableEngine) -> Self {
         value.synth.voices[0]
+            .read()
+            .unwrap()
             .filters
             .clone()
             .map(|lp| LowPassState {
@@ -215,6 +230,8 @@ pub struct ADSRState {
 impl From<WaveTableEngine> for Vec<ADSRState> {
     fn from(value: WaveTableEngine) -> Self {
         value.synth.voices[0]
+            .read()
+            .unwrap()
             .envs
             .clone()
             .into_iter()
@@ -236,8 +253,9 @@ pub struct LfoState {
 
 impl From<WaveTableEngine> for Vec<LfoState> {
     fn from(value: WaveTableEngine) -> Self {
-        value
-            .synth
+        value.synth.voices[0]
+            .read()
+            .unwrap()
             .lfos
             .clone()
             .map(|lfo| LfoState {
@@ -967,19 +985,19 @@ impl StepperSynth {
                 wt_synth
                     .synth
                     .voices
-                    .iter_mut()
-                    .for_each(|v| v.oscs[n].1 = on);
+                    .iter()
+                    .for_each(|v| v.write().unwrap().oscs[n].1 = on);
             }
             WTSynthParam::OscVol { n, to } => wt_synth
                 .synth
                 .voices
-                .iter_mut()
-                .for_each(|v| v.oscs.index_mut(n).0.level = to),
+                .iter()
+                .for_each(|v| v.write().unwrap().oscs.index_mut(n).0.level = to),
             WTSynthParam::OscDetune { n, detune } => wt_synth
                 .synth
                 .voices
-                .iter_mut()
-                .for_each(|v| v.oscs[n].0.detune = detune),
+                .iter()
+                .for_each(|v| v.write().unwrap().oscs[n].0.detune = detune),
             WTSynthParam::OscWaveTable {
                 n: _,
                 wave_table: _,
@@ -995,8 +1013,8 @@ impl StepperSynth {
                 wt_synth
                     .synth
                     .voices
-                    .iter_mut()
-                    .for_each(|v| v.oscs[n].0.offset = offset);
+                    .iter()
+                    .for_each(|v| v.write().unwrap().oscs[n].0.offset = offset);
             }
             WTSynthParam::OscTarget { n: _, target: _ } => {
                 // wt_synth
@@ -1010,66 +1028,66 @@ impl StepperSynth {
                 wt_synth
                     .synth
                     .voices
-                    .iter_mut()
-                    .for_each(|v| v.filters[n].cutoff = cutoff);
+                    .iter()
+                    .for_each(|v| v.write().unwrap().filters[n].cutoff = cutoff);
             }
             WTSynthParam::LowPassRes { n, res } => {
                 wt_synth
                     .synth
                     .voices
-                    .iter_mut()
-                    .for_each(|v| v.filters[n].resonance = res);
+                    .iter()
+                    .for_each(|v| v.write().unwrap().filters[n].resonance = res);
             }
             WTSynthParam::LowPassMix { n, mix } => {
                 wt_synth
                     .synth
                     .voices
-                    .iter_mut()
-                    .for_each(|v| v.filters[n].mix = mix);
+                    .iter()
+                    .for_each(|v| v.write().unwrap().filters[n].mix = mix);
             }
             WTSynthParam::LowPassTracking { n, track } => {
                 wt_synth
                     .synth
                     .voices
-                    .iter_mut()
-                    .for_each(|v| v.filters[n].key_track = track);
+                    .iter()
+                    .for_each(|v| v.write().unwrap().filters[n].key_track = track);
             }
             WTSynthParam::ADSRAttack { n, val } => {
                 wt_synth
                     .synth
                     .voices
-                    .iter_mut()
-                    .for_each(|v| v.envs[n].set_atk(val));
+                    .iter()
+                    .for_each(|v| v.write().unwrap().envs[n].set_atk(val));
             }
             WTSynthParam::ADSRDecay { n, val } => {
                 wt_synth
                     .synth
                     .voices
-                    .iter_mut()
-                    .for_each(|v| v.envs[n].set_decay(val));
+                    .iter()
+                    .for_each(|v| v.write().unwrap().envs[n].set_decay(val));
             }
             WTSynthParam::ADSRSustain { n, val } => {
                 wt_synth
                     .synth
                     .voices
-                    .iter_mut()
-                    .for_each(|v| v.envs[n].set_sus(val));
+                    .iter()
+                    .for_each(|v| v.write().unwrap().envs[n].set_sus(val));
             }
             WTSynthParam::ADSRRelease { n, val } => {
                 wt_synth
                     .synth
                     .voices
-                    .iter_mut()
-                    .for_each(|v| v.envs[n].set_release(val));
+                    .iter()
+                    .for_each(|v| v.write().unwrap().envs[n].set_release(val));
             }
             WTSynthParam::LfoSpeed { n, speed } => {
                 wt_synth
                     .synth
-                    // .voices
-                    // .iter_mut()
-                    // .for_each(|v| v.lfos[n].set_frequency(1.0 / speed));
-                    .lfos[n]
-                    .set_frequency(1.0 / speed);
+                    .voices
+                    .iter()
+                    .for_each(|v| v.write().unwrap().lfos[n].set_frequency(1.0 / speed));
+                // .lfos[n]
+                // .set_frequency(1.0 / speed);
             }
             WTSynthParam::ModMatrixAdd {
                 src,

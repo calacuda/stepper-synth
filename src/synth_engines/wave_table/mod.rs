@@ -7,10 +7,14 @@ use log::warn;
 use midi_control::MidiNote;
 use wavetable_synth::{
     common::{ModMatrixDest, ModMatrixItem, ModMatrixSrc, OscParam},
-    App,
+    App, SampleGen as _,
 };
+// use wavetable_synth::{
+//     common::{ModMatrixDest, ModMatrixItem, ModMatrixSrc, OscParam},
+//     App,
+// };
 
-pub mod wavetable_synth;
+// pub mod wavetable_synth;
 
 #[derive(Debug, Clone)]
 pub struct WaveTableEngine {
@@ -22,10 +26,14 @@ impl WaveTableEngine {
     pub fn new() -> Self {
         let mut synth = App::default();
 
-        synth
-            .voices
-            .iter_mut()
-            .for_each(|voice| voice.oscs.iter_mut().for_each(|(osc, _on)| osc.level = 0.5));
+        synth.voices.iter().for_each(|voice| {
+            voice
+                .write()
+                .unwrap()
+                .oscs
+                .iter_mut()
+                .for_each(|(osc, _on)| osc.level = 0.5)
+        });
         synth.mod_matrix[0] = Some(ModMatrixItem {
             src: ModMatrixSrc::Velocity,
             dest: ModMatrixDest::SynthVolume,

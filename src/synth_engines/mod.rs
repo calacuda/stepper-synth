@@ -14,6 +14,7 @@ use organ::organ::Organ;
 use pyo3::prelude::*;
 use std::{fmt::Debug, ops::IndexMut};
 use strum::IntoEnumIterator;
+use wavetable_synth::MidiControlled as _;
 // use wavetable_synth::MidiControlled as _;
 // use synth_common::lfo::LFO;
 use wave_table::WaveTableEngine;
